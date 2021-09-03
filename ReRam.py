@@ -5,6 +5,7 @@ Module to initialize the main menu.
 # TODO: Program to initiate forming process
 # TODO: Search for the correct instrument address, promopt error if not found
 # TODO: replace pymeasure with pyvisa implementation
+# TODO: Ensure will work on other machines
 """
 
 import sys
