@@ -13,6 +13,7 @@ import os
 from re import sub
 from PyQt5 import QtWidgets, QtCore
 from pymeasure.instruments.keithley import Keithley2450
+from pymeasure.instruments.keithley import Keithley2700
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
