@@ -99,6 +99,9 @@ venv.bak/
 .spyderproject
 .spyproject
 
+# pyLint results
+.pylint.d
+
 # Rope project settings
 .ropeproject
 
@@ -112,3 +115,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# path.txt
+path.txt
