@@ -11,8 +11,7 @@ from numpy import linspace, around, concatenate, array
 from PyQt5 import QtCore, QtWidgets, QtGui
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from pymeasure.instruments.keithley import Keithley2450
-from pymeasure.experiment import unique_filename
-
+from utilities import unique_filename
 
 class Ui_RVLoop(QtWidgets.QWidget):
     """The pyqt5 gui class for RV loop measurement."""

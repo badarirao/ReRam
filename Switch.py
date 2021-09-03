@@ -13,8 +13,7 @@ from winsound import MessageBeep
 from PyQt5 import QtCore, QtWidgets, QtGui
 from pyqtgraph import GraphicsLayoutWidget, ViewBox, mkPen
 from pymeasure.instruments.keithley import Keithley2450
-from pymeasure.experiment import unique_filename
-
+from utilities import unique_filename
 
 class Ui_Switch(QtWidgets.QWidget):
     """The pyqt5 gui class for switching experiment."""

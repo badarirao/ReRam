@@ -12,14 +12,13 @@ from datetime import date
 from PyQt5 import QtCore, QtWidgets, QtGui
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
 from pymeasure.instruments.keithley import Keithley2450
-from pymeasure.experiment import unique_filename
 from numpy import linspace, array_split, around, concatenate, append
 from numpy import reshape, array, savetxt, hsplit, insert, loadtxt
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.chart import ScatterChart, Reference, Series
 from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
-
+from utilities import unique_filename
 
 
 class Ui_IVLoop(QtWidgets.QWidget):

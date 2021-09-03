@@ -5,7 +5,8 @@ Module to initialize the main menu.
 # TODO: Program to initiate forming process
 # TODO: Search for the correct instrument address, promopt error if not found
 # TODO: replace pymeasure with pyvisa implementation
-# TODO: Ensure will work on other machines
+# TODO: Get relevant machine address automatically (currently, must be specified in address.txt)
+# TODO: Allow for both SCPI and TSP commands (currently only SCPI works)
 """
 
 import sys
@@ -14,11 +15,19 @@ from re import sub
 from PyQt5 import QtWidgets, QtCore
 from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.instruments.keithley import Keithley2700
+from pymeasure.adapters.adapter import FakeAdapter # for debugging purpose
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
 from Switch import app_Switch
 
+class PathNotDefinedError(Exception):
+    """Raised when the address is not specified"""
+    pass
+
+class InvalidInstrumentAddressError(Exception):
+    """Raised when the given instrument address is invalid"""
+    pass
 
 def get_valid_filename(s):
     """
@@ -44,12 +53,44 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
 
     def __init__(self, *args, obj=None, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
-        self.k2450 = Keithley2450(
-            "USB0::0x05E6::0x2450::04488850::INSTR")
+        """
+        contents of address.txt:
+            line 1: path where SettingFile.dnd is (or should be) stored
+            line 2: address of Keithley 2450 sourcemeter (only scpi)
+            line 3: address of Keithley 2700 multiplexer
+            line 4: address of Tektronix AFG1022 arbitrary function generator
+        """
+        self.initial = 0
+        try:
+            with open('address.txt') as f:
+                self.settingPath = f.readline()[:-1]# get path of SettingFile.dnd
+                self.k2450Addr = f.readline()[:-1]# get address of Keithley 2450
+                self.k2700Addr = f.readline()[:-1]# get address of Keithley 2700
+                self.AFG1022Addr = f.readline()[:-1]#get address of Tektronix AFG1022
+                #ensure that all 4 lines exist
+                if not all({self.settingPath,self.k2450Addr,self.k2700Addr,self.AFG1022Addr}):
+                    raise PathNotDefinedError
+                self.k2450 = Keithley2450(self.k2450Addr)
+                self.k2700 = Keithley2700(self.k2700Addr)
+                #self.afg = AFG1022(self.AFG1022Addr)
+                self.initial = 1
+        except FileNotFoundError:
+            print("Address file not found!. Create address.txt with relevant details, as explained in readme file")
+            sys.exit()
+        except PathNotDefinedError:
+            print("Required addresses not specified. Correct address.txt and try again")
+            sys.exit()
+        except ValueError:
+            print("Instrument not connected or address not correct! Check again")
+            # For debugging purpose, invoke a fake adapter
+            self.k2450 = FakeAdapter()
+            self.k2700 = FakeAdapter()
+            self.afg = FakeAdapter()
+            #sys.exit()  # Use this during actual use
+
         self.k2450.reset()
         self.initialPath = os.getcwd()
-        with open('path.txt') as f:
-            self.settingPath = f.readline()# store path of SettingFile.dnd here
+        
         #Default file storage location is set to desktop
         self.defaultPath = os.path.join(
             os.path.expandvars("%userprofile%"), "Desktop")
