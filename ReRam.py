@@ -1,5 +1,7 @@
 """
 Module to initialize the main menu.
+Works on Python 3.8.5, Windows 10
+Not tested for other Python versions or OS
 
 # TODO: In Switch program, option to just measure resistance without switching
 # TODO: Program to initiate forming process
@@ -8,26 +10,25 @@ Module to initialize the main menu.
 # TODO: Get relevant machine address automatically (currently, must be specified in address.txt)
 # TODO: Allow for both SCPI and TSP commands (currently only SCPI works)
 """
-
+# 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
+# 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
+# 'TEKTRONIX,AFG1022,1643763,SCPI:99.0 FV:V1.2.3\n'
+#  except VisaIOError:
 import sys
 import os
 from re import sub
 from PyQt5 import QtWidgets, QtCore
+from pyvisa import ResourceManager, VisaIOError
 from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.instruments.keithley import Keithley2700
-from pymeasure.adapters.adapter import FakeAdapter # for debugging purpose
+from afg1022 import AFG1022 
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
 from Switch import app_Switch
+from utilities import FakeAdapter
 
-class PathNotDefinedError(Exception):
-    """Raised when the address is not specified"""
-    pass
-
-class InvalidInstrumentAddressError(Exception):
-    """Raised when the given instrument address is invalid"""
-    pass
+TESTING = True  #if True, will use a Fakeadapter when no instrument connected
 
 def get_valid_filename(s):
     """
@@ -56,49 +57,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         contents of address.txt:
             line 1: path where SettingFile.dnd is (or should be) stored
-            line 2: address of Keithley 2450 sourcemeter (only scpi)
-            line 3: address of Keithley 2700 multiplexer
-            line 4: address of Tektronix AFG1022 arbitrary function generator
         """
         self.initial = 0
-        try:
-            with open('address.txt') as f:
-                self.settingPath = f.readline()[:-1]# get path of SettingFile.dnd
-                self.k2450Addr = f.readline()[:-1]# get address of Keithley 2450
-                self.k2700Addr = f.readline()[:-1]# get address of Keithley 2700
-                self.AFG1022Addr = f.readline()[:-1]#get address of Tektronix AFG1022
-                #ensure that all 4 lines exist
-                if not all({self.settingPath,self.k2450Addr,self.k2700Addr,self.AFG1022Addr}):
-                    raise PathNotDefinedError
-                self.k2450 = Keithley2450(self.k2450Addr)
-                self.k2700 = Keithley2700(self.k2700Addr)
-                #self.afg = AFG1022(self.AFG1022Addr)
-                self.initial = 1
-        except FileNotFoundError:
-            print("Address file not found!. Create address.txt with relevant details, as explained in readme file")
-            sys.exit()
-        except PathNotDefinedError:
-            print("Required addresses not specified. Correct address.txt and try again")
-            sys.exit()
-        except ValueError:
-            print("Instrument not connected or address not correct! Check again")
-            # For debugging purpose, invoke a fake adapter
-            self.k2450 = FakeAdapter()
-            self.k2700 = FakeAdapter()
-            self.afg = FakeAdapter()
-            #sys.exit()  # Use this during actual use
-
+        self.checkPaths()
+        self.checkInstrument()
         self.k2450.reset()
-        self.initialPath = os.getcwd()
-        
-        #Default file storage location is set to desktop
-        self.defaultPath = os.path.join(
-            os.path.expandvars("%userprofile%"), "Desktop")
-        if not os.path.exists(self.defaultPath):
-            self.defaultPath = self.initialPath 
-        if not os.path.exists(self.settingPath):
-            self.settingPath = self.initialPath
         self.setupUi(self)
+        self.filename.setText(self.sampleID)
         self.dir_Button.clicked.connect(self.openDir)
         self.iv_button.clicked.connect(self.open_ivloop)
         self.rv_button.clicked.connect(self.open_rvloop)
@@ -111,6 +76,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.temperature_button.setEnabled(False)
         self.batch_button.setEnabled(False)
         self.filename.editingFinished.connect(self.setFilename)
+        self.setFilename(1)  # 1 indicates initial setting of filename
+        self.iv = app_IVLoop(self, self.k2450, self.IVfilename)
+        self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.rv = app_RVLoop(self, self.k2450, self.RVfilename)
+        self.rv.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.st = app_Switch(self, self.k2450, self.Switchfilename)
+        self.st.setWindowModality(QtCore.Qt.ApplicationModal)
+
+    def checkPaths(self):
+        if os.path.exists('address.txt'):
+            with open('address.txt') as f:
+                self.settingPath = f.readline()[:-1]# get path of SettingFile.dnd
+        self.initialPath = os.getcwd()
+        # set defaultPath as desktop
+        self.defaultPath = os.path.join(
+            os.path.expandvars("%userprofile%"), "Desktop")
+        if not os.path.exists(self.defaultPath):
+            self.defaultPath = self.initialPath 
+        if not os.path.exists(self.settingPath):
+            self.settingPath = self.initialPath
         os.chdir(self.settingPath)
         # SettingFile contains last used filename, which is loaded initially
         try:
@@ -124,16 +109,42 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                     os.chdir(self.defaultPath)
                 if self.sampleID == '' or self.sampleID.isspace():
                     self.sampleID = "Sample"
-                self.filename.setText(self.sampleID)
         except FileNotFoundError:
             os.chdir(self.defaultPath)
-        self.setFilename(1)  # 1 indicates initial setting of filename
-        self.iv = app_IVLoop(self, self.k2450, self.IVfilename)
-        self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rv = app_RVLoop(self, self.k2450, self.RVfilename)
-        self.rv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.st = app_Switch(self, self.k2450, self.Switchfilename)
-        self.st.setWindowModality(QtCore.Qt.ApplicationModal)
+
+    def checkInstrument(self):
+        global TESTING
+        rm = ResourceManager()
+        instList = rm.list_resources()
+        self.k2450Addr = None
+        self.k2700Addr = None
+        self.AFG1022Addr = None
+        for inst in instList:
+            try:
+                myInst = rm.open_resource(inst)
+                instID = myInst.query('*IDN?').split(',')
+                if 'KEITHLEY' in instID[0] and '2450' in instID[1]:
+                    self.k2450Addr = inst
+                    self.k2450 = Keithley2450(self.k2450Addr)
+                elif 'KEITHLEY' in instID[0] and '2700' in instID[1]:
+                    self.k2700Addr = inst
+                    self.k2700 = Keithley2700(self.k2700Addr)
+                elif 'TEKTRONIX' in instID[0] and 'AFG1022' in instID[1]:
+                    self.AFG1022Addr = inst
+                    self.afg = AFG1022(self.AFG1022Addr)
+            except VisaIOError:
+                pass
+        # For debugging purpose, invoke a fake adapter
+        if TESTING is True:
+            if not self.k2450Addr:
+                self.k2450 = FakeAdapter()
+            if not self.k2700Addr:
+                self.k2700 = FakeAdapter()
+            if not self.AFG1022Addr:
+                self.afg = FakeAdapter()
+        elif not all((self.k2450Addr,self.k2700Addr,self.AFG1022Addr)):
+            print("Instrument not connected! Check connections!")
+            sys.exit()
 
     def closeEvent(self, event):
         """
