@@ -9,6 +9,7 @@ Not tested for other Python versions or OS
 # TODO: replace pymeasure with pyvisa implementation
 # TODO: Get relevant machine address automatically (currently, must be specified in address.txt)
 # TODO: Allow for both SCPI and TSP commands (currently only SCPI works)
+# TODO: Implement endurance testing
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
