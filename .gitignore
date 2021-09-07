@@ -118,6 +118,7 @@ dmypy.json
 
 # path relevant to this computer
 address.txt
+SettingFile.dnd
 
 # work-in-progress files to ignore
 Mykeithley2450.py
