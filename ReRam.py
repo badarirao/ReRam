@@ -85,9 +85,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.st.setWindowModality(QtCore.Qt.ApplicationModal)
 
     def checkPaths(self):
+        self.settingPath = ""
+        self.sampleID = ''
         if os.path.exists('address.txt'):
             with open('address.txt') as f:
-                self.settingPath = f.readline()[:-1]# get path of SettingFile.dnd
+                self.settingPath = f.readline().strip('\n\r')# get path of SettingFile.dnd
+        else:
+            with open('address.txt') as f:
+                f.write(os.getcwd())
         self.initialPath = os.getcwd()
         # set defaultPath as desktop
         self.defaultPath = os.path.join(
@@ -96,6 +101,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             self.defaultPath = self.initialPath 
         if not os.path.exists(self.settingPath):
             self.settingPath = self.initialPath
+            with open('address.txt','w') as f:
+                f.write(self.settingPath)
         os.chdir(self.settingPath)
         # SettingFile contains last used filename, which is loaded initially
         try:
@@ -104,13 +111,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 self.sampleID = get_valid_filename(f.readline().strip('\n\r'))
                 if os.path.exists(self.currPath):
                     os.chdir(self.currPath)
-                else:  # if SettingFile does not exist, set default name
-                    self.currPath = self.defaultPath
-                    os.chdir(self.defaultPath)
+                else: 
+                    raise FileNotFoundError
                 if self.sampleID == '' or self.sampleID.isspace():
                     self.sampleID = "Sample"
-        except FileNotFoundError:
+        except FileNotFoundError: # if SettingFile does not exist, set default name
+            self.currPath = self.defaultPath
             os.chdir(self.defaultPath)
+            self.sampleID = "Sample"
 
     def checkInstrument(self):
         global TESTING
