@@ -17,7 +17,6 @@ Not tested for other Python versions or OS
 #  except VisaIOError:
 import sys
 import os
-from re import sub
 from PyQt5 import QtWidgets, QtCore
 from pyvisa import ResourceManager, VisaIOError
 from pymeasure.instruments.keithley import Keithley2450
@@ -27,28 +26,9 @@ from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
 from Switch import app_Switch
-from utilities import FakeAdapter
+from utilities import FakeAdapter, get_valid_filename
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
-
-def get_valid_filename(s):
-    """
-    Check if given filename is valid, and correct it if its not.
-
-    Parameters
-    ----------
-    s : string
-        file-name
-
-    Returns
-    -------
-    string
-        Valid file-name
-
-    """
-    s = str(s).strip().replace(' ', '_')
-    return sub(r'(?u)[^-\w.]', '', s)
-
 
 class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
     """Class to initialize the main menu."""

@@ -2,6 +2,7 @@ from datetime import datetime
 from os.path import abspath,join,exists
 from os import makedirs
 from copy import copy
+from re import sub
 
 class FakeAdapter():
     """Provides a fake adapter for debugging purposes,
@@ -68,3 +69,21 @@ def unique_filename(directory, prefix='DATA', suffix='', ext='csv',
         basename = "%s%s%s.%s" % (prefix, now.strftime(datetimeformat), suffix, ext)
         filename = join(directory, basename)
     return filename
+
+def get_valid_filename(s):
+    """
+    Check if given filename is valid, and correct it if its not.
+
+    Parameters
+    ----------
+    s : string
+        file-name
+
+    Returns
+    -------
+    string
+        Valid file-name
+
+    """
+    s = str(s).strip().replace(' ', '_')
+    return sub(r'(?u)[^-\w.]', '', s)
