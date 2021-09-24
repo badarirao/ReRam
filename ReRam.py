@@ -1,5 +1,6 @@
 """
 Module to initialize the main menu.
+
 Works on Python 3.8.5, Windows 10
 Not tested for other Python versions or OS
 
@@ -18,15 +19,11 @@ Not tested for other Python versions or OS
 import sys
 import os
 from PyQt5 import QtWidgets, QtCore
-from pyvisa import ResourceManager, VisaIOError
-from pymeasure.instruments.keithley import Keithley2450
-from pymeasure.instruments.keithley import Keithley2700
-from afg1022 import AFG1022 
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
 from Switch import app_Switch
-from utilities import FakeAdapter, get_valid_filename
+from utilities import get_valid_filename, checkInstrument
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
 
@@ -41,7 +38,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.initial = 0
         self.checkPaths()
-        self.checkInstrument()
+        self.connectInstrument()
         self.k2450.reset()
         self.setupUi(self)
         self.filename.setText(self.sampleID)
@@ -66,74 +63,73 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.st.setWindowModality(QtCore.Qt.ApplicationModal)
 
     def checkPaths(self):
+        """
+        Check for paths to store data and setting files.
+        
+        address.txt stores path where SettingFile.dnd is stored.
+        If address.txt not found, or path in it is invalid, 
+        put SettingFile.dnd in current working directory.
+        
+        SettingFile.dnd stores path where last measurement data is stored,
+        and also the last used filename. 
+        If SettingFile.dnd does not exist or if path given in SettingFile.dnd 
+        does not exist, set desktop as the default path to store the 
+        measurement data. 
+        If desktop is not found in C: drive, then make current working 
+        directory as default path to store measurement data. 
+        Use default sample name as "Sample".
+
+        Returns
+        -------
+        None.
+
+        """
         self.settingPath = ""
         self.sampleID = ''
-        if os.path.exists('address.txt'):
+        self.initialPath = os.getcwd()
+        try:
             with open('address.txt') as f:
                 self.settingPath = f.readline().strip('\n\r')# get path of SettingFile.dnd
-        else:
-            with open('address.txt') as f:
-                f.write(os.getcwd())
-        self.initialPath = os.getcwd()
-        # set defaultPath as desktop
+                os.chdir(self.settingPath)
+        except FileNotFoundError:
+            with open('address.txt','w') as f:
+                f.write(self.initialPath)
+            self.settingPath = self.initialPath
+            
+        # set default path to store measured data as desktop
         self.defaultPath = os.path.join(
             os.path.expandvars("%userprofile%"), "Desktop")
+        # set default path as current directory if desktop is not found in C drive
         if not os.path.exists(self.defaultPath):
             self.defaultPath = self.initialPath 
-        if not os.path.exists(self.settingPath):
-            self.settingPath = self.initialPath
-            with open('address.txt','w') as f:
-                f.write(self.settingPath)
-        os.chdir(self.settingPath)
-        # SettingFile contains last used filename, which is loaded initially
+
+        # SettingFile contains last used filename & its location, which is loaded initially
         try:
             with open('SettingFile.dnd', 'r') as f:
                 self.currPath = f.readline().strip('\n\r')
                 self.sampleID = get_valid_filename(f.readline().strip('\n\r'))
-                if os.path.exists(self.currPath):
-                    os.chdir(self.currPath)
-                else: 
-                    raise FileNotFoundError
                 if self.sampleID == '' or self.sampleID.isspace():
                     self.sampleID = "Sample"
+                os.chdir(self.currPath)
         except FileNotFoundError: # if SettingFile does not exist, set default name
             self.currPath = self.defaultPath
             os.chdir(self.defaultPath)
             self.sampleID = "Sample"
 
-    def checkInstrument(self):
+    def connectInstrument(self):
+        """
+        Connect to K2450, K2700 and function generator.
+        
+        if TESTING is True, use FakeAdapter even when instrument not available.
+        if TESTING is False, quit program when instrument not available.
+
+        Returns
+        -------
+        Instrument objects
+
+        """
         global TESTING
-        rm = ResourceManager()
-        instList = rm.list_resources()
-        self.k2450Addr = None
-        self.k2700Addr = None
-        self.AFG1022Addr = None
-        for inst in instList:
-            try:
-                myInst = rm.open_resource(inst)
-                instID = myInst.query('*IDN?').split(',')
-                if 'KEITHLEY' in instID[0] and '2450' in instID[1]:
-                    self.k2450Addr = inst
-                    self.k2450 = Keithley2450(self.k2450Addr)
-                elif 'KEITHLEY' in instID[0] and '2700' in instID[1]:
-                    self.k2700Addr = inst
-                    self.k2700 = Keithley2700(self.k2700Addr)
-                elif 'TEKTRONIX' in instID[0] and 'AFG1022' in instID[1]:
-                    self.AFG1022Addr = inst
-                    self.afg = AFG1022(self.AFG1022Addr)
-            except VisaIOError:
-                pass
-        # For debugging purpose, invoke a fake adapter
-        if TESTING is True:
-            if not self.k2450Addr:
-                self.k2450 = FakeAdapter()
-            if not self.k2700Addr:
-                self.k2700 = FakeAdapter()
-            if not self.AFG1022Addr:
-                self.afg = FakeAdapter()
-        elif not all((self.k2450Addr,self.k2700Addr,self.AFG1022Addr)):
-            print("Instrument not connected! Check connections!")
-            sys.exit()
+        self.k2450, self.k2700, self.afg1022 = checkInstrument(test = TESTING)        
 
     def closeEvent(self, event):
         """

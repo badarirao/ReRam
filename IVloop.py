@@ -18,7 +18,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.chart import ScatterChart, Reference, Series
 from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
-from utilities import unique_filename
+from utilities import unique_filename, FakeAdapter, checkInstrument
 
 
 class Ui_IVLoop(QtWidgets.QWidget):
@@ -238,11 +238,11 @@ class Ui_IVLoop(QtWidgets.QWidget):
 class app_IVLoop(Ui_IVLoop):
     """The IV-Loop app module."""
 
-    def __init__(self, parent=None, k2450=None, sName="Sample_IV.txt"):
+    def __init__(self, parent=None, k2450=None, k2700 = None, sName="Sample_IV.txt"):
         super(app_IVLoop, self).__init__(parent)
         self.file_name.setReadOnly(True)
         self.k2450 = k2450
-        # self.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.k2700 = k2700
         self.stop_Button.setEnabled(False)
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_ivloop)
@@ -299,10 +299,12 @@ class app_IVLoop(Ui_IVLoop):
 
         """
         if self.k2450 is None:
-            self.k2450 = Keithley2450("USB0::0x05E6::0x2450::04488850::INSTR")
-            # self.k2450 = Keithley2450("USB0::0x05E6::0x2450::04104150::INSTR")  # SPring-8
-            self.k2450.write("*RST")  # reset instrument
-            self.k2450.write("Trac:cle")  # clear buffer?
+            self.k2450 = FakeAdapter()
+        if self.k2700 is None:
+            self.k2700 = FakeAdapter()
+        
+        # if afg is connected, remove and connect the source meter
+        
         self.k2450.write("SENS:FUNC 'CURR'")  # measure current
         self.k2450.write("SENS:CURR:RANG:AUTO ON")  # current autorange on
         #self.k2450.write("SENS:CURR:RANG:AUTO:REB ON")
@@ -642,5 +644,7 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     IVLoop = QtWidgets.QWidget()
-    ui = app_IVLoop(IVLoop)
+    k2450, k2700, _ = checkInstrument(test = True)
+    ui = app_IVLoop(IVLoop,k2450,k2700)
+    ui.show()
     sys.exit(app.exec_())

@@ -10,8 +10,7 @@ from csv import writer
 from numpy import linspace, around, concatenate, array
 from PyQt5 import QtCore, QtWidgets, QtGui
 from pyqtgraph import PlotWidget, ViewBox, mkPen
-from pymeasure.instruments.keithley import Keithley2450
-from utilities import unique_filename
+from utilities import unique_filename, FakeAdapter, checkInstrument
 
 class Ui_RVLoop(QtWidgets.QWidget):
     """The pyqt5 gui class for RV loop measurement."""
@@ -277,10 +276,9 @@ class Ui_RVLoop(QtWidgets.QWidget):
 class app_RVLoop(Ui_RVLoop):
     """The RV-Loop app module."""
 
-    def __init__(self, parent=None, k2450=None, sName="Sample_RV.csv"):
+    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_RV.csv"):
         super(app_RVLoop, self).__init__(parent)
         self.k2450 = k2450
-        self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.stop_Button.setEnabled(False)
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_rvloop)
@@ -349,8 +347,7 @@ class app_RVLoop(Ui_RVLoop):
 
         """
         if self.k2450 is None:
-            self.k2450 = Keithley2450("USB0::0x05E6::0x2450::04488850::INSTR")
-            self.k2450.reset()
+            self.k2450 = FakeAdapter()
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
         if self.params["Speed"] == 0:
             self.nplc = 5
@@ -573,5 +570,7 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     RVLoop = QtWidgets.QWidget()
-    ui = app_RVLoop(RVLoop)
+    k2450, k2700, afg1022 = checkInstrument(test = True)
+    ui = app_RVLoop(RVLoop, k2450, k2700, afg1022)
+    ui.show()
     sys.exit(app.exec_())

@@ -12,8 +12,7 @@ from os.path import exists as fileExists
 from winsound import MessageBeep
 from PyQt5 import QtCore, QtWidgets, QtGui
 from pyqtgraph import GraphicsLayoutWidget, ViewBox, mkPen
-from pymeasure.instruments.keithley import Keithley2450
-from utilities import unique_filename
+from utilities import unique_filename, FakeAdapter, checkInstrument
 
 class Ui_Switch(QtWidgets.QWidget):
     """The pyqt5 gui class for switching experiment."""
@@ -337,15 +336,13 @@ class Ui_Switch(QtWidgets.QWidget):
             "Switch", "Clear graph and start new measurement"))
         self.save_Button.setText(_translate("Switch", "Save Data"))
 
-
 class app_Switch(Ui_Switch):
     """The Switch app module."""
 
-    def __init__(self, parent=None, k2450=None, sName="Sample_Switch.csv"):
+    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_Switch.csv"):
         super(app_Switch, self).__init__(parent)
         self.new_flag = True
         self.k2450 = k2450
-        self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.save_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
         self.applyPulse_Button.clicked.connect(self.applyPulse)
@@ -462,9 +459,7 @@ class app_Switch(Ui_Switch):
 
         """
         if self.k2450 is None:
-            self.k2450 = Keithley2450("USB0::0x05E6::0x2450::04488850::INSTR")
-            # self.k2450 = Keithley2450("USB0::0x05E6::0x2450::04104150::INSTR")  # SPring-8
-            self.k2450.reset()
+            self.k2450 = FakeAdapter()
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
         self.k2450.measure_current(nplc=self.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
@@ -652,5 +647,7 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     Switch = QtWidgets.QWidget()
-    ui = app_Switch(Switch)
+    k2450, k2700, afg1022 = checkInstrument(test = True)
+    ui = app_Switch(Switch, k2450, k2700, afg1022)
+    ui.show()
     sys.exit(app.exec_())
