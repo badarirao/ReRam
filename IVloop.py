@@ -19,6 +19,8 @@ from openpyxl.styles import Font
 from openpyxl.chart import ScatterChart, Reference, Series
 from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
 from utilities import unique_filename, FakeAdapter, checkInstrument
+from utilities import SMU, AFG, SAMPLE1
+from time import sleep
 
 
 class Ui_IVLoop(QtWidgets.QWidget):
@@ -304,7 +306,30 @@ class app_IVLoop(Ui_IVLoop):
             self.k2700 = FakeAdapter()
         
         # if afg is connected, remove and connect the source meter
-        
+        closed_channels = map(int,self.k2700.ask("ROUTe:MULTiple:CLOSe?")[2:-1].split(','))
+        if len(closed_channels) != 2:
+            print("Error! More than required connections! Check once again. \
+                   Opening all channels and connecting Sample1 and SMU.")
+            self.k2700.write("ROUTe:OPEN:ALL") # open all channels
+            # connect sample and sourcemeter
+            self.k2700.write("ROUTe:MULTiple:CLOSe (@{0},{1})".format(SAMPLE1,AFG))
+        elif SAMPLE1 in closed_channels:
+            if AFG in closed_channels:
+                self.k2700.write("ROUTe:MULTiple:OPEN (@{})".format(AFG)) # disconnect function generator
+                self.k2700.write("*WAI") # wait until previous operation is completed
+                self.k2700.write("ROUTe:MULTiple:CLOSe (@{})".format(SMU)) # connect sourcemeter
+            elif SMU not in closed_channels:
+                closed_channels.remove(SAMPLE1)
+                self.k2700.write("ROUTe:MULTiple:OPEN (@{})".format(closed_channels[0])) # disconnect other connection
+                self.k2700.write("*WAI") # wait until previous operation is completed
+                self.k2700.write("ROUTe:MULTiple:CLOSe (@{})".format(SMU)) # connect sourcemeter
+        else:
+            print("Sample not connected! Check once again. \
+                  opening all channels and connecting Sample1 and SMU.")
+            self.k2700.write("ROUTe:OPEN:ALL") # open all channels
+            # connect sample and sourcemeter
+            self.k2700.write("ROUTe:MULTiple:CLOSe (@{0},{1})".format(SAMPLE1,AFG))
+            
         self.k2450.write("SENS:FUNC 'CURR'")  # measure current
         self.k2450.write("SENS:CURR:RANG:AUTO ON")  # current autorange on
         #self.k2450.write("SENS:CURR:RANG:AUTO:REB ON")

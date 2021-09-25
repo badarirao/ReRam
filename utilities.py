@@ -11,6 +11,10 @@ from MyKeithley2450 import Keithley2450
 from MyKeithley2700 import Keithley2700
 from MyAFG1022 import AFG1022 
 
+SMU = 111
+AFG = 112
+SAMPLE1 = 101
+
 class FakeAdapter():
     """Provides a fake adapter for debugging purposes.
 
