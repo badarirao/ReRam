@@ -14,6 +14,27 @@ from MyAFG1022 import AFG1022
 SMU = 111
 AFG = 112
 SAMPLE1 = 101
+SAMPLE2 = 102
+SAMPLE3 = 103
+SAMPLE4 = 104
+SAMPLE5 = 105
+SAMPLE6 = 106
+SAMPLE7 = 107
+SAMPLE8 = 108
+SAMPLE9 = 109
+SAMPLE10 = 110
+
+sample_id = {
+                1 : SAMPLE1,
+                2 : SAMPLE2,
+                3 : SAMPLE3,
+                4 : SAMPLE4,
+                5 : SAMPLE5,
+                6 : SAMPLE6,
+                7 : SAMPLE7,
+                8 : SAMPLE8,
+                9 : SAMPLE9,
+                10 : SAMPLE10}
 
 class FakeAdapter():
     """Provides a fake adapter for debugging purposes.
@@ -151,3 +172,48 @@ def checkInstrument(test = False):
             print("Instrument not connected! Check connections!")
             exitprogram()
     return k2450, k2700, afg
+
+def connect_sample_with_AFG(k2700,sample_no=1):
+    """
+    Connect the function generator with sample using multiplexer.
+
+    Parameters
+    ----------
+    k2700 : Keithley2700 multiplexer adapter
+    sample_no : int, optional
+        The default is 1.
+
+    Returns
+    -------
+    None.
+
+    """
+    closed_channels = list(map(int,k2700.ask("ROUTe:MULTiple:CLOSe?")[2:-1].split(',')))
+    required_channels = [sample_id[sample_no],AFG]
+    channels_to_close = [x for x in required_channels if x not in closed_channels]
+    channels_to_open = [x for x in closed_channels if x not in required_channels]
+    k2700.close_channels(channels_to_close)
+    k2700.open_channels(channels_to_open)
+
+def connect_sample_with_SMU(k2700,sample_no=1):
+    """
+    Connect the function generator with sample using multiplexer.
+
+    Parameters
+    ----------
+    k2700 : Keithley2700 multiplexer adapter
+    sample_no : int, optional
+        The default is 1.
+
+    Returns
+    -------
+    None.
+
+    """
+    closed_channels = list(map(int,k2700.ask("ROUTe:MULTiple:CLOSe?")[2:-1].split(',')))
+    required_channels = [sample_id[sample_no],SMU]
+    channels_to_close = [x for x in required_channels if x not in closed_channels]
+    channels_to_open = [x for x in closed_channels if x not in required_channels]
+    k2700.close_channels(channels_to_close)
+    k2700.open_channels(channels_to_open)
+    
