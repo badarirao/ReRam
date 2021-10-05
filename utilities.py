@@ -192,8 +192,8 @@ def connect_sample_with_AFG(k2700,sample_no=1):
     required_channels = [sample_id[sample_no],AFG]
     channels_to_close = [x for x in required_channels if x not in closed_channels]
     channels_to_open = [x for x in closed_channels if x not in required_channels]
-    k2700.close_channels(channels_to_close)
-    k2700.open_channels(channels_to_open)
+    k2700.close_Channels(channels_to_close)
+    k2700.open_Channels(channels_to_open)
 
 def connect_sample_with_SMU(k2700,sample_no=1):
     """
@@ -214,6 +214,6 @@ def connect_sample_with_SMU(k2700,sample_no=1):
     required_channels = [sample_id[sample_no],SMU]
     channels_to_close = [x for x in required_channels if x not in closed_channels]
     channels_to_open = [x for x in closed_channels if x not in required_channels]
-    k2700.close_channels(channels_to_close)
-    k2700.open_channels(channels_to_open)
+    k2700.close_Channels(channels_to_close)
+    k2700.open_Channels(channels_to_open)
     
