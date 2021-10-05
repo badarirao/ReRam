@@ -20,7 +20,7 @@ from openpyxl.styles import Font
 from openpyxl.chart import ScatterChart, Reference, Series
 from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
 from utilities import unique_filename, FakeAdapter, checkInstrument
-from utilities import SMU, AFG, connect_sample_with_SMU
+from utilities import connect_sample_with_SMU
 
 
 
@@ -386,28 +386,6 @@ class app_IVLoop(Ui_IVLoop):
         self.k2450.write(
             "SOURce:SWEep:VOLTage:LIST 1, {0}, 1, OFF".format(self.params["Delay"]))
 
-    def wait_till_done(self):
-        """
-        Wait until the measurement is completed.
-
-            Infinite loop runs until the 'state' is not 'RUNNING'
-
-        Returns
-        -------
-        int
-            1: if the measurement has successfully finished
-            0: if there is some error
-        """
-        loop = QtCore.QEventLoop()
-        while True:
-            QtCore.QTimer.singleShot(1000, loop.quit)
-            loop.exec_()
-            state = self.k2450.ask("Trigger:state?").split(';')[0]
-            if state == 'IDLE':
-                return 1
-            elif state != 'RUNNING':
-                return 0
-
     def plot_IVloop(self, data, i):
         """
         Plot the ith IV loop into the graph.
@@ -461,7 +439,7 @@ class app_IVLoop(Ui_IVLoop):
             #self.k2450.write(":DISPlay:LIGHT:STATe ON25")
             return
         self.k2450.start_buffer()  # start the measurement
-        self.wait_till_done()
+        self.k2450.wait_till_done(1000)
         start_point = int(self.k2450.ask("trace:actual:start?")[:-1])
         end_point = int(self.k2450.ask("trace:actual:end?")[:-1])
         data = self.k2450.ask(
