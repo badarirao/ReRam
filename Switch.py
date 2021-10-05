@@ -10,9 +10,11 @@ The Switch module of the ReRam project.
 from csv import writer
 from os.path import exists as fileExists
 from winsound import MessageBeep
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtGui import QPalette, QColor, QBrush
 from pyqtgraph import GraphicsLayoutWidget, ViewBox, mkPen
-from utilities import unique_filename, FakeAdapter, checkInstrument
+from utilities import unique_filename, FakeAdapter, checkInstrument, AFG, SMU
+from utilities import connect_sample_with_SMU, connect_sample_with_AFG
 
 class Ui_Switch(QtWidgets.QWidget):
     """The pyqt5 gui class for switching experiment."""
@@ -239,16 +241,16 @@ class Ui_Switch(QtWidgets.QWidget):
         self.verticalLayout.addWidget(self.save_Button)
         self.statusbar = QtWidgets.QLineEdit(self.widget1)
         self.statusbar.setEnabled(False)
-        palette = QtGui.QPalette()
-        brush = QtGui.QBrush(QtGui.QColor(170, 0, 127))
+        palette = QPalette()
+        brush = QBrush(QColor(170, 0, 127))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
-        brush = QtGui.QBrush(QtGui.QColor(170, 0, 127))
+        palette.setBrush(QPalette.Active, QPalette.Text, brush)
+        brush = QBrush(QColor(170, 0, 127))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Text, brush)
-        brush = QtGui.QBrush(QtGui.QColor(170, 0, 127))
+        palette.setBrush(QPalette.Inactive, QPalette.Text, brush)
+        brush = QBrush(QColor(170, 0, 127))
         brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Text, brush)
+        palette.setBrush(QPalette.Disabled, QPalette.Text, brush)
         self.statusbar.setPalette(palette)
         self.statusbar.setText("")
         self.statusbar.setAlignment(QtCore.Qt.AlignCenter)
@@ -343,6 +345,8 @@ class app_Switch(Ui_Switch):
         super(app_Switch, self).__init__(parent)
         self.new_flag = True
         self.k2450 = k2450
+        self.k2700 = k2700
+        self.afg1022 = afg1022
         self.save_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
         self.applyPulse_Button.clicked.connect(self.applyPulse)
@@ -357,7 +361,7 @@ class app_Switch(Ui_Switch):
         self.file_name.setReadOnly(True)
         self.params = {
             "fname": self.filename,
-            "Vsource": 0,
+            "Vsource": 0, # 0 = SMU, 1 = AFG
             "Vset": -3,
             "VsetCheck": 1,
             "setPwidth": 50,
@@ -448,6 +452,11 @@ class app_Switch(Ui_Switch):
         # set compliance current
         self.k2450.write(
             "source:voltage:ilimit {0}".format(self.params["ILimit"]))
+        # when function generator is used, limit number of pulses to 10
+        # This is to avoid using the multiplexer too much, as it has finite lifetime
+        if self.params["Vsource"] == 1:
+            if self.params["nPulses"] > 10:
+                self.params["nPulses"] = 10
 
     def initialize_SMU(self):
         """
@@ -466,29 +475,7 @@ class app_Switch(Ui_Switch):
         self.k2450.write(":DISPlay:LIGHT:STATe ON25")
         self.k2450.write("sour:volt:read:back 1")
 
-    def wait_till_done(self, wait_time=10):
-        """
-        Wait until the measurement is completed.
-
-            Infinite loop runs until the 'state' is not 'RUNNING'
-
-        Returns
-        -------
-        int
-            1: if the measurement has successfully finished
-            0: if there is some error
-        """
-        loop = QtCore.QEventLoop()
-        while True:
-            QtCore.QTimer.singleShot(wait_time, loop.quit)
-            loop.exec_()
-            state = self.k2450.ask("Trigger:state?").split(';')[0]
-            if state == 'IDLE':
-                return 1
-            elif state != 'RUNNING':
-                return 0
-
-    def pulseMeasure(self):
+    def pulseMeasure_SMU(self):
         """
         Apply and measure one pulse.
 
@@ -503,20 +490,19 @@ class app_Switch(Ui_Switch):
             self.timestep = self.resetTimestep
         elif self.points[self.i] == 0:
             self.timestep = 0
-        self.k2450.write("SENSe:CURRent:NPLCycles 0.01")
-        self.k2450.write(
-            "TRIG:LOAD 'SimpleLoop', 1, {0}".format(self.timestep))
-        self.k2450.source_voltage = self.points[self.i]
-        self.k2450.start_buffer()
-        self.wait_till_done(1)
-        v1, c1 = map(float, self.k2450.ask(
-            "TRAC:data? 1, 1, 'defbuffer1', sour, read")[:-1].split(','))
+        # apply pulse and measure pulse resistance
+        if self.timestep > 0:
+            v1, c1 = self.k2450.apply_switch_pulse(self.points[self.i],self.timestep)
+        else:
+            v1 = 0
+            c1 = -1
+        # measure read resistance
         self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
         self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
             self.params["Average"]))
         self.k2450.source_voltage = self.params["Rvoltage"]
         self.k2450.start_buffer()
-        self.wait_till_done()
+        self.k2450.wait_till_done()
         c2 = float(self.k2450.ask("TRAC:stat:average?")[:-1])
         self.volts.append(v1)
         if self.pulsecount == []:
@@ -542,7 +528,59 @@ class app_Switch(Ui_Switch):
             self.k2450.disable_source()
             MessageBeep()
             return
-        self.timer.singleShot(0, self.pulseMeasure)  # Measure next pulse
+        self.timer.singleShot(0, self.pulseMeasure_SMU)  # Measure next pulse
+    
+    def pulseMeasure_AFG(self):
+        """
+        Apply and measure one pulse.
+
+        Returns
+        -------
+        None.
+
+        """
+        if self.points[self.i] == self.params["Vset"]:
+            self.timestep = self.setTimestep
+        elif self.points[self.i] == self.params["Vreset"]:
+            self.timestep = self.resetTimestep
+        elif self.points[self.i] == 0:
+            self.timestep = 0
+        self.k2700.open_Channels(SMU) # Disconnect SMU
+        self.k2700.close_Channels(AFG) # connect AFG
+        if self.timestep > 0:
+            self.afg1022.setSinglePulse(self.points[self.i],self.timestep)
+            self.afg1022.trigger()
+        self.k2700.open_Channels(AFG) # disconnect function generator
+        self.k2700.close_Channels(SMU) # connect SMU
+        # Measure Read resistance using K2450
+        self.k2450.start_buffer()
+        self.wait_till_done()
+        c2 = float(self.k2450.ask("TRAC:stat:average?")[:-1])
+        self.volts.append(self.points[self.i]) 
+        self.currents.append(-1)    # Junk, just so that saving does not cause error
+        self.resistances.append(-1) # Junk, just so that saving does not cause error
+        if self.pulsecount == []:
+            self.pulsecount = [1]
+        else:
+            self.pulsecount.append(self.pulsecount[-1]+1)
+        self.readVolts.append(self.params["Rvoltage"])
+        self.readCurrents.append(c2)
+        self.readResistances.append(self.params["Rvoltage"]/c2)
+        self.pulseWidths.append(self.timestep*1000)
+        self.ilimits.append(self.params["ILimit"])
+        # make sure that the program waits until the current measurement is taken
+        self.data_lineR.setData(self.pulsecount, self.readResistances)
+        self.data_lineV.setData(self.pulsecount, self.volts)
+        self.i = self.i + 1
+        if self.i >= len(self.points):
+            self.statusbar.setText("Measurement Finished.")
+            self.applyPulse_Button.setEnabled(True)
+            self.clearGraph_Button.setEnabled(True)
+            self.k2450.source_voltage = 0
+            self.k2450.disable_source()
+            MessageBeep()
+            return
+        self.timer.singleShot(0, self.pulseMeasure_AFG)  # Measure next pulse    
 
     def applyPulse(self):
         """
@@ -587,7 +625,16 @@ class app_Switch(Ui_Switch):
         self.save_Button.setEnabled(True)
         self.configurePulse()
         self.k2450.enable_source()
-        self.timer.singleShot(0, self.pulseMeasure)
+        if self.params["Vsource"] == 0:
+            connect_sample_with_SMU(self.k2700)
+            self.timer.singleShot(0, self.pulseMeasure_SMU)
+        elif self.params["Vsource"] == 1:
+            connect_sample_with_AFG(self.k2700)
+            self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
+            self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
+                                                     self.params["Average"]))
+            self.k2450.source_voltage = self.params["Rvoltage"]
+            self.timer.singleShot(0, self.pulseMeasure_AFG)
 
     def clearGraph(self):
         """
