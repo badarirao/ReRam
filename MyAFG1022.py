@@ -1,20 +1,51 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Sep  6 16:47:30 2021
-USER5 is pospulse
-USER6 is negpulse
+USER5 is pospulse # custom positive pulse, already set in the instrument
+USER6 is negpulse # custom negative pulse, already set in the instrument
 @author: Badari
 """
 # USB::0x0699::0x0353::1643763::INSTR
-from pyvisa import ResourceManager
-from pyvisa.errors import VisaIOError
-from PyQt5.QtCore import QEventLoop, QTimer
+from pyvisa import ResourceManager, VisaIOError
+from PyQt5.QtCore import QEventLoop, QTimer, QSize, QRect, QMetaObject, QCoreApplication
+from PyQt5.QtWidgets import QWidget, QPushButton, QStatusBar, QApplication, QMainWindow
 
+class Ui_MainWindow(QMainWindow):
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(192, 129)
+        MainWindow.setMinimumSize(QSize(192, 129))
+        MainWindow.setMaximumSize(QSize(192, 129))
+        self.centralwidget = QWidget(MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        self.trigger_Button = QPushButton(self.centralwidget)
+        self.trigger_Button.setGeometry(QRect(60, 20, 75, 23))
+        self.trigger_Button.setObjectName("trigger_Button")
+        self.triggerNwait_Button = QPushButton(self.centralwidget)
+        self.triggerNwait_Button.setGeometry(QRect(30, 60, 131, 23))
+        self.triggerNwait_Button.setObjectName("triggerNwait_Button")
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.statusbar = QStatusBar(MainWindow)
+        self.statusbar.setObjectName("statusbar")
+        MainWindow.setStatusBar(self.statusbar)
+
+        self.retranslateUi(MainWindow)
+        QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.trigger_Button.setText(_translate("MainWindow", "Apply trigger"))
+        self.triggerNwait_Button.setText(_translate("MainWindow", "Apply trigger and wait"))
+        
 class AFG1022:
     def __init__(self,adapter,**kwargs):
         if isinstance(adapter,str):
             rm = ResourceManager()
             self.inst = rm.open_resource(adapter)
+            self.address = adapter
+        else:
+            raise VisaIOError(-1073807346)
         
     def getinfo(self):
         print(self.inst.query('*IDN?'))
@@ -59,13 +90,15 @@ class AFG1022:
         pass
     
     def trgNwait(self):
-        pw = float(self.ask('source1:frequency:fixed?'))
+        pw = 1000/float(self.ask('source1:frequency:fixed?'))  # milliseconds
         nc = int(self.ask("SOURce1:BURST:NCYCles?"))
         self.trigger()
-        if ((1/pw)*nc) > 0.001: # if pulse width is more thatn
-            loop = QEventLoop()
-            QTimer.singleShot(1/pw, loop.quit)
-            loop.exec_()
+        if (pw*nc) < 10: # fix min wait time as 10 ms.
+            pw = 10
+            nc = 1
+        loop = QEventLoop()
+        QTimer.singleShot(pw*nc, loop.quit)
+        loop.exec_()
     
     def trigger(self):
         self.write('*TRG')
@@ -75,4 +108,16 @@ class AFG1022:
         
     def output(self,state):
         self.write('OUTPut1:STATe {}'.format(state))
+
+if __name__ == "__main__":
+    import sys
+    app = QApplication(sys.argv)
+    MainWindow = QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    afg = AFG1022('USB::0x0699::0x0353::1643763::INSTR')
+    ui.trigger_Button.clicked.connect(afg.trigger)
+    ui.triggerNwait_Button.clicked.connect(afg.trgNwait)
+    sys.exit(app.exec_())
         
