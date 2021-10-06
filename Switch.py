@@ -5,6 +5,8 @@ The Switch module of the ReRam project.
     associated functions to set parameters, make measurement, and save the data
 
     You can apply customized pulses, and observe how resistance changes
+    TODO: adjust the pulse width and voltage limits when source is changed
+    TODO: option to add series resistance to limit current, when function generator is used
 """
 
 from csv import writer
@@ -15,6 +17,7 @@ from PyQt5.QtGui import QPalette, QColor, QBrush
 from pyqtgraph import GraphicsLayoutWidget, ViewBox, mkPen
 from utilities import unique_filename, FakeAdapter, checkInstrument, AFG, SMU
 from utilities import connect_sample_with_SMU, connect_sample_with_AFG
+from utilities import waitFor
 
 class Ui_Switch(QtWidgets.QWidget):
     """The pyqt5 gui class for switching experiment."""
@@ -547,14 +550,16 @@ class app_Switch(Ui_Switch):
             self.timestep = 0
         self.k2700.open_Channels(SMU) # Disconnect SMU
         self.k2700.close_Channels(AFG) # connect AFG
+        waitFor(20) # wait for 20msec to ensure switching is complete
         if self.timestep > 0:
             self.afg1022.setSinglePulse(self.points[self.i],self.timestep)
-            self.afg1022.trigger()
+            self.afg1022.trgNwait()
         self.k2700.open_Channels(AFG) # disconnect function generator
         self.k2700.close_Channels(SMU) # connect SMU
+        waitFor(20) # wait for 20msec to ensure switching is complete
         # Measure Read resistance using K2450
         self.k2450.start_buffer()
-        self.wait_till_done()
+        self.k2450.wait_till_done()
         c2 = float(self.k2450.ask("TRAC:stat:average?")[:-1])
         self.volts.append(self.points[self.i]) 
         self.currents.append(-1)    # Junk, just so that saving does not cause error
