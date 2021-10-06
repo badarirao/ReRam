@@ -90,6 +90,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         try:
             with open('address.txt') as f:
                 self.settingPath = f.readline().strip('\n\r')# get path of SettingFile.dnd
+                self.k2450Addr = f.readline().strip('\n\r') # get address of K2450 if present
+                self.k2700Addr = f.readline().strip('\n\r') # get address of K700 if present
+                self.AFG1022Addr = f.readline().strip('\n\r') # get address of AFG1022 if present
                 os.chdir(self.settingPath)
         except FileNotFoundError:
             with open('address.txt','w') as f:
@@ -129,8 +132,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
 
         """
         global TESTING
-        self.k2450, self.k2700, self.afg1022 = checkInstrument(test = TESTING)        
-
+        a1 = self.k2450Addr
+        a2 = self.k2700Addr
+        a3 = self.AFG1022Addr
+        self.k2450, self.k2700, self.afg1022 = checkInstrument(a1,a2,a3,test = TESTING)
+        
     def closeEvent(self, event):
         """
         Perform necessary operations just before exiting the program.
@@ -149,6 +155,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             f.write(self.currPath+'\n')
             f.write(self.sampleID)
         os.chdir(self.initialPath)
+        with open('address.txt','w') as f:
+            self.k2450Addr = self.k2450.address
+            self.k2700Addr = self.k2700.address
+            self.AFG1022Addr = self.afg1022.address
+            self.AFG1022Addr
+            f.write(self.settingPath+'\n') # write path of SettingFile.dnd
+            f.write(self.k2450Addr+'\n') # write address of K2450 if present
+            f.write(self.k2700Addr+'\n') # write address of K700 if present
+            f.write(self.AFG1022Addr) # write get address of AFG1022 if present
         event.accept()
 
     def openDir(self):
