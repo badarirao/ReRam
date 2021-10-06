@@ -10,6 +10,7 @@ from sys import exit as exitprogram
 from MyKeithley2450 import Keithley2450
 from MyKeithley2700 import Keithley2700
 from MyAFG1022 import AFG1022 
+from PyQt5.QtCore import QTimer, QEventLoop
 
 SMU = 111
 AFG = 112
@@ -56,6 +57,9 @@ class FakeAdapter():
     """
 
     _buffer = ""
+
+    def __init__(self):
+        self.address = ''
 
     def read(self):
         """Return last commands given after the last read call."""
@@ -127,7 +131,19 @@ def get_valid_filename(s):
     return sub(r'(?u)[^-\w.]', '', s)
 
 
-def checkInstrument(test = False):
+def connectDevice(inst,addr,test = False):
+    try:
+        return inst(addr), 1
+    except VisaIOError:
+        if test == True:
+            return FakeAdapter(), 0
+        else:
+            # TODO: prompt a gui message instead
+            print("Instrument not connected! Check connections!")
+            exitprogram()
+        
+def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None, 
+                    test = False):
     """
     Obtain instrument address of K2450, K2700 and function generator.
 
@@ -138,39 +154,41 @@ def checkInstrument(test = False):
         return FakeAdapter if any instrument is not found
     else exit program
     """
+    deviceAddr = [k2450Addr,k2700Addr,AFG1022Addr]
     rm = ResourceManager()
-    instList = rm.list_resources()
-    k2450Addr = ''
-    k2700Addr = ''
-    AFG1022Addr = ''
-    for inst in instList:
-        try:
-            myInst = rm.open_resource(inst)
-            instID = myInst.query('*IDN?').split(',')
-            if 'KEITHLEY' in instID[0] and '2450' in instID[1]:
-                k2450Addr = inst
-            elif 'KEITHLEY' in instID[0] and '2700' in instID[1]:
-                k2700Addr = inst
-            elif 'TEKTRONIX' in instID[0] and 'AFG1022' in instID[1]:
-                AFG1022Addr = inst
-        except VisaIOError:
-            pass
-    try:
-        k2450 = Keithley2450(k2450Addr)
-        k2700 = Keithley2700(k2700Addr)
-        afg = AFG1022(AFG1022Addr)
-    except VisaIOError:
-        if test is True:
-            if not k2450Addr:
-                k2450 = FakeAdapter()
-            if not k2700Addr:
-                k2700 = FakeAdapter()
-            if not AFG1022Addr:
-                afg = FakeAdapter()
-        else:
-            # TODO: Prompt a GUI message instead
-            print("Instrument not connected! Check connections!")
-            exitprogram()
+    k2450Status = k2700Status = afgStatus = 0
+    if k2450Addr:
+        k2450, k2450Status = connectDevice(Keithley2450,k2450Addr,test=True)
+    if k2700Addr:
+        k2700, k2700Status = connectDevice(Keithley2700,k2700Addr,test=True)
+    if AFG1022Addr:
+        afg, afgStatus = connectDevice(AFG1022,AFG1022Addr,test=True)
+    status = [k2450Status,k2700Status,afgStatus]
+    deviceInfo = [['KEITHLEY','2450'],['KEITHLEY','2700'],['TEKTRONIX','AFG1022']]
+    notConnected = [x for x,y in enumerate(status) if y == 0]
+    if notConnected:
+        print("attempting to connect {} instruments".format(len(notConnected)))
+        instList = rm.list_resources()
+        for inst in instList:
+            for deviceNo in notConnected:
+                try:
+                    myInst = rm.open_resource(inst)
+                    instID = myInst.query('*IDN?').split(',')
+                    if deviceInfo[deviceNo][0] in instID[0] and deviceInfo[deviceNo][1] in instID[1]:
+                        deviceAddr[deviceNo] = inst
+                        notConnected.remove(deviceNo)
+                        break
+                except VisaIOError:
+                    pass
+        k2450Addr = deviceAddr[0]
+        k2700Addr = deviceAddr[1]
+        AFG1022Addr = deviceAddr[2]
+        if k2450Status == 0:
+                k2450,_ = connectDevice(Keithley2450,k2450Addr,test)
+        if k2700Status == 0:
+            k2700,_ = connectDevice(Keithley2700,k2700Addr,test)
+        if afgStatus == 0:
+            afg,_ = connectDevice(AFG1022,AFG1022Addr,test)
     return k2450, k2700, afg
 
 def connect_sample_with_AFG(k2700,sample_no=1):
@@ -194,6 +212,7 @@ def connect_sample_with_AFG(k2700,sample_no=1):
     channels_to_open = [x for x in closed_channels if x not in required_channels]
     k2700.close_Channels(channels_to_close)
     k2700.open_Channels(channels_to_open)
+    waitFor(20) # wait for 20msec to ensure switching is complete
 
 def connect_sample_with_SMU(k2700,sample_no=1):
     """
@@ -216,4 +235,10 @@ def connect_sample_with_SMU(k2700,sample_no=1):
     channels_to_open = [x for x in closed_channels if x not in required_channels]
     k2700.close_Channels(channels_to_close)
     k2700.open_Channels(channels_to_open)
+    waitFor(20) # wait for 20msec to ensure switching is complete
+    
+def waitFor(self, wtime): # wtime is in msec
+    loop = QEventLoop()
+    QTimer.singleShot(wtime, loop.quit)
+    loop.exec_()
     
