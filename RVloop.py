@@ -3,6 +3,8 @@ The RV-loop module of the ReRam project.
 
     Contains the GUI for "read resistance" vs "write voltage" loop measurement,
     associated functions to set parameters, make measurement, and save the data
+    
+    #TODO: check the saved file when multiple RVloops are run
 """
 
 from winsound import MessageBeep
@@ -10,7 +12,8 @@ from csv import writer
 from numpy import linspace, around, concatenate, array
 from PyQt5 import QtCore, QtWidgets, QtGui
 from pyqtgraph import PlotWidget, ViewBox, mkPen
-from utilities import unique_filename, FakeAdapter, checkInstrument
+from utilities import unique_filename, FakeAdapter, checkInstrument, SMU, AFG
+from utilities import connect_sample_with_SMU, connect_sample_with_AFG, waitFor
 
 class Ui_RVLoop(QtWidgets.QWidget):
     """The pyqt5 gui class for RV loop measurement."""
@@ -161,8 +164,7 @@ class Ui_RVLoop(QtWidgets.QWidget):
         self.gridLayout.addWidget(self.vstep_label, 4, 0, 1, 1)
         self.verticalLayout_2.addWidget(self.frame)
         self.gridLayout_2.addWidget(self.groupBox, 0, 0, 1, 1)
-        self.graphWidget = PlotWidget(
-            RVLoop, viewBox=ViewBox(border=mkPen(color='k', width=2)))
+        self.graphWidget = PlotWidget(RVLoop, viewBox=ViewBox(border=mkPen(color='k', width=2)))
         self.graphWidget.setBackground((255, 182, 193, 25))
         self.graphWidget.setMinimumSize(QtCore.QSize(411, 379))
         self.graphWidget.setObjectName("graphWidget")
@@ -279,6 +281,8 @@ class app_RVLoop(Ui_RVLoop):
     def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_RV.csv"):
         super(app_RVLoop, self).__init__(parent)
         self.k2450 = k2450
+        self.k2700 = k2700 
+        self.afg1022 = afg1022
         self.stop_Button.setEnabled(False)
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_rvloop)
@@ -305,7 +309,9 @@ class app_RVLoop(Ui_RVLoop):
     def update_params(self):
         """
         Update the measurement parameters.
-
+        
+        TODO: update parameter limits depending on Vsource.
+            Function gen: Vlimit: +-5V, npoints < 50
         Returns
         -------
         None.
@@ -424,9 +430,19 @@ class app_RVLoop(Ui_RVLoop):
         self.actual_setVolts = []
         self.set_currents = []
         self.timer = QtCore.QTimer()
-        self.timer.singleShot(0, self.measure_RV)
+        if self.params['Vsource'] == 0:
+            self.params['fname'] = self.fullfilename
+            connect_sample_with_SMU()
+            self.timer.singleShot(0, self.measure_RV_SMU)
+        else:
+            self.params['fname'] = self.fullfilename[:-4]+'_fgn.csv'
+            self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
+            self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
+                self.avg_over_n_readings))
+            self.k2450.source_voltage = self.params["Rvoltage"]
+            self.timer.singleShot(0, self.measure_RV_AFG)
 
-    def measure_RV(self):
+    def measure_RV_SMU(self):
         """
         Initiate the measurement of one data point.
 
@@ -492,7 +508,77 @@ class app_RVLoop(Ui_RVLoop):
                                          self.set_currents, self.read_currents, self.resistances))
             MessageBeep()
             return
-        self.timer.singleShot(0, self.measure_RV)  # measure next point
+        self.timer.singleShot(0, self.measure_RV_SMU)  # measure next point
+    
+    def measure_RV_AFG(self):
+        """
+        Initiate the measurement of one data point.
+
+        Returns
+        -------
+        None.
+
+        """
+        #self.k2450.write("SENSe:CURRent:NPLCycles 0.01")
+        #self.k2450.write(
+        #    "TRIG:LOAD 'SimpleLoop', 1, {0}".format(self.timestep))
+        #self.k2450.source_voltage = self.points[self.i]
+        #self.k2450.start_buffer()
+        #self.wait_till_done(1)
+        #setData = self.k2450.ask("TRAC:data? 1, 1, 'defbuffer1', sour, read")
+        #setData = array(setData.split(','), dtype=float)
+        #v, c = setData[0], setData[1]
+        self.k2700.open_Channels(SMU) # Disconnect SMU
+        self.k2700.close_Channels(AFG) # connect AFG
+        waitFor(20) # wait for 20msec to ensure switching is complete
+        self.afg1022.setSinglePulse(self.points[self.i],self.timestep)
+        self.afg1022.trgNwait()
+        #self.set_currents.append(c)
+        self.k2700.open_Channels(AFG) # disconnect function generator
+        self.k2700.close_Channels(SMU) # connect SMU
+        waitFor(20) # wait for 20msec to ensure switching is complete
+        self.k2450.start_buffer()
+        self.wait_till_done()
+        self.read_currents.append(
+            float(self.k2450.ask("TRAC:stat:average?")[:-1]))
+        if self.read_currents[self.i] == 0:
+            self.read_currents[self.i] = 1e-20
+        self.volts.append(self.points[self.i])
+        self.resistances.append(
+            self.params["Rvoltage"]/self.read_currents[self.i])
+        # make sure that the program waits until the current measurement is taken
+        self.data_line.setData(self.volts, self.resistances)
+        self.i = self.i + 1
+        if self.i >= self.npoints or self.stop_flag:
+            if not self.stop_flag:
+                self.statusbar.setText("Measurement Finished.")
+                self.stop_flag = True
+                self.k2450.write("Abort")
+                self.k2450.source_voltage = 0
+                self.k2450.disable_source()
+            self.stop_Button.setEnabled(False)
+            self.vsource.setEnabled(True)
+            self.minV.setEnabled(True)
+            self.maxV.setEnabled(True)
+            self.vstep.setEnabled(True)
+            self.pulse_width.setEnabled(True)
+            self.time_unit.setEnabled(True)
+            self.scan_speed.setEnabled(True)
+            self.Ilimit.setEnabled(True)
+            self.read_voltage.setEnabled(True)
+            self.temp_check.setEnabled(True)
+            self.start_Button.setEnabled(True)
+            self.k2450.source_voltage = 0
+            self.k2450.disable_source()
+            self.k2450.write(":DISPlay:LIGHT:STATe ON25")
+            with open(self.params['fname'], "a", newline='') as f:
+                f.write("Set Voltage(V),Read Current at {0}V,Read Resistance at {0}V (Ohms)\n".format(
+                    self.params["Rvoltage"]))
+                write_data = writer(f)
+                write_data.writerows(zip(self.volts, self.read_currents, self.resistances))
+            MessageBeep()
+            return
+        self.timer.singleShot(0, self.measure_RV_AFG)  # measure next point
 
     def start_rvloop(self):
         """

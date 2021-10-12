@@ -7,6 +7,8 @@ The Switch module of the ReRam project.
     You can apply customized pulses, and observe how resistance changes
     TODO: adjust the pulse width and voltage limits when source is changed
     TODO: option to add series resistance to limit current, when function generator is used
+    TODO: Restrict number of pulses to < 20 when function generator is used, as MUX has finite life
+    TODO: Check if enough time is provided after switching
 """
 
 from csv import writer

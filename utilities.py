@@ -11,6 +11,8 @@ from MyKeithley2450 import Keithley2450
 from MyKeithley2700 import Keithley2700
 from MyAFG1022 import AFG1022 
 from PyQt5.QtCore import QTimer, QEventLoop
+from math import log10
+from numpy import logspace, linspace, diff
 
 SMU = 111
 AFG = 112
@@ -167,7 +169,6 @@ def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
     deviceInfo = [['KEITHLEY','2450'],['KEITHLEY','2700'],['TEKTRONIX','AFG1022']]
     notConnected = [x for x,y in enumerate(status) if y == 0]
     if notConnected:
-        print("attempting to connect {} instruments".format(len(notConnected)))
         instList = rm.list_resources()
         for inst in instList:
             for deviceNo in notConnected:
@@ -242,3 +243,21 @@ def waitFor(self, wtime): # wtime is in msec
     QTimer.singleShot(wtime, loop.quit)
     loop.exec_()
     
+def linlogspace(counts):
+    max_order = int(log10(counts))
+    lin_ranges = logspace(1,max_order,max_order)
+    npoints = [1]
+    for i in range(len(lin_ranges)-1):
+        npoints.extend(list(linspace(lin_ranges[i],lin_ranges[i+1],9,endpoint=False)))
+    npoints.extend(list(linspace(10**max_order,counts,int(counts/(10**max_order)))))
+    return npoints
+
+def getFatigueCounts(points):
+    fpoints = [1]
+    fpoints.extend(list(diff(points)))
+    return fpoints
+    
+    
+        
+        
+        
