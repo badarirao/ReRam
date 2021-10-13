@@ -7,6 +7,7 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from os.path import exists as fileExists
 from winsound import MessageBeep

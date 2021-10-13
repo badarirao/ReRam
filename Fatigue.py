@@ -12,6 +12,7 @@
 # TODO: Add tooltips
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from os.path import exists as fileExists
 from time import time
@@ -315,7 +316,8 @@ class Ui_Fatigue(QtWidgets.QWidget):
 
 class app_Fatigue(Ui_Fatigue):
     """The Switch app module."""
-
+    # TODO: option to stop the experiment if sample fails
+    
     def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue.dat"):
         super(app_Fatigue, self).__init__(parent)
         self.k2450 = k2450
@@ -329,6 +331,7 @@ class app_Fatigue(Ui_Fatigue):
         self.filename = sName
         self.file_name.setText(self.filename)
         self.file_name.setReadOnly(True)
+        self.ratio = 1.5
         self.params = {
             "Vset": -3,
             "setPwidth": 10,
@@ -447,17 +450,30 @@ class app_Fatigue(Ui_Fatigue):
                                 self.resetTimestep,
                                 self.fpoints[self.i])
         self.afg1022.trgNwait()
-        HRScurrent, LRScurrent = self.read_LRS_HRS_states()
+        LRScurrent, HRScurrent = self.read_LRS_HRS_states()
+        LRS, HRS = self.params['Vset']/LRScurrent, self.params['Vreset']/HRScurrent
         self.ncycles.append(self.fpoints[self.i])
         self.LRScurrents.append(LRScurrent)
-        self.LRS.append(self.params['Vset']/LRScurrent)
+        self.LRS.append(LRS)
         self.HRScurrents.append(HRScurrent)
-        self.HRS.append(self.params['Vreset']/HRScurrent)
+        self.HRS.append(HRS)
                
         self.data_lineHRS.setData(self.ncycles, self.HRS)
         self.data_lineLRS.setData(self.ncycles, self.LRS)
         
         self.i = self.i + 1
+        # if ratio between HRS & LRS is less than 1.5, then sample is considered to have failed.
+        if HRS/LRS < 1.5: # stop program if sample has stopped switching
+            # sometimes, sample starts behaving in opposite manner after some cycles. 
+            # Program will continue experiment, if that happens.
+            if LRS/HRS < 1.5: 
+                self.stopCall = True
+                info = QMessageBox()
+                info.setWindowTitle("Sample Failed!")
+                info.setIcon(QMessageBox.Critical)
+                info.setText("Sample is not showing resistive switching anymore! Please change Sample.")
+                info.exec()
+            
         if self.i >= self.number_of_points or self.stopCall:
             self.stop_program()
             return
@@ -484,6 +500,27 @@ class app_Fatigue(Ui_Fatigue):
         self.initialize_SMU_and_AFG()
         startTime = time()
         LRScurrent,HRScurrent = self.read_LRS_HRS_states()
+        LRS, HRS = self.params['Vset']/LRScurrent, self.params['Vreset']/HRScurrent
+        
+        if HRS/LRS < 1.5:
+            self.stopCall = True
+            info = QMessageBox()
+            info.setWindowTitle("Sample Failed!")
+            info.setIcon(QMessageBox.Critical)
+            info.setText("Sample does not show resistive switching! Please change Sample.")
+            info.exec()
+            return
+        
+        if HRS < LRS:
+            self.params['Vset'] = self.params['Vreset']
+            self.params['Vreset'] = self.setV.value()
+            self.setV.setValue(self.params['Vset'])
+            self.resetV.setValue(self.params['Vreset'])
+            info = QMessageBox()
+            info.setWindowTitle("Parameter change notice!")
+            info.setIcon(QMessageBox.Warning)
+            info.setText("Vset and Vreset has been interchanged as required.")
+            info.exec()
         endTime = time()
         self.readingTime = endTime - startTime
         self.ncycles = [0]

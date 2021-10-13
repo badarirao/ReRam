@@ -8,7 +8,8 @@ USER6 is negpulse # custom negative pulse, already set in the instrument
 # USB::0x0699::0x0353::1643763::INSTR
 from pyvisa import ResourceManager, VisaIOError
 from PyQt5.QtCore import QEventLoop, QTimer, QSize, QRect, QMetaObject, QCoreApplication
-from PyQt5.QtWidgets import QWidget, QPushButton, QStatusBar, QApplication, QMainWindow
+from PyQt5.QtCore import pyqtSignal, QThread
+from PyQt5.QtWidgets import QWidget, QPushButton, QStatusBar, QApplication, QMainWindow, QMessageBox
 from numpy import zeros, uint16, int32, min as npmin, max as npmax
 
 class Ui_MainWindow(QMainWindow):
@@ -295,7 +296,7 @@ class AFG1022:
         
     def output(self,state):
         self.write('OUTPut1:STATe {}'.format(state))
-
+        
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
