@@ -11,6 +11,7 @@ from MyKeithley2450 import Keithley2450
 from MyKeithley2700 import Keithley2700
 from MyAFG1022 import AFG1022 
 from PyQt5.QtCore import QTimer, QEventLoop
+from PyQt5.QtWidgets import QTimeEdit
 from math import log10
 from numpy import logspace, linspace, diff
 
@@ -38,6 +39,24 @@ sample_id = {
                 8 : SAMPLE8,
                 9 : SAMPLE9,
                 10 : SAMPLE10}
+
+class MyTimeEdit(QTimeEdit):
+    def stepBy(self,steps):
+        cur = self.time()
+        QTimeEdit.stepBy(self,steps)
+        if self.currentSection() == self.SecondSection:
+            sec = cur.second()
+            if sec == 0 and steps < 0:
+                self.setTime(cur.addSecs(-1))
+            elif sec == 59 and steps > 0:
+                self.setTime(cur.addSecs(1))
+        elif self.currentSection() == self.MinuteSection:
+            minute = cur.minute()
+            if minute == 0 and steps < 0:
+                self.setTime(cur.addSecs(-60))
+            elif minute == 59 and steps > 0:
+                self.setTime(cur.addSecs(60))
+        
 
 class FakeAdapter():
     """Provides a fake adapter for debugging purposes.
@@ -243,16 +262,21 @@ def waitFor(self, wtime): # wtime is in msec
     QTimer.singleShot(wtime, loop.quit)
     loop.exec_()
     
-def linlogspace(counts):
+def linlogspace(counts,start=1,points_per_order=9):
     max_order = int(log10(counts))
-    lin_ranges = logspace(1,max_order,max_order)
+    lin_ranges = logspace(start,max_order,(max_order-start)+1)
     npoints = [1]
     for i in range(len(lin_ranges)-1):
-        npoints.extend(list(linspace(lin_ranges[i],lin_ranges[i+1],9,endpoint=False)))
-    npoints.extend(list(linspace(10**max_order,counts,int(counts/(10**max_order)))))
+        npoints.extend(list(linspace(lin_ranges[i],lin_ranges[i+1],points_per_order,endpoint=False)))
+    if points_per_order <= 9:
+        last_order_divisions = int(counts/10**max_order)
+    else:
+        last_order_divisions = int(counts*points_per_order/(9*10**max_order)-1)
+    npoints.extend(list(linspace(10**max_order,counts,last_order_divisions)))
+    npoints = list(dict.fromkeys(npoints))
     return npoints
 
-def getFatigueCounts(points):
+def getBinnedPoints(points):
     fpoints = [1]
     fpoints.extend(list(diff(points)))
     return fpoints

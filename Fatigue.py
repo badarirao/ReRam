@@ -10,6 +10,7 @@
 #TODO: the no of pulses, & pulse_width spin-boxes must automatically 
 #rotate values and update the time unit accordingly
 # TODO: Add tooltips
+# TODO: Plot in logscale
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
@@ -19,7 +20,7 @@ from time import time
 from datetime import timedelta
 from winsound import MessageBeep
 from csv import writer
-from utilities import linlogspace, getFatigueCounts, SMU, AFG, waitFor
+from utilities import linlogspace, getBinnedPoints, SMU, AFG, waitFor
 from utilities import connect_sample_with_AFG, unique_filename, checkInstrument
 
 class Ui_Fatigue(QtWidgets.QWidget):
@@ -405,7 +406,7 @@ class app_Fatigue(Ui_Fatigue):
         elif self.params["ILimit"] == 2:
             self.iLimitAmp = 0.0001
         self.points = linlogspace(self.nPulse_order*self.params["nPUlses"])
-        self.fpoints = getFatigueCounts(self.points)
+        self.fpoints = getBinnedPoints(self.points)
         self.number_of_points = len(self.fpoints)
         # set compliance current
         self.k2450.write("source:voltage:ilimit {0}".format(self.params["ILimit"]))
@@ -468,12 +469,10 @@ class app_Fatigue(Ui_Fatigue):
             # Program will continue experiment, if that happens.
             if LRS/HRS < 1.5: 
                 self.stopCall = True
-                info = QMessageBox()
-                info.setWindowTitle("Sample Failed!")
-                info.setIcon(QMessageBox.Critical)
-                info.setText("Sample is not showing resistive switching anymore! Please change Sample.")
-                info.exec()
-            
+                title = "Sample Failed!"
+                text = "Sample is not showing resistive switching anymore! Please change Sample."
+                QMessageBox.critical(self,title,text)
+        
         if self.i >= self.number_of_points or self.stopCall:
             self.stop_program()
             return
@@ -504,11 +503,9 @@ class app_Fatigue(Ui_Fatigue):
         
         if HRS/LRS < 1.5:
             self.stopCall = True
-            info = QMessageBox()
-            info.setWindowTitle("Sample Failed!")
-            info.setIcon(QMessageBox.Critical)
-            info.setText("Sample does not show resistive switching! Please change Sample.")
-            info.exec()
+            title = "Sample Failed!"
+            text = "Sample does not show resistive switching! Please change Sample."
+            QMessageBox.critical(self,title,text)
             return
         
         if HRS < LRS:
@@ -516,11 +513,10 @@ class app_Fatigue(Ui_Fatigue):
             self.params['Vreset'] = self.setV.value()
             self.setV.setValue(self.params['Vset'])
             self.resetV.setValue(self.params['Vreset'])
-            info = QMessageBox()
-            info.setWindowTitle("Parameter change notice!")
-            info.setIcon(QMessageBox.Warning)
-            info.setText("Vset and Vreset has been interchanged as required.")
-            info.exec()
+            title = "Parameter change notice!"
+            text = "Vset and Vreset has been interchanged as required."
+            QMessageBox.warning(self,title,text)
+        
         endTime = time()
         self.readingTime = endTime - startTime
         self.ncycles = [0]
@@ -530,8 +526,8 @@ class app_Fatigue(Ui_Fatigue):
         self.HRS = [self.params['Vreset']/HRScurrent]
         pen1 = mkPen(color=(0, 0, 255), width=2)
         pen2 = mkPen(color=(255, 0, 0), width=2)
-        self.data_lineLRS = self.fatiguePlot.plot(self.ncycles, self.LRS, pen=pen2, symbol='x', symbolPen='r')
-        self.data_lineHRS = self.fatiguePlot.plot(self.ncycles, self.HRS, pen=pen1, symbol='o')
+        self.data_lineLRS = self.fatiguePlot.plot(self.ncycles, self.LRS, pen=pen1, symbol='x', symbolPen='r')
+        self.data_lineHRS = self.fatiguePlot.plot(self.ncycles, self.HRS, pen=pen2, symbol='o')
         self.timer = QtCore.QTimer()
         self.start_Button.setEnabled(False)
         self.abort_Button.setEnabled(True)
