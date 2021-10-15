@@ -588,7 +588,7 @@ class app_Fatigue(Ui_Fatigue):
         None.
 
         """
-        self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='csv')
+        self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
         with open(self.fullfilename, "w", newline='') as f:
             f.write("#Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
             f.write("#Resistance read using Keithley 2450 source-measure unit.\n")

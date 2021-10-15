@@ -324,6 +324,7 @@ class app_Retention(Ui_Retention):
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.stopCall = False
+        self.skip = False
         self.time_hr.setWrapping(True)
         self.time_hr.setCurrentSection(QtWidgets.QTimeEdit.MinuteSection)
         self.skip_Button.setEnabled(False)
@@ -356,7 +357,7 @@ class app_Retention(Ui_Retention):
             "temperature": 300}
 
     def skip_to_next(self):
-        pass
+        self.skip = True
     
     def update_total_time(self):
         self.measure_counts = 0
@@ -542,6 +543,7 @@ class app_Retention(Ui_Retention):
             QMessageBox.warning(self,title,text)
             return
         self.stopCall = False
+        self.skip = False
         self.status.setText("Program Running..")
         self.i = 0
         self.initialize_SMU_and_AFG()
@@ -625,18 +627,30 @@ class app_Retention(Ui_Retention):
         None.
 
         """
-        self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='csv')
+        self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
         with open(self.fullfilename, "w", newline='') as f:
-            f.write("#Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
-            f.write("#Resistance read using Keithley 2450 source-measure unit.\n")
-            f.write("#Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
-            f.write("#Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
+            if self.vsource.currentIndex() == 0:
+                f.write("#Pulse voltage source: Keithley 2450 SMU.\n")
+            f.write("#Resistance read using Keithley 2450 SMU.\n")
             f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
             f.write("#Limiting current = {}mA\n\n".format(self.iLimitAmp*1000))
-            f.write("NCycles, LRS current (A), HRS Current, LRS resistance (Ω), HRS resistance (Ω)\n")
             write_data = writer(f)
-            write_data.writerows(zip(self.ncycles, self.LRScurrents, 
+            if self.setVcheck.checkState() and self.resetVcheck.checkState():
+                f.write("#Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
+                f.write("#Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
+                f.write("Time (s), LRS current (A), HRS Current, LRS resistance (Ω), HRS resistance (Ω)\n")
+                write_data.writerows(zip(self.ntimes, self.LRScurrents, 
                                      self.HRScurrents,self.LRS,self.HRS))
+            elif self.setVcheck.checkState():
+                f.write("#Set voltage = {} \n".format(self.params["Vset"]))
+                f.write("#Set pulse width = {}s \n".format(self.setTimestep))
+                f.write("Time (s), LRS current (A), LRS resistance (Ω)\n")
+                write_data.writerows(zip(self.ntimes, self.LRScurrents, self.LRS))
+            elif self.resetVcheck.checkState():
+                f.write("#Reset Voltage = {}.\n".format(self.params["Vreset"]))
+                f.write("#Reset pulse width = {}s\n".format(self.resetTimestep))
+                f.write("Time (s), HRS current (A), HRS resistance (Ω)\n")
+                write_data.writerows(zip(self.ntimes, self.HRScurrents, self.HRS))
             
     def initialize_plot(self):
         """
