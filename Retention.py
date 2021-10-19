@@ -259,6 +259,7 @@ class Ui_Retention(QtWidgets.QWidget):
         self.verticalLayout.addWidget(self.status)
         self.gridLayout_2.addWidget(self.widget, 1, 0, 1, 1)
         self.retentionPlot = PlotWidget(Retention, viewBox=ViewBox(border=mkPen(color='k', width=2)))
+        self.retentionPlot.setBackground((255, 182, 193, 25))
         self.retentionPlot.setMinimumSize(QtCore.QSize(411, 379))
         self.retentionPlot.setObjectName("retentionPlot")
         self.gridLayout_2.addWidget(self.retentionPlot, 0, 1, 2, 1)
@@ -320,6 +321,7 @@ class app_Retention(Ui_Retention):
 
     def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Retention.dat"):
         super(app_Retention, self).__init__(parent)
+        self.parent = parent
         self.k2450 = k2450
         self.k2700 = k2700
         self.afg1022 = afg1022
@@ -663,8 +665,25 @@ class app_Retention(Ui_Retention):
         """
         styles = {'color': 'r', 'font-size': '20px'}
         self.retentionPlot.setLabel('left', 'Read Resistance (Ohms)', **styles)
-        self.retentionPlot.setLabel('bottom', 'N. cycles', **styles)
+        self.retentionPlot.setLabel('bottom', 'Time (s)', **styles)
+        self.retentionPlot.getPlotItem().setLogMode(True, True)
         self.retentionPlot.addLegend(offset=(180,170))
+    
+    def closeEvent(self, event):
+        """
+        Perform necessary operations just before exiting the program.
+
+        Parameters
+        ----------
+        event : QCloseEvent
+
+        Returns
+        -------
+        None.
+
+        """
+        self.parent.show()
+        event.accept()
 
 if __name__ == "__main__":
     import sys
