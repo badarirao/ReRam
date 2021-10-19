@@ -280,6 +280,7 @@ class app_RVLoop(Ui_RVLoop):
 
     def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_RV.csv"):
         super(app_RVLoop, self).__init__(parent)
+        self.parent = parent
         self.k2450 = k2450
         self.k2700 = k2700 
         self.afg1022 = afg1022
@@ -650,6 +651,22 @@ class app_RVLoop(Ui_RVLoop):
         self.read_voltage.setEnabled(True)
         self.temp_check.setEnabled(True)
         self.start_Button.setEnabled(True)
+    
+    def closeEvent(self, event):
+        """
+        Perform necessary operations just before exiting the program.
+
+        Parameters
+        ----------
+        event : QCloseEvent
+
+        Returns
+        -------
+        None.
+
+        """
+        self.parent.show()
+        event.accept()
 
 
 if __name__ == "__main__":
