@@ -208,6 +208,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.verticalLayout_2.addWidget(self.frame)
         self.gridLayout_2.addWidget(self.widget, 0, 0, 1, 1)
         self.fatiguePlot = PlotWidget(Fatigue, viewBox=ViewBox(border=mkPen(color='k', width=2)))
+        self.fatiguePlot.setBackground((255, 182, 193, 25))
         self.fatiguePlot.setMinimumSize(QtCore.QSize(411, 379))
         self.fatiguePlot.setObjectName("fatiguePlot")
         self.gridLayout_2.addWidget(self.fatiguePlot, 0, 1, 2, 1)
@@ -321,6 +322,7 @@ class app_Fatigue(Ui_Fatigue):
     
     def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue.dat"):
         super(app_Fatigue, self).__init__(parent)
+        self.parent = parent
         self.k2450 = k2450
         self.k2700 = k2700
         self.afg1022 = afg1022
@@ -613,7 +615,24 @@ class app_Fatigue(Ui_Fatigue):
         styles = {'color': 'r', 'font-size': '20px'}
         self.fatiguePlot.setLabel('left', 'Read Resistance (Ohms)', **styles)
         self.fatiguePlot.setLabel('bottom', 'N. cycles', **styles)
-        self.fatiguePlot.addLegend(offset=(180,170))
+        self.fatiguePlot.getPlotItem().setLogMode(True, True)
+        self.fatiguePlot.addLegend()
+    
+    def closeEvent(self, event):
+        """
+        Perform necessary operations just before exiting the program.
+
+        Parameters
+        ----------
+        event : QCloseEvent
+
+        Returns
+        -------
+        None.
+
+        """
+        self.parent.show()
+        event.accept()
 
 if __name__ == "__main__":
     import sys
