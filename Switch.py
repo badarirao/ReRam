@@ -348,6 +348,7 @@ class app_Switch(Ui_Switch):
 
     def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_Switch.csv"):
         super(app_Switch, self).__init__(parent)
+        self.parent = parent
         self.new_flag = True
         self.k2450 = k2450
         self.k2700 = k2700
@@ -695,6 +696,22 @@ class app_Switch(Ui_Switch):
         self.Rplot.setLabel('left', 'Read Resistance (Ohms)', **styles)
         self.Vplot.setLabel('left', 'Pulse Voltage (V)', **styles)
         self.Vplot.setLabel('bottom', 'Pulse count', **styles)
+    
+    def closeEvent(self, event):
+        """
+        Perform necessary operations just before exiting the program.
+
+        Parameters
+        ----------
+        event : QCloseEvent
+
+        Returns
+        -------
+        None.
+
+        """
+        self.parent.show()
+        event.accept()
 
 
 if __name__ == "__main__":
