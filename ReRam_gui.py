@@ -24,6 +24,8 @@ from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
 from Switch import app_Switch
+from Fatigue import app_Fatigue
+from Retention import app_Retention
 from utilities import get_valid_filename, checkInstrument
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
@@ -47,8 +49,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.iv_button.clicked.connect(self.open_ivloop)
         self.rv_button.clicked.connect(self.open_rvloop)
         self.switch_button.clicked.connect(self.open_switchTest)
-        self.endurance_button.setEnabled(False)
-        self.retention_button.setEnabled(False)
+        self.endurance_button.clicked.connect(self.open_fatigue)
+        self.retention_button.clicked.connect(self.open_retention)
+        #self.endurance_button.setEnabled(False)
+        #self.retention_button.setEnabled(False)
         self.speed_button.setEnabled(False)
         self.aging_button.setEnabled(False)
         self.memristor_button.setEnabled(False)
@@ -57,11 +61,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.filename.editingFinished.connect(self.setFilename)
         self.setFilename(1)  # 1 indicates initial setting of filename
         self.iv = app_IVLoop(self, self.k2450, self.IVfilename)
-        self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
+        #self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
         self.rv = app_RVLoop(self, self.k2450, self.RVfilename)
-        self.rv.setWindowModality(QtCore.Qt.ApplicationModal)
         self.st = app_Switch(self, self.k2450, self.Switchfilename)
-        self.st.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.ft = app_Fatigue(self, self.k2450, self.Fatiguefilename)
+        self.rt = app_Retention(self, self.k2450, self.Retentionfilename)
 
     def checkPaths(self):
         """
@@ -212,6 +216,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             self.IVfilename = self.sampleID+'_IV'
             self.RVfilename = self.sampleID+'_RV'
             self.Switchfilename = self.sampleID+'_Switch'
+            self.Fatiguefilename = self.sampleID+'_Fatigue'
+            self.Retentionfilename = self.sampleID+'_Retention'
 
     def open_ivloop(self):
         """
@@ -224,6 +230,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.iv.filename = self.IVfilename
         self.iv.file_name.setText(self.iv.filename)
+        self.hide()
         self.iv.show()
 
     def open_rvloop(self):
@@ -237,6 +244,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.rv.filename = self.RVfilename
         self.rv.file_name.setText(self.rv.filename)
+        self.hide()
         self.rv.show()
 
     def open_switchTest(self):
@@ -250,9 +258,37 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.st.filename = self.Switchfilename
         self.st.file_name.setText(self.st.filename)
+        self.hide()
         self.st.show()
+    
+    def open_fatigue(self):
+        """
+        Load the Fatigue testing module.
 
+        Returns
+        -------
+        None.
 
+        """
+        self.ft.filename = self.Fatiguefilename
+        self.ft.file_name.setText(self.st.filename)
+        self.hide()
+        self.ft.show()
+    
+    def open_retention(self):
+        """
+        Load the Retention testing module.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.rt.filename = self.Retentionfilename
+        self.rt.file_name.setText(self.rt.filename)
+        self.hide()
+        self.rt.show()
+        
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow()
