@@ -60,12 +60,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.batch_button.setEnabled(False)
         self.filename.editingFinished.connect(self.setFilename)
         self.setFilename(1)  # 1 indicates initial setting of filename
-        self.iv = app_IVLoop(self, self.k2450, self.IVfilename)
+        self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
         #self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rv = app_RVLoop(self, self.k2450, self.RVfilename)
-        self.st = app_Switch(self, self.k2450, self.Switchfilename)
-        self.ft = app_Fatigue(self, self.k2450, self.Fatiguefilename)
-        self.rt = app_Retention(self, self.k2450, self.Retentionfilename)
+        self.rv = app_RVLoop(self, self.k2450, self.k2700, self.afg1022, self.RVfilename)
+        self.st = app_Switch(self, self.k2450, self.k2700, self.afg1022, self.Switchfilename)
+        self.ft = app_Fatigue(self, self.k2450, self.k2700, self.afg1022, self.Fatiguefilename)
+        self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename)
 
     def checkPaths(self):
         """
@@ -169,6 +169,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             f.write(self.k2450Addr+'\n') # write address of K2450 if present
             f.write(self.k2700Addr+'\n') # write address of K700 if present
             f.write(self.AFG1022Addr) # write get address of AFG1022 if present
+        self.k2450.close()
+        self.k2700.write("DISPlay:ENABle ON")
+        self.k2700.close()
+        self.afg1022.close()
         event.accept()
 
     def openDir(self):

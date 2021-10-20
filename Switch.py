@@ -497,15 +497,14 @@ class app_Switch(Ui_Switch):
         elif self.points[self.i] == 0:
             self.timestep = 0
         # apply pulse and measure pulse resistance
-        if self.timestep > 0:
+        if self.timestep > 0 and self.points[self.i] != 0:
             v1, c1 = self.k2450.apply_switch_pulse(self.points[self.i],self.timestep)
         else:
             v1 = 0
             c1 = -1
         # measure read resistance
         self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
-        self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
-            self.params["Average"]))
+        self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
         self.k2450.source_voltage = self.params["Rvoltage"]
         self.k2450.start_buffer()
         self.k2450.wait_till_done()
@@ -551,15 +550,15 @@ class app_Switch(Ui_Switch):
             self.timestep = self.resetTimestep
         elif self.points[self.i] == 0:
             self.timestep = 0
-        self.k2700.open_Channels(SMU) # Disconnect SMU
-        self.k2700.close_Channels(AFG) # connect AFG
-        waitFor(20) # wait for 20msec to ensure switching is complete
-        if self.timestep > 0:
+        if self.timestep > 0 and self.points[self.i] != 0:
+            self.k2700.open_Channels(SMU) # Disconnect SMU
+            self.k2700.close_Channels(AFG) # connect AFG
+            waitFor(20) # wait for 20msec to ensure switching is complete
             self.afg1022.setSinglePulse(self.points[self.i],self.timestep)
             self.afg1022.trgNwait()
-        self.k2700.open_Channels(AFG) # disconnect function generator
-        self.k2700.close_Channels(SMU) # connect SMU
-        waitFor(20) # wait for 20msec to ensure switching is complete
+            self.k2700.open_Channels(AFG) # disconnect function generator
+            self.k2700.close_Channels(SMU) # connect SMU
+            waitFor(20) # wait for 20msec to ensure switching is complete
         # Measure Read resistance using K2450
         self.k2450.start_buffer()
         self.k2450.wait_till_done()
@@ -710,7 +709,8 @@ class app_Switch(Ui_Switch):
         None.
 
         """
-        self.parent.show()
+        if __name__ != "__main__":
+            self.parent.show()
         event.accept()
 
 

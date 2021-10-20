@@ -14,6 +14,7 @@ from PyQt5.QtCore import QTimer, QEventLoop
 from PyQt5.QtWidgets import QTimeEdit
 from math import log10
 from numpy import logspace, linspace, diff
+from time import sleep
 
 SMU = 111
 AFG = 112
@@ -226,13 +227,18 @@ def connect_sample_with_AFG(k2700,sample_no=1):
     None.
 
     """
-    closed_channels = list(map(int,k2700.ask("ROUTe:MULTiple:CLOSe?")[2:-1].split(',')))
+    closed_CHs = k2700.ask("ROUTe:MULTiple:CLOSe?")
+    if closed_CHs == '(@)\n':
+        closed_channels = []
+    else:
+        closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
     required_channels = [sample_id[sample_no],AFG]
     channels_to_close = [x for x in required_channels if x not in closed_channels]
     channels_to_open = [x for x in closed_channels if x not in required_channels]
     k2700.close_Channels(channels_to_close)
     k2700.open_Channels(channels_to_open)
-    waitFor(20) # wait for 20msec to ensure switching is complete
+    sleep(0.2)
+    #waitFor(20) # wait for 20msec to ensure switching is complete
 
 def connect_sample_with_SMU(k2700,sample_no=1):
     """
@@ -249,15 +255,20 @@ def connect_sample_with_SMU(k2700,sample_no=1):
     None.
 
     """
-    closed_channels = list(map(int,k2700.ask("ROUTe:MULTiple:CLOSe?")[2:-1].split(',')))
+    closed_CHs = k2700.ask("ROUTe:MULTiple:CLOSe?")
+    if closed_CHs == '(@)\n':
+        closed_channels = []
+    else:
+        closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
     required_channels = [sample_id[sample_no],SMU]
     channels_to_close = [x for x in required_channels if x not in closed_channels]
     channels_to_open = [x for x in closed_channels if x not in required_channels]
     k2700.close_Channels(channels_to_close)
     k2700.open_Channels(channels_to_open)
-    waitFor(20) # wait for 20msec to ensure switching is complete
+    sleep(0.2)
+    #waitFor(20) # wait for 20msec to ensure switching is complete
     
-def waitFor(self, wtime): # wtime is in msec
+def waitFor(wtime): # wtime is in msec
     loop = QEventLoop()
     QTimer.singleShot(wtime, loop.quit)
     loop.exec_()
@@ -278,7 +289,7 @@ def linlogspace(counts,start=1,points_per_order=9):
 
 def getBinnedPoints(points):
     fpoints = [1]
-    fpoints.extend(list(diff(points)))
+    fpoints.extend(list(diff(points).astype(int)))
     return fpoints
     
     

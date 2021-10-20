@@ -151,7 +151,7 @@ class Ui_Retention(QtWidgets.QWidget):
         self.setV.setMinimumSize(QtCore.QSize(115, 0))
         self.setV.setDecimals(3)
         self.setV.setMinimum(-10.0)
-        self.setV.setMaximum(9.0)
+        self.setV.setMaximum(10)
         self.setV.setSingleStep(0.001)
         self.setV.setProperty("value", -3.0)
         self.setV.setObjectName("setV")
@@ -167,7 +167,7 @@ class Ui_Retention(QtWidgets.QWidget):
         self.resetV = QtWidgets.QDoubleSpinBox(self.frame)
         self.resetV.setMinimumSize(QtCore.QSize(115, 0))
         self.resetV.setDecimals(3)
-        self.resetV.setMinimum(-9.0)
+        self.resetV.setMinimum(-10)
         self.resetV.setMaximum(10.0)
         self.resetV.setSingleStep(0.001)
         self.resetV.setProperty("value", 3.0)
@@ -440,11 +440,13 @@ class app_Retention(Ui_Retention):
             self.iLimitAmp = 0.0005
         elif self.params["ILimit"] == 2:
             self.iLimitAmp = 0.0001
-        self.timePoints = linlogspace(self.time_sec,start=0,points_per_order=18)
+        self.timePoints = linlogspace(self.time_sec.value(),start=0,points_per_order=18)
         self.binnedPoints = getBinnedPoints(self.timePoints)
         self.number_of_points = len(self.binnedPoints)
+        print("Number of points = {}".format(self.number_of_points))
         # set compliance current
-        self.k2450.write("source:voltage:ilimit {0}".format(self.params["ILimit"]))
+        if self.vsource.currentIndex() == 0:
+            self.k2450.write("source:voltage:ilimit {0}".format(self.params["ILimit"]))
         
     def initialize_SMU_and_AFG(self):
         """
@@ -484,56 +486,71 @@ class app_Retention(Ui_Retention):
             self.afg1022.trgNwait()
             connect_sample_with_SMU(self.k2700)
         
-        self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
+        self.k2450.write("TRIG:LOAD 'SimpleLoop', {}, 0".format(self.params["Average"]))
         self.k2450.source_voltage = self.params["Rvoltage"]
         
         if self.pulses_to_apply[self.i][0] == self.params["Vset"]:
+            self.ntimesSet = self.ntimes.copy()
             self.startTime = time()
             self.j = 0
-            QTimer.singleShot(self.binnedPoints[self.j]*1000, QtCore.Qt.PreciseTimer, self.read_LRS_dataPoints)
+            self.read_LRS_dataPoints()
         elif self.pulses_to_apply[self.i][0] == self.params["Vreset"] and not self.stopCall:
+            self.ntimesReset = self.ntimes.copy()
             self.startTime = time()
             self.j = 0
-            QTimer.singleShot(self.binnedPoints[self.j]*1000, QtCore.Qt.PreciseTimer, self.read_HRS_dataPoints)
+            self.read_HRS_dataPoints()
+        """
         self.i = self.i + 1
         if self.i >= len(self.pulses_to_apply) or self.stopCall:
             self.stop_program()
             return
-        
         self.timer.singleShot(0, self.do_one_retention)  # Measure next pulse
+        """
 
     def read_LRS_dataPoints(self):
         readCurrent = self.k2450.readReRAM()
-        endTime = time() - self.startTime()
-        self.ntimes.append(endTime)
+        endTime = time() - self.startTime
+        self.ntimesSet.append(round(endTime,3))
         self.LRScurrents.append(readCurrent)
-        self.LRS.append(self.params["Vset"]/readCurrent)
-        self.data_lineLRS.setData(self.ntimes,self.LRS)
+        self.LRS.append(round(abs(self.params["Rvoltage"]/readCurrent),4))
+        self.data_lineLRS.setData(self.ntimesSet,self.LRS)
         self.j = self.j+1
         if self.j >= self.number_of_points or self.stopCall or self.skip:
-            if self.skip:
-                self.skip_Button.setEnabled(False)
+            self.skip = False
+            self.skip_Button.setEnabled(False)
+            self.i = self.i+1
+            if self.i >= len(self.pulses_to_apply) or self.stopCall:
+                self.stop_program()
+                return
+            self.timer.singleShot(0,self.do_one_retention)
             return
-        QTimer.singleShot(self.binnedPoints[self.j]*1000, QtCore.Qt.PreciseTimer, self.read_LRS_dataPoints)
+        self.timer.singleShot(self.binnedPoints[self.j]*1000, QtCore.Qt.PreciseTimer, self.read_LRS_dataPoints)
     
     def read_HRS_dataPoints(self):
         readCurrent = self.k2450.readReRAM()
-        endTime = time() - self.startTime()
-        self.ntimes.append(endTime)
+        endTime = time() - self.startTime
+        self.ntimesReset.append(round(endTime,3))
         self.HRScurrents.append(readCurrent)
-        self.HRS.append(self.params["Vset"]/readCurrent)
-        self.data_lineLRS.setData(self.ntimes,self.HRS)
+        self.HRS.append(round(abs(self.params["Rvoltage"]/readCurrent),4))
+        self.data_lineHRS.setData(self.ntimesReset,self.HRS)
         self.j = self.j+1
-        if self.j >= self.number_of_points or self.stopCall:
+        if self.j >= self.number_of_points or self.stopCall or self.skip:
+            self.skip = False
+            self.skip_Button.setEnabled(False)
+            self.i = self.i+1
+            if self.i >= len(self.pulses_to_apply) or self.stopCall:
+                self.stop_program()
+                return
+            self.timer.singleShot(0,self.do_one_retention)
             return
-        QTimer.singleShot(self.binnedPoints[self.j]*1000, QtCore.Qt.PreciseTimer, self.read_HRS_dataPoints)
+        self.timer.singleShot(self.binnedPoints[self.j]*1000, QtCore.Qt.PreciseTimer, self.read_HRS_dataPoints)
         
     def startRetention(self):
         """
         Begins the retention experiment.
 
         TODO: If both set and reset pulses are disabled, display warning and then take no action
-
+        TODO: Still there is some problem with initial plotting of data points
         Returns
         -------
         None.
@@ -548,57 +565,58 @@ class app_Retention(Ui_Retention):
         self.skip = False
         self.status.setText("Program Running..")
         self.i = 0
+        self.configurePulse()
         self.initialize_SMU_and_AFG()
-        self.ntimes = [0]
+        self.retentionPlot.clear()
+        self.ntimes = [0.01]
         self.pulses_to_apply = []
+        LRSCurrent, HRSCurrent = self.read_LRS_HRS_states()
         if self.setVcheck.isChecked():
-            self.LRScurrents = [0]
-            self.LRS = [0]
+            self.LRScurrents = [LRSCurrent]
+            self.LRS = [round(abs(self.params["Rvoltage"]/LRSCurrent),4)]
             pen1 = mkPen(color=(0, 0, 255), width=2)
-            self.data_lineLRS = self.retentionPlot.plot(self.ncycles, self.LRS, pen=pen1, symbol='x', symbolPen='r')
-            del self.LRScurrents[0]
-            del self.LRS[0]
+            self.data_lineLRS = self.retentionPlot.plot(self.ntimes, self.LRS, pen=pen1, symbol='x', symbolPen='r')
             self.pulses_to_apply.append([self.params["Vset"],self.setTimestep])
         if self.resetVcheck.isChecked():
-            self.HRScurrents = [0]
-            self.HRS = [0]
+            self.HRScurrents = [HRSCurrent]
+            self.HRS = [round(abs(self.params["Rvoltage"]/HRSCurrent),4)]
             pen2 = mkPen(color=(255, 0, 0), width=2)
-            self.data_lineHRS = self.retentionPlot.plot(self.ncycles, self.HRS, pen=pen2, symbol='o')
-            del self.HRScurrents[0]
-            del self.HRS[0]
+            self.data_lineHRS = self.retentionPlot.plot(self.ntimes, self.HRS, pen=pen2, symbol='o')
             self.pulses_to_apply.append([self.params["Vreset"],self.resetTimestep])
-        del self.ntimes[0]
         self.start_Button.setEnabled(False)
         self.abort_Button.setEnabled(True)
         if self.measure_counts == 2:
             self.skip_Button.setEnabled(True)
-        self.configurePulse()
         self.k2450.enable_source()
-        self.QTimer.singleShot(0, self.do_one_retention)
+        self.timer = QTimer()
+        print(self.number_of_points)
+        self.timer.singleShot(0, self.do_one_retention)
 
     def read_LRS_HRS_states(self):
         # Assuming function generator is connected and SMU is disconnected
-        
-        # Get LRS
-        self.afg1022.setSinglePulse(self.params['Vset'],self.setTimestep)
-        self.afg1022.trgNwait()
-        self.k2700.open_Channels(AFG) # disconnect function generator
-        self.k2700.close_Channels(SMU) # connect SMU
-        waitFor(20) # wait for 20msec to ensure switching is complete
-        # Measure Read resistance using K2450
-        HRScurrent = self.k2450.readReRAM()
-        
-        # Get HRS        
-        self.k2700.open_Channels(SMU) # disconnect SMU
-        self.k2700.close_Channels(AFG) # connect function generator
-        waitFor(20) # wait for 20msec to ensure switching is complete
-        self.afg1022.setSinglePulse(self.params['Vreset'],self.resetTimestep)
-        afg1022.trgNwait()
-        self.k2700.open_Channels(AFG) # disconnect function generator
-        self.k2700.close_Channels(SMU) # connect SMU
-        waitFor(20) # wait for 20msec to ensure switching is complete
-        # Measure Read resistance using K2450
-        LRScurrent = self.k2450.readReRAM()
+        LRScurrent = 1e-12
+        HRScurrent = 1e-12
+        if self.setVcheck.isChecked():
+            # Get LRS
+            self.afg1022.setSinglePulse(self.params['Vset'],self.setTimestep)
+            self.afg1022.trgNwait()
+            self.k2700.open_Channels(AFG) # disconnect function generator
+            self.k2700.close_Channels(SMU) # connect SMU
+            waitFor(20) # wait for 20msec to ensure switching is complete
+            # Measure Read resistance using K2450
+            LRScurrent = self.k2450.readReRAM()
+        if self.resetVcheck.isChecked():
+            # Get HRS        
+            self.k2700.open_Channels(SMU) # disconnect SMU
+            self.k2700.close_Channels(AFG) # connect function generator
+            waitFor(20) # wait for 20msec to ensure switching is complete
+            self.afg1022.setSinglePulse(self.params['Vreset'],self.resetTimestep)
+            afg1022.trgNwait()
+            self.k2700.open_Channels(AFG) # disconnect function generator
+            self.k2700.close_Channels(SMU) # connect SMU
+            waitFor(20) # wait for 20msec to ensure switching is complete
+            # Measure Read resistance using K2450
+            HRScurrent = self.k2450.readReRAM()
         self.k2700.open_Channels(SMU) # disconnect SMU
         self.k2700.close_Channels(AFG) # connect function generator
         waitFor(20) # wait for 20msec to ensure switching is complete
@@ -633,26 +651,28 @@ class app_Retention(Ui_Retention):
         with open(self.fullfilename, "w", newline='') as f:
             if self.vsource.currentIndex() == 0:
                 f.write("#Pulse voltage source: Keithley 2450 SMU.\n")
+            else:
+                f.write("#Pulse voltage source: Tektronix AFG1022 Function Generator.\n")
+            f.write("#Pulse limiting current = {}mA\n".format(self.iLimitAmp*1000))
             f.write("#Resistance read using Keithley 2450 SMU.\n")
             f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
-            f.write("#Limiting current = {}mA\n\n".format(self.iLimitAmp*1000))
             write_data = writer(f)
             if self.setVcheck.checkState() and self.resetVcheck.checkState():
                 f.write("#Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
                 f.write("#Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
-                f.write("Time (s), LRS current (A), HRS Current, LRS resistance (Ω), HRS resistance (Ω)\n")
-                write_data.writerows(zip(self.ntimes, self.LRScurrents, 
-                                     self.HRScurrents,self.LRS,self.HRS))
+                f.write("Set Time (s), LRS current (A), LRS resistance (Ω), Reset Time (s), HRS Current (A), HRS resistance (Ω)\n")
+                write_data.writerows(zip(self.ntimesSet, self.LRScurrents,self.LRS, 
+                                     self.ntimesReset,self.HRScurrents,self.HRS))
             elif self.setVcheck.checkState():
                 f.write("#Set voltage = {} \n".format(self.params["Vset"]))
                 f.write("#Set pulse width = {}s \n".format(self.setTimestep))
                 f.write("Time (s), LRS current (A), LRS resistance (Ω)\n")
-                write_data.writerows(zip(self.ntimes, self.LRScurrents, self.LRS))
+                write_data.writerows(zip(self.ntimesSet, self.LRScurrents, self.LRS))
             elif self.resetVcheck.checkState():
                 f.write("#Reset Voltage = {}.\n".format(self.params["Vreset"]))
                 f.write("#Reset pulse width = {}s\n".format(self.resetTimestep))
                 f.write("Time (s), HRS current (A), HRS resistance (Ω)\n")
-                write_data.writerows(zip(self.ntimes, self.HRScurrents, self.HRS))
+                write_data.writerows(zip(self.ntimesReset, self.HRScurrents, self.HRS))
             
     def initialize_plot(self):
         """
@@ -682,7 +702,8 @@ class app_Retention(Ui_Retention):
         None.
 
         """
-        self.parent.show()
+        if __name__ != "__main__":
+            self.parent.show()
         event.accept()
 
 if __name__ == "__main__":

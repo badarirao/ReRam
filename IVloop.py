@@ -634,7 +634,8 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
-        self.parent.show()
+        if __name__ != "__main__":
+            self.parent.show()
         event.accept()
 
 

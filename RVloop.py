@@ -13,7 +13,7 @@ from numpy import linspace, around, concatenate, array
 from PyQt5 import QtCore, QtWidgets, QtGui
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from utilities import unique_filename, FakeAdapter, checkInstrument, SMU, AFG
-from utilities import connect_sample_with_SMU, connect_sample_with_AFG, waitFor
+from utilities import connect_sample_with_SMU, waitFor
 
 class Ui_RVLoop(QtWidgets.QWidget):
     """The pyqt5 gui class for RV loop measurement."""
@@ -433,7 +433,7 @@ class app_RVLoop(Ui_RVLoop):
         self.timer = QtCore.QTimer()
         if self.params['Vsource'] == 0:
             self.params['fname'] = self.fullfilename
-            connect_sample_with_SMU()
+            connect_sample_with_SMU(self.k2700)
             self.timer.singleShot(0, self.measure_RV_SMU)
         else:
             self.params['fname'] = self.fullfilename[:-4]+'_fgn.csv'
@@ -665,7 +665,8 @@ class app_RVLoop(Ui_RVLoop):
         None.
 
         """
-        self.parent.show()
+        if __name__ != "__main__":
+            self.parent.show()
         event.accept()
 
 

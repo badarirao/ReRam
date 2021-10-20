@@ -63,6 +63,7 @@ class AFG1022:
             self._arbitrary_waveform_length = [2, 8192]  # min length, max length
             self._arbitrary_waveform_resolution = 16383  # 14 bit
             self._max_waveform_memory_user_locations = 255
+            self.output(1)
         else:
             raise VisaIOError(-1073807346)
         
@@ -297,6 +298,7 @@ class AFG1022:
     def output(self,state):
         self.write('OUTPut1:STATe {}'.format(state))
         
+"""
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
@@ -308,4 +310,4 @@ if __name__ == "__main__":
     ui.trigger_Button.clicked.connect(afg.trigger)
     ui.triggerNwait_Button.clicked.connect(afg.trgNwait)
     sys.exit(app.exec_())
-        
+"""        
