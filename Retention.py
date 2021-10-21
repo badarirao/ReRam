@@ -3,10 +3,10 @@
 # Form implementation generated from reading ui file 'retention.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.2
-#
+# 
 # WARNING! All changes made in this file will be lost!
 
-# TODO: Plot in logscale?
+# TODO: Add tooltips
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
@@ -18,7 +18,7 @@ from winsound import MessageBeep
 from csv import writer
 from utilities import linlogspace, SMU, AFG, waitFor
 from utilities import connect_sample_with_AFG, unique_filename, checkInstrument
-from utilities import MyTimeEdit, connect_sample_with_SMU, getBinnedPoints
+from utilities import MyTimeEdit, connect_sample_with_SMU, connect_sample_with_AFG, getBinnedPoints
 
 class Ui_Retention(QtWidgets.QWidget):
     
@@ -252,7 +252,6 @@ class Ui_Retention(QtWidgets.QWidget):
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Text, brush)
         self.status.setPalette(palette)
-        self.status.setText("")
         self.status.setAlignment(QtCore.Qt.AlignCenter)
         self.status.setReadOnly(True)
         self.status.setObjectName("status")
@@ -334,13 +333,17 @@ class app_Retention(Ui_Retention):
         self.start_Button.clicked.connect(self.startRetention)
         self.skip_Button.clicked.connect(self.skip_to_next)
         self.abort_Button.clicked.connect(self.abortRetention)
-        self.vsource.currentIndexChanged.connect(self.setSourceLimits)
+        self.vsource.currentIndexChanged.connect(self.update_limits)
         self.time_sec.valueChanged.connect(self.connect_sec_to_hr)
         self.time_hr.timeChanged.connect(self.connect_hr_to_sec)
         self.time_hr.editingFinished.connect(self.update_total_time)
         self.time_sec.editingFinished.connect(self.update_total_time)
+        self.setVcheck.stateChanged.connect(self.update_total_time)
+        self.resetVcheck.stateChanged.connect(self.update_total_time)
         self.initialize_plot()
+        self.update_limits()
         self.nplc = 1
+        self.measurement_status = "Idle"
         self.filename = sName
         self.file_name.setText(self.filename)
         self.file_name.setReadOnly(True)
@@ -357,6 +360,7 @@ class app_Retention(Ui_Retention):
             "Rvoltage": 0.1,  # V
             "Average": 5,
             "temperature": 300}
+        connect_sample_with_AFG(self.k2700)
 
     def skip_to_next(self):
         self.skip = True
@@ -372,24 +376,25 @@ class app_Retention(Ui_Retention):
         total_Qtime = total_Qtime.addSecs(total_time)
         self.timeTaken.setText("Total experiment time = {}".format(total_Qtime.toString("h:mm:ss")))
     
-    def setSourceLimits(self):
+    def update_limits(self):
         if self.vsource.currentIndex() == 0:
-            self.setV.setMaximum(20)
-            self.resetV.setMaximum(20)
-            self.setV.setMinimum(-20)
-            self.resetV.setMinimum(-20)
-            self.configurePulse()
-            if self.setTimestep <= 1e-4:
-                self.setPwidth = 100
-                self.setTimeUnit.setCurrentIndex(0)
-            if self.resetTimestep <= 1e-4:
-                self.resetPwidth = 100
-                self.resetTimeUnit.setCurrentIndex(0)
-        elif self.vsource.currentIndex() == 1:
+            self.setV.setMaximum(190)
+            self.resetV.setMaximum(190)
+            self.setV.setMinimum(-190)
+            self.resetV.setMinimum(-190)
+            if self.setTimeUnit.currentIndex() == 0:
+                self.setTimeUnit.setCurrentIndex(1)
+            self.setTimeUnit.model().item(0).setEnabled(False)
+            if self.resetTimeUnit.currentIndex() == 0:
+                self.resetTimeUnit.setCurrentIndex(1)
+            self.resetTimeUnit.model().item(0).setEnabled(False)
+        else:
             self.setV.setMaximum(5)
             self.resetV.setMaximum(5)
             self.setV.setMinimum(-5)
             self.resetV.setMinimum(-5)
+            self.setTimeUnit.model().item(0).setEnabled(True)
+            self.resetTimeUnit.model().item(0).setEnabled(True)
     
     def connect_sec_to_hr(self):
         seconds = int(self.time_sec.value())
@@ -443,7 +448,6 @@ class app_Retention(Ui_Retention):
         self.timePoints = linlogspace(self.time_sec.value(),start=0,points_per_order=18)
         self.binnedPoints = getBinnedPoints(self.timePoints)
         self.number_of_points = len(self.binnedPoints)
-        print("Number of points = {}".format(self.number_of_points))
         # set compliance current
         if self.vsource.currentIndex() == 0:
             self.k2450.write("source:voltage:ilimit {0}".format(self.params["ILimit"]))
@@ -490,29 +494,22 @@ class app_Retention(Ui_Retention):
         self.k2450.source_voltage = self.params["Rvoltage"]
         
         if self.pulses_to_apply[self.i][0] == self.params["Vset"]:
-            self.ntimesSet = self.ntimes.copy()
+            self.ntimesSet = []
             self.startTime = time()
             self.j = 0
             self.read_LRS_dataPoints()
         elif self.pulses_to_apply[self.i][0] == self.params["Vreset"] and not self.stopCall:
-            self.ntimesReset = self.ntimes.copy()
+            self.ntimesReset = []
             self.startTime = time()
             self.j = 0
             self.read_HRS_dataPoints()
-        """
-        self.i = self.i + 1
-        if self.i >= len(self.pulses_to_apply) or self.stopCall:
-            self.stop_program()
-            return
-        self.timer.singleShot(0, self.do_one_retention)  # Measure next pulse
-        """
 
     def read_LRS_dataPoints(self):
         readCurrent = self.k2450.readReRAM()
-        endTime = time() - self.startTime
-        self.ntimesSet.append(round(endTime,3))
+        endTime = round((time() - self.startTime),3)
+        self.ntimesSet.append(endTime)
         self.LRScurrents.append(readCurrent)
-        self.LRS.append(round(abs(self.params["Rvoltage"]/readCurrent),4))
+        self.LRS.append(abs(self.params["Rvoltage"]/readCurrent))
         self.data_lineLRS.setData(self.ntimesSet,self.LRS)
         self.j = self.j+1
         if self.j >= self.number_of_points or self.stopCall or self.skip:
@@ -524,14 +521,18 @@ class app_Retention(Ui_Retention):
                 return
             self.timer.singleShot(0,self.do_one_retention)
             return
-        self.timer.singleShot(self.binnedPoints[self.j]*1000, QtCore.Qt.PreciseTimer, self.read_LRS_dataPoints)
+        if self.j > 9:
+            pauseTime = (self.timePoints[self.j]-endTime)*1000
+        else:
+            pauseTime = self.binnedPoints[self.j]*1000
+        self.timer.singleShot(pauseTime, QtCore.Qt.PreciseTimer, self.read_LRS_dataPoints)
     
     def read_HRS_dataPoints(self):
         readCurrent = self.k2450.readReRAM()
         endTime = time() - self.startTime
         self.ntimesReset.append(round(endTime,3))
         self.HRScurrents.append(readCurrent)
-        self.HRS.append(round(abs(self.params["Rvoltage"]/readCurrent),4))
+        self.HRS.append(abs(self.params["Rvoltage"]/readCurrent))
         self.data_lineHRS.setData(self.ntimesReset,self.HRS)
         self.j = self.j+1
         if self.j >= self.number_of_points or self.stopCall or self.skip:
@@ -543,23 +544,29 @@ class app_Retention(Ui_Retention):
                 return
             self.timer.singleShot(0,self.do_one_retention)
             return
-        self.timer.singleShot(self.binnedPoints[self.j]*1000, QtCore.Qt.PreciseTimer, self.read_HRS_dataPoints)
+        if self.j > 9:
+            pauseTime = (self.timePoints[self.j]-endTime)*1000
+        else:
+            pauseTime = self.binnedPoints[self.j]*1000
+        self.timer.singleShot(pauseTime, QtCore.Qt.PreciseTimer, self.read_HRS_dataPoints)
         
     def startRetention(self):
         """
         Begins the retention experiment.
 
-        TODO: If both set and reset pulses are disabled, display warning and then take no action
-        TODO: Still there is some problem with initial plotting of data points
         Returns
         -------
         None.
 
         """
+        self.measurement_status = "Running"
         if not self.setVcheck.isChecked() and not self.resetVcheck.isChecked():
-            title = "No operation selected!"
-            text = "Please check atleast one among Set and Reset voltages to be applied. "
-            QMessageBox.warning(self,title,text)
+            self.stopCall = True
+            title = "No resistance state selected"
+            text = "Please check atleast one of the set/reset states to carry out retention measurement."
+            self.status.setText("Select atleast 1 resistive state.")
+            QMessageBox.critical(self,title,text)
+            self.stop_program()
             return
         self.stopCall = False
         self.skip = False
@@ -568,21 +575,26 @@ class app_Retention(Ui_Retention):
         self.configurePulse()
         self.initialize_SMU_and_AFG()
         self.retentionPlot.clear()
-        self.ntimes = [0.01]
+        ntimes = [0.01]
         self.pulses_to_apply = []
         LRSCurrent, HRSCurrent = self.read_LRS_HRS_states()
         if self.setVcheck.isChecked():
             self.LRScurrents = [LRSCurrent]
-            self.LRS = [round(abs(self.params["Rvoltage"]/LRSCurrent),4)]
+            self.LRS = [abs(self.params["Rvoltage"]/LRSCurrent)]
             pen1 = mkPen(color=(0, 0, 255), width=2)
-            self.data_lineLRS = self.retentionPlot.plot(self.ntimes, self.LRS, pen=pen1, symbol='x', symbolPen='r')
+            self.data_lineLRS = self.retentionPlot.plot(ntimes, self.LRS, pen=pen1, symbol='x', symbolPen='r')
+            del self.LRScurrents[0]
+            del self.LRS[0]
             self.pulses_to_apply.append([self.params["Vset"],self.setTimestep])
         if self.resetVcheck.isChecked():
             self.HRScurrents = [HRSCurrent]
-            self.HRS = [round(abs(self.params["Rvoltage"]/HRSCurrent),4)]
+            self.HRS = [abs(self.params["Rvoltage"]/HRSCurrent)]
             pen2 = mkPen(color=(255, 0, 0), width=2)
-            self.data_lineHRS = self.retentionPlot.plot(self.ntimes, self.HRS, pen=pen2, symbol='o')
+            self.data_lineHRS = self.retentionPlot.plot(ntimes, self.HRS, pen=pen2, symbol='o')
+            del self.HRScurrents[0]
+            del self.HRS[0]
             self.pulses_to_apply.append([self.params["Vreset"],self.resetTimestep])
+        del ntimes[0]
         self.start_Button.setEnabled(False)
         self.abort_Button.setEnabled(True)
         if self.measure_counts == 2:
@@ -598,6 +610,9 @@ class app_Retention(Ui_Retention):
         HRScurrent = 1e-12
         if self.setVcheck.isChecked():
             # Get LRS
+            self.k2700.open_Channels(SMU) # disconnect SMU
+            self.k2700.close_Channels(AFG) # connect function generator
+            waitFor(20) # wait for 20msec to ensure switching is complete
             self.afg1022.setSinglePulse(self.params['Vset'],self.setTimestep)
             self.afg1022.trgNwait()
             self.k2700.open_Channels(AFG) # disconnect function generator
@@ -623,11 +638,12 @@ class app_Retention(Ui_Retention):
         return LRScurrent, HRScurrent
         
     def stop_program(self):
+        self.measurement_status = "Stopped"
         self.saveData()
         if self.stopCall:
-            self.status.setText("Program Aborted. Partial data saved.")
+            self.status.setText("Program Aborted.")
         else:
-            self.status.setText("Measurement Finished. Data saved.")
+            self.status.setText("Measurement Finished.")
         self.start_Button.setEnabled(True)
         self.abort_Button.setEnabled(False)
         self.k2450.source_voltage = 0
@@ -635,6 +651,7 @@ class app_Retention(Ui_Retention):
         MessageBeep()
     
     def abortRetention(self):
+        self.measurement_status = "Aborted"
         self.status.setText("Aborting the program. Please wait..")
         self.stopCall = True
         
@@ -647,32 +664,34 @@ class app_Retention(Ui_Retention):
         None.
 
         """
-        self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
-        with open(self.fullfilename, "w", newline='') as f:
-            if self.vsource.currentIndex() == 0:
-                f.write("#Pulse voltage source: Keithley 2450 SMU.\n")
-            else:
-                f.write("#Pulse voltage source: Tektronix AFG1022 Function Generator.\n")
-            f.write("#Pulse limiting current = {}mA\n".format(self.iLimitAmp*1000))
-            f.write("#Resistance read using Keithley 2450 SMU.\n")
-            f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
-            write_data = writer(f)
-            if self.setVcheck.checkState() and self.resetVcheck.checkState():
-                f.write("#Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
-                f.write("#Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
-                f.write("Set Time (s), LRS current (A), LRS resistance (Ω), Reset Time (s), HRS Current (A), HRS resistance (Ω)\n")
-                write_data.writerows(zip(self.ntimesSet, self.LRScurrents,self.LRS, 
-                                     self.ntimesReset,self.HRScurrents,self.HRS))
-            elif self.setVcheck.checkState():
-                f.write("#Set voltage = {} \n".format(self.params["Vset"]))
-                f.write("#Set pulse width = {}s \n".format(self.setTimestep))
-                f.write("Time (s), LRS current (A), LRS resistance (Ω)\n")
-                write_data.writerows(zip(self.ntimesSet, self.LRScurrents, self.LRS))
-            elif self.resetVcheck.checkState():
-                f.write("#Reset Voltage = {}.\n".format(self.params["Vreset"]))
-                f.write("#Reset pulse width = {}s\n".format(self.resetTimestep))
-                f.write("Time (s), HRS current (A), HRS resistance (Ω)\n")
-                write_data.writerows(zip(self.ntimesReset, self.HRScurrents, self.HRS))
+        if self.measure_counts != 0:
+            self.status.setText(self.status.text() + " Data saved.")
+            self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
+            with open(self.fullfilename, "w", newline='') as f:
+                if self.vsource.currentIndex() == 0:
+                    f.write("#Pulse voltage source: Keithley 2450 SMU.\n")
+                else:
+                    f.write("#Pulse voltage source: Tektronix AFG1022 Function Generator.\n")
+                f.write("#Pulse limiting current = {}mA\n".format(self.iLimitAmp*1000))
+                f.write("#Resistance read using Keithley 2450 SMU.\n")
+                f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
+                write_data = writer(f)
+                if self.setVcheck.checkState() and self.resetVcheck.checkState():
+                    f.write("#Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
+                    f.write("#Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
+                    f.write("Set Time (s), LRS current (A), LRS resistance (Ω), Reset Time (s), HRS Current (A), HRS resistance (Ω)\n")
+                    write_data.writerows(zip(self.ntimesSet, self.LRScurrents,self.LRS, 
+                                         self.ntimesReset,self.HRScurrents,self.HRS))
+                elif self.setVcheck.checkState():
+                    f.write("#Set voltage = {} \n".format(self.params["Vset"]))
+                    f.write("#Set pulse width = {}s \n".format(self.setTimestep))
+                    f.write("Time (s), LRS current (A), LRS resistance (Ω)\n")
+                    write_data.writerows(zip(self.ntimesSet, self.LRScurrents, self.LRS))
+                elif self.resetVcheck.checkState():
+                    f.write("#Reset Voltage = {}.\n".format(self.params["Vreset"]))
+                    f.write("#Reset pulse width = {}s\n".format(self.resetTimestep))
+                    f.write("Time (s), HRS current (A), HRS resistance (Ω)\n")
+                    write_data.writerows(zip(self.ntimesReset, self.HRScurrents, self.HRS))
             
     def initialize_plot(self):
         """
@@ -702,9 +721,19 @@ class app_Retention(Ui_Retention):
         None.
 
         """
-        if __name__ != "__main__":
-            self.parent.show()
-        event.accept()
+        reply = QtGui.QMessageBox.Yes
+        if self.measurement_status == "Running":
+            quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
+            reply = QtGui.QMessageBox.question(self, 'Message', 
+                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+            if reply == QtGui.QMessageBox.Yes:
+                self.stop_program()
+        if reply == QtGui.QMessageBox.Yes:
+            if __name__ != "__main__":
+                self.parent.show()
+            event.accept()
+        else:
+            event.ignore()
 
 if __name__ == "__main__":
     import sys

@@ -4,14 +4,9 @@ Module to initialize the main menu.
 Works on Python 3.8.5, Windows 10
 Not tested for other Python versions or OS
 
-# TODO: In Switch program, option to just measure resistance without switching
 # TODO: Program to initiate forming process
-# TODO: Search for the correct instrument address, promopt error if not found
-# TODO: replace pymeasure with pyvisa implementation
-# TODO: Get relevant machine address automatically (currently, must be specified in address.txt)
 # TODO: Allow for both SCPI and TSP commands (currently only SCPI works)
-# TODO: Implement endurance testing
-# TODO: Restrict input parameter valid range correctly for each program
+# TODO: Save the last entered parameters of each program in file, which is reloaded at the starting of the program
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'

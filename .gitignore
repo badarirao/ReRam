@@ -116,11 +116,12 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# path relevant to this computer
+# paths relevant to this computer
 address.txt
 SettingFile.dnd
 
 # work-in-progress files to ignore
-Mykeithley2450.py
-Mykeithley2700.py
 Myinstrument.py
+
+# ignore any data files created in the folder
+*.dat

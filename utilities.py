@@ -10,8 +10,8 @@ from sys import exit as exitprogram
 from MyKeithley2450 import Keithley2450
 from MyKeithley2700 import Keithley2700
 from MyAFG1022 import AFG1022 
-from PyQt5.QtCore import QTimer, QEventLoop
-from PyQt5.QtWidgets import QTimeEdit
+from PyQt5.QtCore import QObject, QTimer, QEventLoop, pyqtSignal
+from PyQt5.QtWidgets import QTimeEdit, QAbstractSpinBox, QSpinBox
 from math import log10
 from numpy import logspace, linspace, diff
 from time import sleep
@@ -48,17 +48,32 @@ class MyTimeEdit(QTimeEdit):
         if self.currentSection() == self.SecondSection:
             sec = cur.second()
             if sec == 0 and steps < 0:
-                self.setTime(cur.addSecs(-1))
+                self.setTime(cur.addSecs(-steps))
             elif sec == 59 and steps > 0:
-                self.setTime(cur.addSecs(1))
+                self.setTime(cur.addSecs(steps))
         elif self.currentSection() == self.MinuteSection:
             minute = cur.minute()
             if minute == 0 and steps < 0:
-                self.setTime(cur.addSecs(-60))
+                self.setTime(cur.addSecs(-60*steps))
             elif minute == 59 and steps > 0:
-                self.setTime(cur.addSecs(60))
-        
+                self.setTime(cur.addSecs(60*steps))
+       
+class Communicate(QObject):
+    message = pyqtSignal(int)
 
+class connectedSpinBox(QSpinBox):
+    def __init__(self,*args,**kwargs):
+        super(connectedSpinBox,self).__init__(*args,**kwargs)
+        self.hasWrapped = Communicate()
+        
+    def stepBy(self,steps):
+        cur = self.value()
+        QSpinBox.stepBy(self,steps)
+        if cur == 1 and steps < 0:
+            self.hasWrapped.message.emit(-1)
+        elif cur == 9 and steps > 0:
+            self.hasWrapped.message.emit(1)
+        
 class FakeAdapter():
     """Provides a fake adapter for debugging purposes.
 
@@ -228,17 +243,18 @@ def connect_sample_with_AFG(k2700,sample_no=1):
 
     """
     closed_CHs = k2700.ask("ROUTe:MULTiple:CLOSe?")
-    if closed_CHs == '(@)\n':
-        closed_channels = []
-    else:
-        closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
-    required_channels = [sample_id[sample_no],AFG]
-    channels_to_close = [x for x in required_channels if x not in closed_channels]
-    channels_to_open = [x for x in closed_channels if x not in required_channels]
-    k2700.close_Channels(channels_to_close)
-    k2700.open_Channels(channels_to_open)
-    sleep(0.2)
-    #waitFor(20) # wait for 20msec to ensure switching is complete
+    if closed_CHs is not None:
+        if closed_CHs == '(@)\n':
+            closed_channels = []
+        else:
+            closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
+        required_channels = [sample_id[sample_no],AFG]
+        channels_to_close = [x for x in required_channels if x not in closed_channels]
+        channels_to_open = [x for x in closed_channels if x not in required_channels]
+        k2700.close_Channels(channels_to_close)
+        k2700.open_Channels(channels_to_open)
+        sleep(0.2)
+        #waitFor(20) # wait for 20msec to ensure switching is complete
 
 def connect_sample_with_SMU(k2700,sample_no=1):
     """
@@ -256,17 +272,18 @@ def connect_sample_with_SMU(k2700,sample_no=1):
 
     """
     closed_CHs = k2700.ask("ROUTe:MULTiple:CLOSe?")
-    if closed_CHs == '(@)\n':
-        closed_channels = []
-    else:
-        closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
-    required_channels = [sample_id[sample_no],SMU]
-    channels_to_close = [x for x in required_channels if x not in closed_channels]
-    channels_to_open = [x for x in closed_channels if x not in required_channels]
-    k2700.close_Channels(channels_to_close)
-    k2700.open_Channels(channels_to_open)
-    sleep(0.2)
-    #waitFor(20) # wait for 20msec to ensure switching is complete
+    if closed_CHs is not None:
+        if closed_CHs == '(@)\n':
+            closed_channels = []
+        else:
+            closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
+        required_channels = [sample_id[sample_no],SMU]
+        channels_to_close = [x for x in required_channels if x not in closed_channels]
+        channels_to_open = [x for x in closed_channels if x not in required_channels]
+        k2700.close_Channels(channels_to_close)
+        k2700.open_Channels(channels_to_open)
+        sleep(0.2)
+        #waitFor(20) # wait for 20msec to ensure switching is complete
     
 def waitFor(wtime): # wtime is in msec
     loop = QEventLoop()

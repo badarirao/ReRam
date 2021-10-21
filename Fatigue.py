@@ -6,11 +6,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-#TODO: set minimum pulse width as 0.1 micro-seconds
-#TODO: the no of pulses, & pulse_width spin-boxes must automatically 
-#rotate values and update the time unit accordingly
 # TODO: Add tooltips
-# TODO: Plot in logscale
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
@@ -20,7 +16,7 @@ from time import time
 from datetime import timedelta
 from winsound import MessageBeep
 from csv import writer
-from utilities import linlogspace, getBinnedPoints, SMU, AFG, waitFor
+from utilities import linlogspace, getBinnedPoints, SMU, AFG, waitFor, connectedSpinBox
 from utilities import connect_sample_with_AFG, unique_filename, checkInstrument
 
 class Ui_Fatigue(QtWidgets.QWidget):
@@ -180,7 +176,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.gridLayout.addLayout(self.horizontalLayout_2, 3, 2, 1, 1)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.nPulses = QtWidgets.QSpinBox(self.frame)
+        self.nPulses = connectedSpinBox(self.frame)
         self.nPulses.setMinimum(1)
         self.nPulses.setMaximum(9)
         self.nPulses.setProperty("value", 1)
@@ -318,7 +314,6 @@ class Ui_Fatigue(QtWidgets.QWidget):
 
 class app_Fatigue(Ui_Fatigue):
     """The Switch app module."""
-    # TODO: option to stop the experiment if sample fails
     
     def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue.dat"):
         super(app_Fatigue, self).__init__(parent)
@@ -329,11 +324,16 @@ class app_Fatigue(Ui_Fatigue):
         self.stopCall = False
         self.start_Button.clicked.connect(self.startFatigue)
         self.abort_Button.clicked.connect(self.abortFatigue)
+        self.set_pulseWidth.setMinimum(0.1)
+        self.reset_pulseWidth.setMinimum(0.1)
         self.initialize_plot()
         self.nplc = 1
         self.filename = sName
         self.file_name.setText(self.filename)
+        self.measurement_status = "Idle"
         self.file_name.setReadOnly(True)
+        self.nPulses.setWrapping(True)
+        self.nPulses.hasWrapped.message.connect(lambda value: self.update_time_unit(value)) # not working, seems to be some version incompatibility problem
         self.ratio = 1.5
         self.params = {
             "Vset": -3,
@@ -349,6 +349,17 @@ class app_Fatigue(Ui_Fatigue):
             "ILimit": 0,
             "temperature": 300}
 
+    def update_time_unit(self, factor):
+        currentIndex = self.nPulse_unit.currentIndex()
+        if factor == -1 and currentIndex > 0:
+            self.nPulse_unit.setCurrentIndex(currentIndex+factor)
+        elif factor == 1 and currentIndex < 8:
+            self.nPulse_unit.setCurrentIndex(currentIndex+factor)
+        elif factor == -1 and currentIndex == 0:
+            self.nPulses.setValue(1)
+        elif factor == 1 and currentIndex == 8:
+            self.nPulses.setValue(9)
+    
     def configurePulse(self):
         """
         Configure the pulse parameters.
@@ -489,6 +500,7 @@ class app_Fatigue(Ui_Fatigue):
 
         """
         self.stopCall = False
+        self.measurement_status = "Running"
         self.status.setText("Program Running..")
         self.i = 0
         self.configurePulse()
@@ -566,8 +578,10 @@ class app_Fatigue(Ui_Fatigue):
     def stop_program(self):
         self.saveData()
         if self.stopCall:
+            self.measurement_status = "Aborted"
             self.status.setText("Program Aborted. Partial data saved if available.")
         else:
+            self.measurement_status = "Idle"
             self.status.setText("Measurement Finished. Data saved.")
         self.start_Button.setEnabled(True)
         self.abort_Button.setEnabled(False)
@@ -595,7 +609,7 @@ class app_Fatigue(Ui_Fatigue):
             f.write("#Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
             f.write("#Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
             f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
-            f.write("#Limiting current = {}mA\n\n".format(self.iLimitAmp*1000))
+            f.write("#Limiting current = {}mA\n".format(self.iLimitAmp*1000))
             f.write("NCycles, LRS current (A), HRS Current, LRS resistance (Ω), HRS resistance (Ω)\n")
             write_data = writer(f)
             write_data.writerows(zip(self.ncycles, self.LRScurrents, 
@@ -629,9 +643,19 @@ class app_Fatigue(Ui_Fatigue):
         None.
 
         """
-        if __name__ != "__main__":
-            self.parent.show()
-        event.accept()
+        reply = QtGui.QMessageBox.Yes
+        if self.measurement_status == "Running":
+            quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
+            reply = QtGui.QMessageBox.question(self, 'Message', 
+                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+            if reply == QtGui.QMessageBox.Yes:
+                self.stop_program()
+        if reply == QtGui.QMessageBox.Yes:
+            if __name__ != "__main__":
+                self.parent.show()
+            event.accept()
+        else:
+            event.ignore()
 
 if __name__ == "__main__":
     import sys

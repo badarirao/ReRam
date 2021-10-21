@@ -5,16 +5,17 @@ The Switch module of the ReRam project.
     associated functions to set parameters, make measurement, and save the data
 
     You can apply customized pulses, and observe how resistance changes
-    TODO: adjust the pulse width and voltage limits when source is changed
     TODO: option to add series resistance to limit current, when function generator is used
-    TODO: Restrict number of pulses to < 20 when function generator is used, as MUX has finite life
     TODO: Check if enough time is provided after switching
+    TODO: Ensure only new data is saved into the file.
+    TODO: Add tooltips
+
 """
 
 from csv import writer
 from os.path import exists as fileExists
 from winsound import MessageBeep
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtGui import QPalette, QColor, QBrush
 from pyqtgraph import GraphicsLayoutWidget, ViewBox, mkPen
 from utilities import unique_filename, FakeAdapter, checkInstrument, AFG, SMU
@@ -244,6 +245,9 @@ class Ui_Switch(QtWidgets.QWidget):
         self.save_Button = QtWidgets.QPushButton(self.widget1)
         self.save_Button.setObjectName("save_Button")
         self.verticalLayout.addWidget(self.save_Button)
+        self.stop_Button = QtWidgets.QPushButton(self.widget1)
+        self.stop_Button.setObjectName("stop_Button")
+        self.verticalLayout.addWidget(self.stop_Button)
         self.statusbar = QtWidgets.QLineEdit(self.widget1)
         self.statusbar.setEnabled(False)
         palette = QPalette()
@@ -296,7 +300,7 @@ class Ui_Switch(QtWidgets.QWidget):
             "Switch", "<html><head/><body><p>The compliance current, which protects the sample from full breakdown</p></body></html>"))
         self.reset_timeUnit.setToolTip(_translate(
             "Switch", "<html><head/><body><p>Select time unit. Time below 50 ms may not be reliable for Keithley 2450</p></body></html>"))
-        self.reset_timeUnit.setItemText(0, _translate("Switch", "us"))
+        self.reset_timeUnit.setItemText(0, _translate("Switch", "µs"))
         self.reset_timeUnit.setItemText(1, _translate("Switch", "ms"))
         self.reset_timeUnit.setItemText(2, _translate("Switch", "s"))
         self.label.setText(_translate(
@@ -329,7 +333,7 @@ class Ui_Switch(QtWidgets.QWidget):
             "Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Pulse Width (Set)</span></p></body></html>"))
         self.set_timeUnit.setToolTip(_translate(
             "Switch", "<html><head/><body><p>Select time unit. Time below 50 ms may not be reliable for Keithley 2450</p></body></html>"))
-        self.set_timeUnit.setItemText(0, _translate("Switch", "us"))
+        self.set_timeUnit.setItemText(0, _translate("Switch", "µs"))
         self.set_timeUnit.setItemText(1, _translate("Switch", "ms"))
         self.set_timeUnit.setItemText(2, _translate("Switch", "s"))
         self.label_2.setText(_translate(
@@ -342,6 +346,7 @@ class Ui_Switch(QtWidgets.QWidget):
         self.clearGraph_Button.setText(_translate(
             "Switch", "Clear graph and start new measurement"))
         self.save_Button.setText(_translate("Switch", "Save Data"))
+        self.stop_Button.setText(_translate("Switch", "Stop"))
 
 class app_Switch(Ui_Switch):
     """The Switch app module."""
@@ -350,17 +355,24 @@ class app_Switch(Ui_Switch):
         super(app_Switch, self).__init__(parent)
         self.parent = parent
         self.new_flag = True
+        self.initial_source = 0 # 0 = SMU, 1 = AFG
         self.k2450 = k2450
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.save_Button.setEnabled(False)
+        self.stop_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
         self.applyPulse_Button.clicked.connect(self.applyPulse)
         self.clearGraph_Button.clicked.connect(self.clearGraph)
         self.save_Button.clicked.connect(self.saveData)
+        self.stop_Button.clicked.connect(self.stopSwitch)
         self.minV_check.stateChanged.connect(self.change_setV)
         self.maxV_check.stateChanged.connect(self.change_resetV)
+        self.source.currentIndexChanged.connect(self.update_limits)
         self.initialize_plot()
+        self.update_limits()
+        self.stopCall = False
+        self.measurement_status = "Idle"
         self.nplc = 1
         self.filename = sName
         self.file_name.setText(self.filename)
@@ -382,6 +394,28 @@ class app_Switch(Ui_Switch):
             "ILimit": 1/1000,
             "temperature": 300}
 
+    def update_limits(self):
+        if self.source.currentIndex() == 0:
+            self.minV.setMaximum(190)
+            self.minV.setMinimum(-190)
+            self.maxV.setMaximum(190)
+            self.maxV.setMinimum(-190)
+            if self.set_timeUnit.currentIndex() == 0:
+                self.set_timeUnit.setCurrentIndex(1)
+            self.set_timeUnit.model().item(0).setEnabled(False)
+            if self.reset_timeUnit.currentIndex() == 0:
+                self.reset_timeUnit.setCurrentIndex(1)
+            self.reset_timeUnit.model().item(0).setEnabled(False)
+            self.nPulses.setMaximum(1000)
+        else:
+            self.minV.setMaximum(5)
+            self.minV.setMinimum(-5)
+            self.maxV.setMaximum(5)
+            self.maxV.setMinimum(-5)
+            self.set_timeUnit.model().item(0).setEnabled(True)
+            self.reset_timeUnit.model().item(0).setEnabled(True)
+            self.nPulses.setMaximum(20)
+            
     def change_setV(self):
         """
         Enable or disable 'set' pulse based on user preference.
@@ -456,8 +490,7 @@ class app_Switch(Ui_Switch):
             if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
                 self.points.append(0)
         # set compliance current
-        self.k2450.write(
-            "source:voltage:ilimit {0}".format(self.params["ILimit"]))
+        self.k2450.write("source:voltage:ilimit {0}".format(self.params["ILimit"]))
         # when function generator is used, limit number of pulses to 10
         # This is to avoid using the multiplexer too much, as it has finite lifetime
         if self.params["Vsource"] == 1:
@@ -525,13 +558,8 @@ class app_Switch(Ui_Switch):
         self.data_lineR.setData(self.pulsecount, self.readResistances)
         self.data_lineV.setData(self.pulsecount, self.volts)
         self.i = self.i + 1
-        if self.i >= len(self.points):
-            self.statusbar.setText("Measurement Finished.")
-            self.applyPulse_Button.setEnabled(True)
-            self.clearGraph_Button.setEnabled(True)
-            self.k2450.source_voltage = 0
-            self.k2450.disable_source()
-            MessageBeep()
+        if self.i >= len(self.points) or self.stopCall:
+            self.stop_program()
             return
         self.timer.singleShot(0, self.pulseMeasure_SMU)  # Measure next pulse
     
@@ -579,13 +607,8 @@ class app_Switch(Ui_Switch):
         self.data_lineR.setData(self.pulsecount, self.readResistances)
         self.data_lineV.setData(self.pulsecount, self.volts)
         self.i = self.i + 1
-        if self.i >= len(self.points):
-            self.statusbar.setText("Measurement Finished.")
-            self.applyPulse_Button.setEnabled(True)
-            self.clearGraph_Button.setEnabled(True)
-            self.k2450.source_voltage = 0
-            self.k2450.disable_source()
-            MessageBeep()
+        if self.i >= len(self.points) or self.stopCall:
+            self.stop_program()
             return
         self.timer.singleShot(0, self.pulseMeasure_AFG)  # Measure next pulse    
 
@@ -594,15 +617,19 @@ class app_Switch(Ui_Switch):
         Begins the switching experiment.
 
         Note: set not to measure the actual applied voltage, as it saves time
-        TODO: If both set and reset pulses are disabled, then take no action
-
         Returns
         -------
         None.
 
         """
         self.statusbar.setText("Measurement Running..")
+        self.measurement_status = "Running"
         self.i = 0
+        if self.initial_source != self.source.currentIndex():
+            if not self.savedFlag:
+                self.saveData()
+            self.new_flag = True
+            self.initial_source = self.source.currentIndex()
         if self.new_flag:
             self.pulsecount = [0]
             self.volts = [0]
@@ -614,8 +641,7 @@ class app_Switch(Ui_Switch):
             self.pulseWidths = []
             self.ilimits = []
             self.new_flag = False
-            self.fullfilename = unique_filename(
-                directory='.', prefix=self.filename, datetimeformat="", ext='csv')
+            self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='csv')
             self.initialize_SMU()
             pen1 = mkPen(color=(0, 0, 255), width=2)
             pen2 = mkPen(color=(255, 0, 0), width=2)
@@ -630,8 +656,10 @@ class app_Switch(Ui_Switch):
         self.applyPulse_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
         self.save_Button.setEnabled(True)
+        self.stop_Button.setEnabled(True)
         self.configurePulse()
         self.k2450.enable_source()
+        self.savedFlag = False
         if self.params["Vsource"] == 0:
             connect_sample_with_SMU(self.k2700)
             self.timer.singleShot(0, self.pulseMeasure_SMU)
@@ -643,6 +671,9 @@ class app_Switch(Ui_Switch):
             self.k2450.source_voltage = self.params["Rvoltage"]
             self.timer.singleShot(0, self.pulseMeasure_AFG)
 
+    def stopSwitch(self):
+        self.stopCall = True
+    
     def clearGraph(self):
         """
         Save the current plot, and clears the graph.
@@ -658,6 +689,19 @@ class app_Switch(Ui_Switch):
         self.saveData()
         self.clearGraph_Button.setEnabled(False)
 
+    def stop_program(self):
+        if self.stopCall:
+            self.statusbar.setText("Measurement Aborted.")    
+            self.measurement_status = "Aborted"
+        else:
+            self.statusbar.setText("Measurement Finished.")
+            self.measurement_status = "Idle"
+        self.applyPulse_Button.setEnabled(True)
+        self.clearGraph_Button.setEnabled(True)
+        self.k2450.source_voltage = 0
+        self.k2450.disable_source()
+        MessageBeep()
+
     def saveData(self):
         """
         Save the data to file.
@@ -669,13 +713,25 @@ class app_Switch(Ui_Switch):
         """
         filePresent = bool(fileExists(self.params['fname']))
         with open(self.params['fname'], "a", newline='') as f:
-            if not filePresent:
-                f.write("Pulse Voltage (V), Pulse Current (A), Pulse Resistance (ohms), Read Voltage (V), Read Current (A), Read Resistance (ohm), Pulse Width (ms), Compliance current (A)\n")
+            if self.params["Vsource"] == 0:
+                if not filePresent:
+                    f.write("#Pulse voltage source: Keithley 2450 source-measure unit.\n")
+                    f.write("#Resistance read using Keithley 2450 source-measure unit.\n")
+                    f.write("#Read voltage averaged over {0} readings\n".format(self.params["Average"]))
+                    f.write("Pulse Voltage (V), Pulse Current (A), Pulse Resistance (ohms), Read Voltage (V), Read Current (A), Read Resistance (ohm), Pulse Width (ms), Compliance current (A)\n")
+                data = zip(self.volts, self.currents, self.resistances, self.readVolts, self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits)
+            else:
+                if not filePresent:
+                    f.write("#Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
+                    f.write("#Resistance read using Keithley 2450 source-measure unit.\n")
+                    f.write("#Read voltage averaged over {0} readings\n".format(self.params["Average"]))
+                    f.write("Pulse Voltage (V), Read Voltage (V), Read Current (A), Read Resistance (ohm), Pulse Width (ms), Compliance current (A)\n")
+                data = zip(self.volts, self.readVolts, self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits)
             write_data = writer(f)
-            write_data.writerows(zip(self.volts, self.currents, self.resistances, self.readVolts,
-                                     self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits))
-            if self.i >= len(self.points):
-                self.save_Button.setEnabled(False)
+            write_data.writerows(data)
+        if self.i >= len(self.points):
+            self.save_Button.setEnabled(False)
+        self.savedFlag = True
 
     def initialize_plot(self):
         """
@@ -709,9 +765,19 @@ class app_Switch(Ui_Switch):
         None.
 
         """
-        if __name__ != "__main__":
-            self.parent.show()
-        event.accept()
+        reply = QtGui.QMessageBox.Yes
+        if self.measurement_status == "Running":
+            quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
+            reply = QtGui.QMessageBox.question(self, 'Message', 
+                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+            if reply == QtGui.QMessageBox.Yes:
+                self.stop_program()
+        if reply == QtGui.QMessageBox.Yes:
+            if __name__ != "__main__":
+                self.parent.show()
+            event.accept()
+        else:
+            event.ignore()
 
 
 if __name__ == "__main__":

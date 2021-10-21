@@ -255,9 +255,9 @@ class app_IVLoop(Ui_IVLoop):
         self.npoints = 500
         self.filename = sName
         self.file_name.setText(self.filename)
+        self.measurement_status = "Idle"
         self.nowDate = date.today().strftime("%Y-%m-%d")
         self.params = {
-            "fname": "Sample_IV.csv",
             "Vmin": -3,
             "Vmax": 3,
             "Delay": 1,
@@ -275,10 +275,7 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
-        self.fullfilename = unique_filename(
-            directory='.', prefix=self.filename, ext='txt')
         self.params = {
-            "fname": self.fullfilename,
             "Vmin": self.minV.value(),
             "Vmax": self.maxV.value(),
             "Delay": self.delay.value()/1000,
@@ -315,14 +312,19 @@ class app_IVLoop(Ui_IVLoop):
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
         if self.params["Speed"] == 0:
             nplc = 5
+            self.speed = "Very Slow"
         elif self.params["Speed"] == 1:
             nplc = 2
+            self.speed = "Slow"
         elif self.params["Speed"] == 2:
             nplc = 1
+            self.speed = "Normal"
         elif self.params["Speed"] == 3:
             nplc = 0.1
+            self.speed = "Fast"
         elif self.params["Speed"] == 4:
             nplc = 0.01
+            self.speed = "Very Fast"
         # set read time per point according to required speed
         self.k2450.write("SENS:NPLC {0}".format(nplc))
         self.k2450.write("sour:func volt")  # set source as voltage
@@ -343,6 +345,14 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
+        self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat')
+        with open(self.fullfilename,'w') as f:
+            f.write("# IV loop measurement using Keithley 2450 source measure unit.\n")
+            f.write("# Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
+            f.write('# Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["Ilimit"]*1000,self.params["Delay"]))
+            f.write('# Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed,self.params['ncycles']))
+            f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
+            
         if self.params["Vmax"] == self.params["Vmin"]:
             self.points = [self.params["Vmax"]]
             self.k2450.write("SOURce:LIST:VOLTage {0}".format(
@@ -422,9 +432,9 @@ class app_IVLoop(Ui_IVLoop):
         if self.i >= self.params["ncycles"] or self.stop_flag:
             if not self.stop_flag:
                 self.statusbar.setText("Measurement Finished.")
+                self.measurement_status = "Idle"
                 self.stop_flag = True
             self.k2450.source_voltage = 0
-            #self.k2450.write("SOUR:VOLT:READ:BACK ON")
             self.minV.setEnabled(True)
             self.maxV.setEnabled(True)
             self.delay.setEnabled(True)
@@ -435,9 +445,8 @@ class app_IVLoop(Ui_IVLoop):
             self.start_Button.setEnabled(True)
             self.k2450.source_voltage = 0
             self.stop_Button.setEnabled(False)
-            app_IVLoop.formatIV_Excel(self.params['fname'])
+            app_IVLoop.formatIV_Excel(self.fullfilename)
             MessageBeep()
-            #self.k2450.write(":DISPlay:LIGHT:STATe ON25")
             return
         self.k2450.start_buffer()  # start the measurement
         self.k2450.wait_till_done(1000)
@@ -447,9 +456,8 @@ class app_IVLoop(Ui_IVLoop):
             "TRAC:data? {0}, {1}, 'defbuffer1', sour, read".format(start_point, end_point))
         data = reshape(array(data.split(','), dtype=float), (-1, 2))
         self.plot_IVloop(data, self.i+1)
-        with open(self.params['fname'], "a") as f:
+        with open(self.fullfilename, "a") as f:
             f.write("#Cycle {0}\n".format(self.i+1))
-            f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
             data = insert(data, 0, self.points[0:len(data)], axis=1)
             savetxt(f, data, delimiter='\t')
             f.write("\n\n")
@@ -466,6 +474,7 @@ class app_IVLoop(Ui_IVLoop):
 
         """
         self.statusbar.setText("Measurement Running..")
+        self.measurement_status = "Running"
         if self.stop_flag:
             self.stop_flag = False
             self.graphWidget.clear()
@@ -515,13 +524,13 @@ class app_IVLoop(Ui_IVLoop):
 
         """
         self.statusbar.setText("Measurement Aborted!")
+        self.measurement_status = "Aborted"
         self.stop_flag = True
         self.k2450.write("Abort")
         self.k2450.source_voltage = 0
         self.k2450.disable_source()
-        #self.k2450.write(":DISPlay:LIGHT:STATe ON25")
 
-    # make sure fname has some extension, it should be the file name that has collected data
+    # make sure filename has some extension, it should be the file name that has collected data
     @staticmethod
     def formatIV_Excel(fname="Sample_IV.txt"):
         """
@@ -634,9 +643,19 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
-        if __name__ != "__main__":
-            self.parent.show()
-        event.accept()
+        reply = QtGui.QMessageBox.Yes
+        if self.measurement_status == "Running":
+            quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
+            reply = QtGui.QMessageBox.question(self, 'Message', 
+                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+            if reply == QtGui.QMessageBox.Yes:
+                self.stop_program()
+        if reply == QtGui.QMessageBox.Yes:
+            if __name__ != "__main__":
+                self.parent.show()
+            event.accept()
+        else:
+            event.ignore()
 
 
 if __name__ == "__main__":
