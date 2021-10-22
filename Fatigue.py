@@ -10,6 +10,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import QTime, QTimer
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from os.path import exists as fileExists
 from time import time
@@ -346,7 +347,14 @@ class app_Fatigue(Ui_Fatigue):
         self.iLimit.valueChanged.connect(self.update_resistor)
         self.setV.valueChanged.connect(self.update_resistor)
         self.resetV.valueChanged.connect(self.update_resistor)
+        self.nPulses.editingFinished.connect(self.update_total_time)
+        self.nPulse_unit.currentIndexChanged.connect(self.update_total_time)
+        self.set_pulseWidth.valueChanged.connect(self.update_total_time)
+        self.reset_pulseWidth.valueChanged.connect(self.update_total_time)
+        self.set_timeUnit.currentIndexChanged.connect(self.update_total_time)
+        self.reset_timeUnit.currentIndexChanged.connect(self.update_total_time)
         self.update_resistor()
+        self.update_total_time()
         self.nPulses.hasWrapped.message.connect(lambda value: self.update_time_unit(value)) # not working, seems to be some version incompatibility problem
         self.ratio = 1.5
         self.params = {
@@ -368,6 +376,31 @@ class app_Fatigue(Ui_Fatigue):
         max_applied_voltage = max(abs(self.setV.value()),abs(self.resetV.value()))
         self.resistance = round(max_applied_voltage/limiting_current,2)
         self.resistor.setText("~ {} kΩ".format(self.resistance))
+    
+    def update_total_time(self):
+        self.configurePulse()
+        total_time = self.nPulse_order*self.params["nPulses"]*(self.setTimestep+self.resetTimestep)
+        total_Qtime = QTime(0,0,0)
+        total_Qtime = total_Qtime.addSecs(int(total_time))
+        if total_time < 86399:
+            self.timeTaken.setText("Total experiment time = {}".format(total_Qtime.toString("h:mm:ss")))
+        else:
+            days = int(total_time/86400)
+            hours = int((total_time/86400 - days)*24)
+            minutes = int(((total_time/86400 - days)*24 - hours)*60)
+            if days == 1:
+                daytext = "day"
+            else:
+                daytext = "days"
+            if hours == 1:
+                hourtext = "Hour"
+            else:
+                hourtext = "Hours"
+            if minutes == 1:
+                mintext = "Min"
+            else:
+                mintext = "Mins"
+            self.timeTaken.setText("Total experiment time: {0} {3}, {1} {4}, {2} {5}.".format(days,hours,minutes,daytext,hourtext,mintext))
         
     def update_time_unit(self, factor):
         currentIndex = self.nPulse_unit.currentIndex()
@@ -560,7 +593,7 @@ class app_Fatigue(Ui_Fatigue):
         pen2 = mkPen(color=(255, 0, 0), width=2)
         self.data_lineLRS = self.fatiguePlot.plot(self.ncycles, self.LRS, pen=pen1, symbol='x', symbolPen='r')
         self.data_lineHRS = self.fatiguePlot.plot(self.ncycles, self.HRS, pen=pen2, symbol='o')
-        self.timer = QtCore.QTimer()
+        self.timer = QTimer()
         self.start_Button.setEnabled(False)
         self.abort_Button.setEnabled(True)
         self.k2450.enable_source()
