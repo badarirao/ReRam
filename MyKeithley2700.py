@@ -120,13 +120,16 @@ class Keithley2700:
         #self.determine_valid_channels()
         
     def ask(self,cmd):
-        self.inst.query(cmd)
+        return self.inst.query(cmd)
     
     def write(self,cmd):
         self.inst.write(cmd)
     
     def read(self):
-        self.inst.read()
+        return self.inst.read()
+    
+    def close(self):
+        self.inst.close()
         
     def get_state_of_channels(self, channels):
         """ Get the open or closed state of the specified channels

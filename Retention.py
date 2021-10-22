@@ -7,6 +7,9 @@
 # WARNING! All changes made in this file will be lost!
 
 # TODO: Add tooltips
+# TODO: read_LRS_HRS_states function for only SMU can be made common function in MyKeithley2450
+# TODO: The pulse application with SMU only is not implemented correctly.
+# the read_hrs_lrs function currently requires function generator no matter what source is selected
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
@@ -376,7 +379,6 @@ class app_Retention(Ui_Retention):
             "Rvoltage": 0.1,  # V
             "Average": 5,
             "temperature": 300}
-        connect_sample_with_AFG(self.k2700)
 
     def skip_to_next(self):
         self.skip = True
@@ -650,7 +652,7 @@ class app_Retention(Ui_Retention):
             self.k2700.close_Channels(AFG) # connect function generator
             waitFor(20) # wait for 20msec to ensure switching is complete
             self.afg1022.setSinglePulse(self.params['Vreset'],self.resetTimestep)
-            afg1022.trgNwait()
+            self.afg1022.trgNwait()
             self.k2700.open_Channels(AFG) # disconnect function generator
             self.k2700.close_Channels(SMU) # connect SMU
             waitFor(20) # wait for 20msec to ensure switching is complete

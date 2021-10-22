@@ -230,7 +230,7 @@ class AFG1022:
         self.inst.write(cmd)
     
     def read(self):
-        self.inst.read()
+        return self.inst.read()
         
     def configure_pulse_measurement(self):
         self.write("SOURce1:BURST:MODE TRIGgered")
@@ -245,11 +245,11 @@ class AFG1022:
             pulseWidth = 1e-7
             print("Pulse width less than min limit, reset to 100 ns.")
         self.write('SOURce1:FREQuency:FIXed {}'.format((1/(pulseWidth*2))))
-        if volts >= 0.001 and volts <= 10:
+        if volts >= 0 and volts <= 10:
             self.write("SOURce1:FUNCtion:SHAPe USER5")
             self.write('SOURce1:VOLTage:LEVel:IMMediate:AMPLitude {}'.format(volts/2))
             self.write('SOURce1:VOLTage:LEVel:IMMediate:OFFSet {}'.format(volts/4))
-        elif volts < -0.001 and volts >= -10:
+        elif volts < 0 and volts >= -10:
             self.write("SOURce1:FUNCtion:SHAPe USER6")
             self.write('SOURce1:VOLTage:LEVel:IMMediate:AMPLitude {}'.format(-volts/2))
             self.write('SOURce1:VOLTage:LEVel:IMMediate:OFFSet {}'.format(volts/4))

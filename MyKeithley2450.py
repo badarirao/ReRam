@@ -46,16 +46,28 @@ class Keithley2450:
             self.address = adapter
         else:
             raise VisaIOError(-1073807346)
+        self.name = "Keithley 2450 SMU"
 
     def ask(self,cmd):
-        self.inst.query(cmd)
+        return self.inst.query(cmd)
     
     def write(self,cmd):
         self.inst.write(cmd)
     
     def read(self):
-        self.inst.read()
+        return self.inst.read()
     
+    def close(self):
+        self.inst.close()
+    
+    def start_buffer(self):
+        """ Starts the buffer. """
+        self.write(":INIT")
+
+    def reset_buffer(self):
+        """ Resets the buffer. """
+        self.write(":STAT:PRES;*CLS;:TRAC:CLEAR;:TRAC:FEED:CONT NEXT;")
+        
     def enable_source(self):
         """ Enables the source of current or voltage depending on the
         configuration of the instrument. """
@@ -82,7 +94,6 @@ class Keithley2450:
             self.write(":SENS:RES:RANG:AUTO 1;")
         else:
             self.resistance_range = resistance
-        self.check_errors()
 
 
     def measure_voltage(self, nplc=1, voltage=21.0, auto_range=True):
@@ -99,7 +110,6 @@ class Keithley2450:
             self.write(":SENS:VOLT:RANG:AUTO 1;")
         else:
             self.voltage_range = voltage
-        self.check_errors()
 
 
     def measure_current(self, nplc=1, current=1.05e-4, auto_range=True):
@@ -116,7 +126,6 @@ class Keithley2450:
             self.write(":SENS:CURR:RANG:AUTO 1;")
         else:
             self.current_range = current
-        self.check_errors()
 
 
     def auto_range_source(self):
@@ -144,7 +153,6 @@ class Keithley2450:
         else:
             self.source_current_range = current_range
         self.compliance_voltage = compliance_voltage
-        self.check_errors()
 
 
     def apply_voltage(self, voltage_range=None,
@@ -164,8 +172,6 @@ class Keithley2450:
         else:
             self.source_voltage_range = voltage_range
         self.compliance_current = compliance_current
-        self.check_errors()
-
 
     def beep(self, frequency, duration):
         """ Sounds a system beep.
@@ -199,18 +205,6 @@ class Keithley2450:
         code = err[0]
         message = err[1].replace('"', '')
         return (code, message)
-
-
-    def check_errors(self):
-        """ Logs any system errors reported by the instrument.
-        """
-        code, message = self.error
-        while code != 0:
-            t = time.time()
-            log.info("Keithley 2450 reported error: %d, %s", code, message)
-            code, message = self.error
-            if (time.time()-t) > 10:
-                log.warning("Timed out for Keithley 2450 error retrieval.")
 
 
     def reset(self):
@@ -379,10 +373,9 @@ class Keithley2450:
         self.source_voltage = voltage
         self.start_buffer()
         self.wait_till_done(1)
-        return map(float, self.k2450.ask(
-            "TRAC:data? 1, 1, 'defbuffer1', sour, read")[:-1].split(','))
+        return map(float, self.ask("TRAC:data? 1, 1, 'defbuffer1', sour, read")[:-1].split(','))
     
     def readReRAM(self):
         self.start_buffer()
         self.wait_till_done()
-        return float(self.k2450.ask("TRAC:stat:average?")[:-1])
+        return float(self.ask("TRAC:stat:average?")[:-1])

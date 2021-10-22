@@ -583,7 +583,6 @@ class app_Fatigue(Ui_Fatigue):
             title = "Parameter change notice!"
             text = "Vset and Vreset has been interchanged as required."
             QMessageBox.warning(self,title,text)
-        
         endTime = time()
         self.readingTime = endTime - startTime
         self.totalTime = self.fpoints[-1]*(self.setTimestep+self.resetTimestep) + self.readingTime*self.number_of_points

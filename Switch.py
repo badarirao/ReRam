@@ -9,6 +9,7 @@ The Switch module of the ReRam project.
     TODO: Check if enough time is provided after switching
     TODO: Ensure only new data is saved into the file.
     TODO: Add tooltips
+    TODO: Some problem in plotting additional data when source is changed. Need to clear the graph
 
 """
 

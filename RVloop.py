@@ -6,6 +6,7 @@ The RV-loop module of the ReRam project.
     
 """
 # TODO: Add tooltips
+# TODO: There is some problem when stopping the measurement in between
 
 from winsound import MessageBeep
 from csv import writer

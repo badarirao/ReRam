@@ -22,7 +22,7 @@ from RVloop import app_RVLoop
 from Switch import app_Switch
 from Fatigue import app_Fatigue
 from Retention import app_Retention
-from utilities import get_valid_filename, checkInstrument
+from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
 
@@ -275,6 +275,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         if reply == QMessageBox.No:
             event.ignore()
         else:
+            connect_sample_with_SMU(self.k2700)
             os.chdir(self.settingPath)
             with open('SettingFile.dnd', 'w') as f:
                 f.write(self.currPath+'\n')

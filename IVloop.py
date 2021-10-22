@@ -350,7 +350,7 @@ class app_IVLoop(Ui_IVLoop):
         with open(self.fullfilename,'w') as f:
             f.write("# IV loop measurement using Keithley 2450 source measure unit.\n")
             f.write("# Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
-            f.write('# Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["Ilimit"]*1000,self.params["Delay"]))
+            f.write('# Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"]*1000,self.params["Delay"]))
             f.write('# Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed,self.params['ncycles']))
             f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
             
@@ -649,7 +649,7 @@ class app_IVLoop(Ui_IVLoop):
             quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
             reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
-                self.stop_program()
+                self.stop_ivloop()
         if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()
