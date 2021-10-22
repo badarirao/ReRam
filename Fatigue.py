@@ -27,8 +27,8 @@ class Ui_Fatigue(QtWidgets.QWidget):
     
     def setupUi(self, Fatigue):
         Fatigue.setObjectName("Fatigue")
-        Fatigue.resize(1050, 650)
-        Fatigue.setMinimumSize(QtCore.QSize(1050, 600))
+        Fatigue.resize(1050, 600)
+        Fatigue.setMinimumSize(QtCore.QSize(1050, 550))
         self.gridLayout_2 = QtWidgets.QGridLayout(Fatigue)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.widget = QtWidgets.QWidget(Fatigue)
@@ -99,9 +99,9 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.resetV = QtWidgets.QDoubleSpinBox(self.frame)
         self.resetV.setDecimals(3)
-        self.resetV.setMinimum(0.1)
+        self.resetV.setMinimum(-5.0)
         self.resetV.setMaximum(5.0)
-        self.resetV.setSingleStep(0.001)
+        self.resetV.setSingleStep(0.1)
         self.resetV.setProperty("value", 3.0)
         self.resetV.setObjectName("resetV")
         self.horizontalLayout_3.addWidget(self.resetV)
@@ -145,6 +145,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.gridLayout.addWidget(self.file_name, 1, 2, 1, 1)
         self.source = QtWidgets.QComboBox(self.frame)
         self.source.setEnabled(False)
+        self.source.setAcceptDrops(False)
         self.source.setObjectName("source")
         self.source.addItem("")
         self.gridLayout.addWidget(self.source, 2, 2, 1, 1)
@@ -168,7 +169,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.setV = QtWidgets.QDoubleSpinBox(self.frame)
         self.setV.setDecimals(3)
         self.setV.setMinimum(-5.0)
-        self.setV.setMaximum(-0.1)
+        self.setV.setMaximum(5.0)
         self.setV.setSingleStep(0.1)
         self.setV.setProperty("value", -3.0)
         self.setV.setObjectName("setV")
@@ -195,12 +196,20 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.nPulse_unit.addItem("")
         self.horizontalLayout_5.addWidget(self.nPulse_unit)
         self.gridLayout.addLayout(self.horizontalLayout_5, 9, 2, 1, 1)
-        self.iLimit = QtWidgets.QComboBox(self.frame)
+        self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
+        self.iLimit = QtWidgets.QDoubleSpinBox(self.frame)
+        self.iLimit.setDecimals(3)
+        self.iLimit.setMinimum(0.001)
+        self.iLimit.setMaximum(500)
+        self.iLimit.setSingleStep(0.1)
+        self.iLimit.setProperty("value", 1)
         self.iLimit.setObjectName("iLimit")
-        self.iLimit.addItem("")
-        self.iLimit.addItem("")
-        self.iLimit.addItem("")
-        self.gridLayout.addWidget(self.iLimit, 10, 2, 1, 1)
+        self.horizontalLayout_7.addWidget(self.iLimit)
+        self.resistor = QtWidgets.QLabel(self.frame)
+        self.resistor.setObjectName("resistor")
+        self.horizontalLayout_7.addWidget(self.resistor)
+        self.gridLayout.addLayout(self.horizontalLayout_7, 10, 2, 1, 1)
         self.verticalLayout_2.addWidget(self.frame)
         self.gridLayout_2.addWidget(self.widget, 0, 0, 1, 1)
         self.fatiguePlot = PlotWidget(Fatigue, viewBox=ViewBox(border=mkPen(color='k', width=2)))
@@ -276,14 +285,16 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.nPulse_lable.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Number of pulses</span></p></body></html>"))
         self.set_pulseWidth_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Set Pulse Width</span></p></body></html>"))
         self.temperature.setToolTip(_translate("Fatigue", "<html><head/><body><p>Temperature range will depend on the type of heater</p></body></html>"))
+        self.resetV_label.setToolTip(_translate("Fatigue", "<html><head/><body><p>voltage for high resistance state</p></body></html>"))
         self.resetV_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Reset Voltage (V)</span></p></body></html>"))
         self.fname_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">File Name</span></p></body></html>"))
         self.readV_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Read Voltage (V)</span></p></body></html>"))
-        self.resetV.setToolTip(_translate("Fatigue", "<html><head/><body><p>Max 10 V</p></body></html>"))
+        self.resetV.setToolTip(_translate("Fatigue", "<html><head/><body><p>HRS</p></body></html>"))
         self.reset_timeUnit.setToolTip(_translate("Fatigue", "<html><head/><body><p>Select time unit. Time below 50 ms may not be reliable for Keithley 2450</p></body></html>"))
         self.reset_timeUnit.setItemText(0, _translate("Fatigue", "µs"))
         self.reset_timeUnit.setItemText(1, _translate("Fatigue", "ms"))
         self.reset_timeUnit.setItemText(2, _translate("Fatigue", "s"))
+        self.setV_label.setToolTip(_translate("Fatigue", "<html><head/><body><p>Voltage for low resistance state</p></body></html>"))
         self.setV_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Set Voltage (V)</span></p></body></html>"))
         self.avgread_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Readings</span></p></body></html>"))
         self.file_name.setText(_translate("Fatigue", "sample.txt"))
@@ -294,7 +305,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.avg_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Average over</span></p></body></html>"))
         self.source_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Voltage Source</span></p></body></html>"))
         self.reset_pulseWidth_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Reset Pulse width</span></p></body></html>"))
-        self.setV.setToolTip(_translate("Fatigue", "<html><head/><body><p>Max -10 V</p></body></html>"))
+        self.setV.setToolTip(_translate("Fatigue", "<html><head/><body><p>LRS</p></body></html>"))
         self.nPulse_unit.setItemText(0, _translate("Fatigue", "x10^2"))
         self.nPulse_unit.setItemText(1, _translate("Fatigue", "x10^3"))
         self.nPulse_unit.setItemText(2, _translate("Fatigue", "x10^4"))
@@ -304,9 +315,8 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.nPulse_unit.setItemText(6, _translate("Fatigue", "x10^8"))
         self.nPulse_unit.setItemText(7, _translate("Fatigue", "x10^9"))
         self.nPulse_unit.setItemText(8, _translate("Fatigue", "x10^10"))
-        self.iLimit.setItemText(0, _translate("Fatigue", "1mA"))
-        self.iLimit.setItemText(1, _translate("Fatigue", "0.5mA"))
-        self.iLimit.setItemText(2, _translate("Fatigue", "0.1mA"))
+        self.iLimit.setToolTip(_translate("Fatigue", "<html><head/><body><p>HRS</p></body></html>"))
+        self.resistor.setText(_translate("Fatigue", "~ 1 kΩ"))
         self.start_Button.setToolTip(_translate("Fatigue", "<html><head/><body><p>Click to start the experiment</p></body></html>"))
         self.start_Button.setText(_translate("Fatigue", "Start Measurement"))
         self.abort_Button.setToolTip(_translate("Fatigue", "<html><head/><body><p>Click to abort the experiment</p></body></html>"))
@@ -333,6 +343,10 @@ class app_Fatigue(Ui_Fatigue):
         self.measurement_status = "Idle"
         self.file_name.setReadOnly(True)
         self.nPulses.setWrapping(True)
+        self.iLimit.valueChanged.connect(self.update_resistor)
+        self.setV.valueChanged.connect(self.update_resistor)
+        self.resetV.valueChanged.connect(self.update_resistor)
+        self.update_resistor()
         self.nPulses.hasWrapped.message.connect(lambda value: self.update_time_unit(value)) # not working, seems to be some version incompatibility problem
         self.ratio = 1.5
         self.params = {
@@ -349,6 +363,12 @@ class app_Fatigue(Ui_Fatigue):
             "ILimit": 0,
             "temperature": 300}
 
+    def update_resistor(self):
+        limiting_current = self.iLimit.value()
+        max_applied_voltage = max(abs(self.setV.value()),abs(self.resetV.value()))
+        self.resistance = round(max_applied_voltage/limiting_current,2)
+        self.resistor.setText("~ {} kΩ".format(self.resistance))
+        
     def update_time_unit(self, factor):
         currentIndex = self.nPulse_unit.currentIndex()
         if factor == -1 and currentIndex > 0:
@@ -380,7 +400,7 @@ class app_Fatigue(Ui_Fatigue):
             "Average": self.avg.value(),
             "nPulses": self.nPulses.value(),
             "pulseUnit": self.nPulse_unit.currentIndex(),
-            "ILimit": self.iLimit.currentIndex(),
+            "ILimit": self.iLimit.value()/1000,
             "temperature": self.temperature.value()}
         if self.params["set_timeUnit"] == 0:
             self.setTimestep = self.params["setPwidth"]*1e-6
@@ -412,12 +432,6 @@ class app_Fatigue(Ui_Fatigue):
             self.nPulse_order = 1e9
         elif self.params["pulseUnit"] == 8:
             self.nPulse_order = 1e10
-        if self.params["ILimit"] == 0:
-            self.iLimitAmp = 0.001
-        elif self.params["ILimit"] == 1:
-            self.iLimitAmp = 0.0005
-        elif self.params["ILimit"] == 2:
-            self.iLimitAmp = 0.0001
         self.points = linlogspace(self.nPulse_order*self.params["nPulses"])
         self.fpoints = getBinnedPoints(self.points)
         self.number_of_points = len(self.fpoints)
@@ -435,7 +449,7 @@ class app_Fatigue(Ui_Fatigue):
             x = int(8000*self.setTimestep/(self.setTimestep+self.resetTimestep))
             self.afg1022.configure_user7(x)
             waitFor(2000) # wait for 2 seconds for new pulse to be written
-        self.k2450.apply_voltage(compliance_current=self.iLimitAmp)
+        self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
         self.k2450.measure_current(nplc=self.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
         self.k2450.write(":DISPlay:LIGHT:STATe ON25")
@@ -499,6 +513,11 @@ class app_Fatigue(Ui_Fatigue):
         None.
 
         """
+        title = "Confirm resistance."
+        text = "Is resistor of {} kΩ connected?".format(self.resistance)
+        reply = QMessageBox.question(self, title,text,QMessageBox.Yes,QMessageBox.No)
+        if reply == QMessageBox.No:
+            return
         self.stopCall = False
         self.measurement_status = "Running"
         self.status.setText("Program Running..")
@@ -609,7 +628,7 @@ class app_Fatigue(Ui_Fatigue):
             f.write("#Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
             f.write("#Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
             f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
-            f.write("#Limiting current = {}mA\n".format(self.iLimitAmp*1000))
+            f.write("#Limiting current = {}mA\n".format(self.iLimit.value()))
             f.write("NCycles, LRS current (A), HRS Current, LRS resistance (Ω), HRS resistance (Ω)\n")
             write_data = writer(f)
             write_data.writerows(zip(self.ncycles, self.LRScurrents, 
@@ -643,14 +662,14 @@ class app_Fatigue(Ui_Fatigue):
         None.
 
         """
-        reply = QtGui.QMessageBox.Yes
+        reply = QMessageBox.Yes
         if self.measurement_status == "Running":
             quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
-            reply = QtGui.QMessageBox.question(self, 'Message', 
-                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-            if reply == QtGui.QMessageBox.Yes:
+            reply = QMessageBox.question(self, 'Message', 
+                     quit_msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
                 self.stop_program()
-        if reply == QtGui.QMessageBox.Yes:
+        if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()
             event.accept()

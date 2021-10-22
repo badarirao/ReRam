@@ -130,6 +130,7 @@ class Ui_Retention(QtWidgets.QWidget):
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.resetPwidth = QtWidgets.QDoubleSpinBox(self.frame)
+        self.resetPwidth.setWrapping(False)
         self.resetPwidth.setDecimals(1)
         self.resetPwidth.setProperty("value", 1.0)
         self.resetPwidth.setObjectName("resetPwidth")
@@ -150,8 +151,8 @@ class Ui_Retention(QtWidgets.QWidget):
         self.setV = QtWidgets.QDoubleSpinBox(self.frame)
         self.setV.setMinimumSize(QtCore.QSize(115, 0))
         self.setV.setDecimals(3)
-        self.setV.setMinimum(-10.0)
-        self.setV.setMaximum(10)
+        self.setV.setMinimum(-5.0)
+        self.setV.setMaximum(5.0)
         self.setV.setSingleStep(0.001)
         self.setV.setProperty("value", -3.0)
         self.setV.setObjectName("setV")
@@ -167,7 +168,7 @@ class Ui_Retention(QtWidgets.QWidget):
         self.resetV = QtWidgets.QDoubleSpinBox(self.frame)
         self.resetV.setMinimumSize(QtCore.QSize(115, 0))
         self.resetV.setDecimals(3)
-        self.resetV.setMinimum(-10)
+        self.resetV.setMinimum(-9.0)
         self.resetV.setMaximum(10.0)
         self.resetV.setSingleStep(0.001)
         self.resetV.setProperty("value", 3.0)
@@ -179,22 +180,18 @@ class Ui_Retention(QtWidgets.QWidget):
         self.resetVcheck.setObjectName("resetVcheck")
         self.horizontalLayout_5.addWidget(self.resetVcheck)
         self.gridLayout.addLayout(self.horizontalLayout_5, 4, 1, 1, 1)
-        self.iLimit = QtWidgets.QComboBox(self.frame)
-        self.iLimit.setObjectName("iLimit")
-        self.iLimit.addItem("")
-        self.iLimit.addItem("")
-        self.iLimit.addItem("")
-        self.gridLayout.addWidget(self.iLimit, 10, 1, 1, 1)
         self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.time_hr = MyTimeEdit(self.frame)
+        self.time_hr = QtWidgets.QTimeEdit(self.frame)
         self.time_hr.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.time_hr.setMaximumTime(QtCore.QTime(23, 59, 59))
         self.time_hr.setMinimumTime(QtCore.QTime(0, 0, 1))
+        self.time_hr.setCurrentSection(QtWidgets.QDateTimeEdit.HourSection)
         self.time_hr.setTime(QtCore.QTime(2, 46, 40))
         self.time_hr.setObjectName("time_hr")
         self.horizontalLayout_6.addWidget(self.time_hr)
         self.time_sec = QtWidgets.QSpinBox(self.frame)
+        self.time_sec.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
         self.time_sec.setMinimum(1)
         self.time_sec.setMaximum(86399)
         self.time_sec.setProperty("value", 10000)
@@ -204,6 +201,21 @@ class Ui_Retention(QtWidgets.QWidget):
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_6.addWidget(self.label_2)
         self.gridLayout.addLayout(self.horizontalLayout_6, 11, 1, 1, 1)
+        self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
+        self.iLimit = QtWidgets.QDoubleSpinBox(self.frame)
+        self.iLimit.setMinimumSize(QtCore.QSize(0, 0))
+        self.iLimit.setDecimals(3)
+        self.iLimit.setMinimum(0.001)
+        self.iLimit.setMaximum(500.0)
+        self.iLimit.setSingleStep(0.1)
+        self.iLimit.setProperty("value", 1.0)
+        self.iLimit.setObjectName("iLimit")
+        self.horizontalLayout_7.addWidget(self.iLimit)
+        self.resistor = QtWidgets.QLabel(self.frame)
+        self.resistor.setObjectName("resistor")
+        self.horizontalLayout_7.addWidget(self.resistor)
+        self.gridLayout.addLayout(self.horizontalLayout_7, 10, 1, 1, 1)
         self.verticalLayout_2.addWidget(self.frame)
         self.gridLayout_2.addWidget(self.groupBox, 0, 0, 1, 1)
         self.widget = QtWidgets.QWidget(Retention)
@@ -252,6 +264,7 @@ class Ui_Retention(QtWidgets.QWidget):
         brush.setStyle(QtCore.Qt.SolidPattern)
         palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Text, brush)
         self.status.setPalette(palette)
+        self.status.setText("")
         self.status.setAlignment(QtCore.Qt.AlignCenter)
         self.status.setReadOnly(True)
         self.status.setObjectName("status")
@@ -267,7 +280,6 @@ class Ui_Retention(QtWidgets.QWidget):
         self.setTimeUnit.setCurrentIndex(0)
         self.vsource.setCurrentIndex(1)
         self.resetTimeUnit.setCurrentIndex(0)
-        self.iLimit.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Retention)
 
     def retranslateUi(self, Retention):
@@ -302,13 +314,12 @@ class Ui_Retention(QtWidgets.QWidget):
         self.time_label.setText(_translate("Retention", "<html><head/><body><p><span style=\" font-size:10pt;\">Measurement Time</span></p></body></html>"))
         self.setV.setToolTip(_translate("Retention", "<html><head/><body><p>Max -10 V</p></body></html>"))
         self.resetV.setToolTip(_translate("Retention", "<html><head/><body><p>Max 10 V</p></body></html>"))
-        self.iLimit.setItemText(0, _translate("Retention", "1 mA"))
-        self.iLimit.setItemText(1, _translate("Retention", "0.5 mA"))
-        self.iLimit.setItemText(2, _translate("Retention", "0.1 mA"))
         self.time_hr.setToolTip(_translate("Retention", "<html><head/><body><p>hour:minute:second</p><p>Maximum 1 day</p></body></html>"))
         self.time_hr.setDisplayFormat(_translate("Retention", "h:mm:ss"))
         self.time_sec.setToolTip(_translate("Retention", "<html><head/><body><p>Total time in seconds</p><p>maximum: 86399</p></body></html>"))
         self.label_2.setText(_translate("Retention", "s"))
+        self.iLimit.setToolTip(_translate("Retention", "<html><head/><body><p>If source is SMU, no need to connect resistor. If function generator is used, connect a resistor of specified value. </p></body></html>"))
+        self.resistor.setText(_translate("Retention", "~ 1  kΩ"))
         self.start_Button.setToolTip(_translate("Retention", "<html><head/><body><p>Click to start the experiment</p></body></html>"))
         self.start_Button.setText(_translate("Retention", "START"))
         self.skip_Button.setText(_translate("Retention", "Skip to Next"))
@@ -326,6 +337,7 @@ class app_Retention(Ui_Retention):
         self.afg1022 = afg1022
         self.stopCall = False
         self.skip = False
+        self.resistor.setToolTip("Connect a resistor of this value in series to input from function generator.")
         self.time_hr.setWrapping(True)
         self.time_hr.setCurrentSection(QtWidgets.QTimeEdit.MinuteSection)
         self.skip_Button.setEnabled(False)
@@ -340,6 +352,10 @@ class app_Retention(Ui_Retention):
         self.time_sec.editingFinished.connect(self.update_total_time)
         self.setVcheck.stateChanged.connect(self.update_total_time)
         self.resetVcheck.stateChanged.connect(self.update_total_time)
+        self.iLimit.valueChanged.connect(self.update_resistor)
+        self.setV.valueChanged.connect(self.update_resistor)
+        self.resetV.valueChanged.connect(self.update_resistor)
+        self.update_resistor()
         self.initialize_plot()
         self.update_limits()
         self.nplc = 1
@@ -355,7 +371,7 @@ class app_Retention(Ui_Retention):
             "Vreset": -3,
             "resetPwidth": 1,
             "reset_timeUnit": 1,  # 0 = us, 1=ms, 2 = s
-            "ILimit": 0,
+            "ILimit": 0.001,
             "Measure_time": 10000,
             "Rvoltage": 0.1,  # V
             "Average": 5,
@@ -364,6 +380,12 @@ class app_Retention(Ui_Retention):
 
     def skip_to_next(self):
         self.skip = True
+    
+    def update_resistor(self):
+        limiting_current = self.iLimit.value()
+        max_applied_voltage = max(abs(self.setV.value()),abs(self.resetV.value()))
+        self.resistance = round(max_applied_voltage/limiting_current,2)
+        self.resistor.setText("~ {} kΩ".format(self.resistance))
     
     def update_total_time(self):
         self.measure_counts = 0
@@ -422,7 +444,7 @@ class app_Retention(Ui_Retention):
             "Vreset": self.resetV.value(),
             "resetPwidth": self.resetPwidth.value(),
             "reset_timeUnit": self.resetTimeUnit.currentIndex(),
-            "ILimit": self.iLimit.currentIndex(),
+            "ILimit": self.iLimit.value()/1000,
             "Measure_time": self.time_sec.value(),
             "Rvoltage": self.read_voltage.value(),
             "Average": self.avg.value(),
@@ -439,12 +461,6 @@ class app_Retention(Ui_Retention):
             self.resetTimestep = self.params["resetPwidth"]*1e-3
         elif self.params["reset_timeUnit"] == 2:
             self.resetTimestep = self.params["resetPwidth"]
-        if self.params["ILimit"] == 0:
-            self.iLimitAmp = 0.001
-        elif self.params["ILimit"] == 1:
-            self.iLimitAmp = 0.0005
-        elif self.params["ILimit"] == 2:
-            self.iLimitAmp = 0.0001
         self.timePoints = linlogspace(self.time_sec.value(),start=0,points_per_order=18)
         self.binnedPoints = getBinnedPoints(self.timePoints)
         self.number_of_points = len(self.binnedPoints)
@@ -463,7 +479,7 @@ class app_Retention(Ui_Retention):
         None.
 
         """
-        self.k2450.apply_voltage(compliance_current=self.iLimitAmp)
+        self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
         self.k2450.measure_current(nplc=self.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
         self.k2450.write(":DISPlay:LIGHT:STATe ON25")
@@ -566,8 +582,16 @@ class app_Retention(Ui_Retention):
             text = "Please check atleast one of the set/reset states to carry out retention measurement."
             self.status.setText("Select atleast 1 resistive state.")
             QMessageBox.critical(self,title,text)
-            self.stop_program()
+            self.measurement_status = "Idle"
             return
+        if self.vsource.currentIndex() == 1:
+            title = "Confirm resistance."
+            text = "Is resistor of {} kΩ connected?".format(self.resistance)
+            reply = QMessageBox.question(self, title,text,QMessageBox.Yes,QMessageBox.No)
+            if reply == QMessageBox.No:
+                self.stopCall = True
+                self.measurement_status = "Idle"
+                return
         self.stopCall = False
         self.skip = False
         self.status.setText("Program Running..")
@@ -672,7 +696,7 @@ class app_Retention(Ui_Retention):
                     f.write("#Pulse voltage source: Keithley 2450 SMU.\n")
                 else:
                     f.write("#Pulse voltage source: Tektronix AFG1022 Function Generator.\n")
-                f.write("#Pulse limiting current = {}mA\n".format(self.iLimitAmp*1000))
+                f.write("#Pulse limiting current = {}mA\n".format(self.iLimit.value()))
                 f.write("#Resistance read using Keithley 2450 SMU.\n")
                 f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
                 write_data = writer(f)
@@ -721,14 +745,14 @@ class app_Retention(Ui_Retention):
         None.
 
         """
-        reply = QtGui.QMessageBox.Yes
+        reply = QMessageBox.Yes
         if self.measurement_status == "Running":
             quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
-            reply = QtGui.QMessageBox.question(self, 'Message', 
-                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-            if reply == QtGui.QMessageBox.Yes:
+            reply = QMessageBox.question(self, 'Message', 
+                     quit_msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
                 self.stop_program()
-        if reply == QtGui.QMessageBox.Yes:
+        if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()
             event.accept()
