@@ -11,6 +11,7 @@ from itertools import chain
 from datetime import date
 from time import sleep
 from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
 from pymeasure.instruments.keithley import Keithley2450
 from numpy import linspace, array_split, around, concatenate, append
@@ -643,20 +644,18 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
-        reply = QtGui.QMessageBox.Yes
+        reply = QMessageBox.Yes
         if self.measurement_status == "Running":
             quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
-            reply = QtGui.QMessageBox.question(self, 'Message', 
-                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-            if reply == QtGui.QMessageBox.Yes:
+            reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
                 self.stop_program()
-        if reply == QtGui.QMessageBox.Yes:
+        if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()
             event.accept()
         else:
             event.ignore()
-
 
 if __name__ == "__main__":
     import sys

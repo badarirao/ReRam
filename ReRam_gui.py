@@ -15,6 +15,7 @@ Not tested for other Python versions or OS
 import sys
 import os
 from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtWidgets import QMessageBox
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
@@ -137,39 +138,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         a3 = self.AFG1022Addr
         self.k2450, self.k2700, self.afg1022 = checkInstrument(a1,a2,a3,test = TESTING)
         
-    def closeEvent(self, event):
-        """
-        Perform necessary operations just before exiting the program.
-
-        Parameters
-        ----------
-        event : QCloseEvent
-
-        Returns
-        -------
-        None.
-
-        """
-        os.chdir(self.settingPath)
-        with open('SettingFile.dnd', 'w') as f:
-            f.write(self.currPath+'\n')
-            f.write(self.sampleID)
-        os.chdir(self.initialPath)
-        with open('address.txt','w') as f:
-            self.k2450Addr = self.k2450.address
-            self.k2700Addr = self.k2700.address
-            self.AFG1022Addr = self.afg1022.address
-            self.AFG1022Addr
-            f.write(self.settingPath+'\n') # write path of SettingFile.dnd
-            f.write(self.k2450Addr+'\n') # write address of K2450 if present
-            f.write(self.k2700Addr+'\n') # write address of K700 if present
-            f.write(self.AFG1022Addr) # write get address of AFG1022 if present
-        self.k2450.close()
-        self.k2700.write("DISPlay:ENABle ON")
-        self.k2700.close()
-        self.afg1022.close()
-        event.accept()
-
     def openDir(self):
         """
         Open the dialog for selecting directory.
@@ -287,6 +255,45 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.rt.file_name.setText(self.rt.filename)
         self.hide()
         self.rt.show()
+    
+    def closeEvent(self, event):
+        """
+        Perform necessary operations just before exiting the program.
+
+        Parameters
+        ----------
+        event : QCloseEvent
+
+        Returns
+        -------
+        None.
+
+        """
+        reply = QMessageBox.Yes
+        quit_msg = "Are you sure you want to exit?"
+        reply = QMessageBox.question(self, 'Confirm Exit',quit_msg, QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.No:
+            event.ignore()
+        else:
+            os.chdir(self.settingPath)
+            with open('SettingFile.dnd', 'w') as f:
+                f.write(self.currPath+'\n')
+                f.write(self.sampleID)
+            os.chdir(self.initialPath)
+            with open('address.txt','w') as f:
+                self.k2450Addr = self.k2450.address
+                self.k2700Addr = self.k2700.address
+                self.AFG1022Addr = self.afg1022.address
+                self.AFG1022Addr
+                f.write(self.settingPath+'\n') # write path of SettingFile.dnd
+                f.write(self.k2450Addr+'\n') # write address of K2450 if present
+                f.write(self.k2700Addr+'\n') # write address of K700 if present
+                f.write(self.AFG1022Addr) # write get address of AFG1022 if present
+            self.k2450.close()
+            self.k2700.write("DISPlay:ENABle ON")
+            self.k2700.close()
+            self.afg1022.close()
+            event.accept()
         
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

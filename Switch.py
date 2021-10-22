@@ -16,6 +16,7 @@ from csv import writer
 from os.path import exists as fileExists
 from winsound import MessageBeep
 from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QPalette, QColor, QBrush
 from pyqtgraph import GraphicsLayoutWidget, ViewBox, mkPen
 from utilities import unique_filename, FakeAdapter, checkInstrument, AFG, SMU
@@ -765,14 +766,13 @@ class app_Switch(Ui_Switch):
         None.
 
         """
-        reply = QtGui.QMessageBox.Yes
+        reply = QMessageBox.Yes
         if self.measurement_status == "Running":
             quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
-            reply = QtGui.QMessageBox.question(self, 'Message', 
-                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-            if reply == QtGui.QMessageBox.Yes:
+            reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
                 self.stop_program()
-        if reply == QtGui.QMessageBox.Yes:
+        if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()
             event.accept()

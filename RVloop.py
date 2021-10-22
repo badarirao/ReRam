@@ -11,6 +11,7 @@ from winsound import MessageBeep
 from csv import writer
 from numpy import linspace, around, concatenate, array
 from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from utilities import unique_filename, FakeAdapter, checkInstrument, SMU, AFG
 from utilities import connect_sample_with_SMU, waitFor
@@ -653,14 +654,13 @@ class app_RVLoop(Ui_RVLoop):
         None.
 
         """
-        reply = QtGui.QMessageBox.Yes
+        reply = QMessageBox.Yes
         if self.measurement_status == "Running":
             quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
-            reply = QtGui.QMessageBox.question(self, 'Message', 
-                     quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-            if reply == QtGui.QMessageBox.Yes:
+            reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
                 self.stop_program()
-        if reply == QtGui.QMessageBox.Yes:
+        if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()
             event.accept()
