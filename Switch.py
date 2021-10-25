@@ -9,8 +9,6 @@ The Switch module of the ReRam project.
     TODO: Check if enough time is provided after switching
     TODO: Ensure only new data is saved into the file.
     TODO: Add tooltips
-    TODO: Some problem in plotting additional data when source is changed. Need to clear the graph
-
 """
 
 from csv import writer
@@ -375,7 +373,9 @@ class app_Switch(Ui_Switch):
         self.update_limits()
         self.stopCall = False
         self.measurement_status = "Idle"
-        self.nplc = 1
+        self.k2450.nplc = 1
+        self.k2450.avg = 5
+        self.k2450.readV = 0.1
         self.filename = sName
         self.file_name.setText(self.filename)
         self.file_name.setReadOnly(True)
@@ -471,6 +471,8 @@ class app_Switch(Ui_Switch):
             "nPulses": self.nPulses.value(),
             "ILimit": self.Ilimit.value()/1000,
             "temperature": self.temperature.value()}
+        self.k2450.readV = self.params["Rvoltage"]
+        self.k2450.avg = self.params["Average"]
         if self.params["set_timeUnit"] == 0:
             self.setTimestep = self.params["setPwidth"]*1e-6
         elif self.params["set_timeUnit"] == 1:
@@ -511,7 +513,7 @@ class app_Switch(Ui_Switch):
         if self.k2450 is None:
             self.k2450 = FakeAdapter()
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
-        self.k2450.measure_current(nplc=self.nplc)
+        self.k2450.measure_current(nplc=self.k2450.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
         self.k2450.write(":DISPlay:LIGHT:STATe ON25")
         self.k2450.write("sour:volt:read:back 1")
@@ -538,7 +540,7 @@ class app_Switch(Ui_Switch):
             v1 = 0
             c1 = -1
         # measure read resistance
-        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
+        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
         self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
         self.k2450.source_voltage = self.params["Rvoltage"]
         self.k2450.start_buffer()
@@ -629,8 +631,7 @@ class app_Switch(Ui_Switch):
         self.i = 0
         if self.initial_source != self.source.currentIndex():
             if not self.savedFlag:
-                self.saveData()
-            self.new_flag = True
+                self.clearGraph()
             self.initial_source = self.source.currentIndex()
         if self.new_flag:
             self.pulsecount = [0]
@@ -667,7 +668,7 @@ class app_Switch(Ui_Switch):
             self.timer.singleShot(0, self.pulseMeasure_SMU)
         elif self.params["Vsource"] == 1:
             connect_sample_with_AFG(self.k2700)
-            self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
+            self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
             self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
                                                      self.params["Average"]))
             self.k2450.source_voltage = self.params["Rvoltage"]

@@ -37,7 +37,6 @@ To apply pulse from function generator,
 Next, to check resistance from sourcemeter,
     open CH12, close CH11
     check resistance
-
 """
 import logging
 log = logging.getLogger(__name__)

@@ -7,7 +7,6 @@
 # WARNING! All changes made in this file will be lost!
 
 # TODO: Add tooltips
-# TODO: read_LRS_HRS_states function for only SMU can be made common function in MyKeithley2450
 # TODO: The pulse application with SMU only is not implemented correctly.
 # the read_hrs_lrs function currently requires function generator no matter what source is selected
 
@@ -361,7 +360,9 @@ class app_Retention(Ui_Retention):
         self.update_resistor()
         self.initialize_plot()
         self.update_limits()
-        self.nplc = 1
+        self.k2450.nplc = 1
+        self.k2450.avg = 5
+        self.k2450.readV = 0.1
         self.measurement_status = "Idle"
         self.filename = sName
         self.file_name.setText(self.filename)
@@ -451,6 +452,8 @@ class app_Retention(Ui_Retention):
             "Rvoltage": self.read_voltage.value(),
             "Average": self.avg.value(),
             "temperature": self.temperature.value()}
+        self.k2450.avg = self.params["Average"]
+        self.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:
             self.setTimestep = self.params["setPwidth"]*1e-6
         elif self.params["set_timeUnit"] == 1:
@@ -482,11 +485,11 @@ class app_Retention(Ui_Retention):
 
         """
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
-        self.k2450.measure_current(nplc=self.nplc)
+        self.k2450.measure_current(nplc=self.k2450.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
         self.k2450.write(":DISPlay:LIGHT:STATe ON25")
         self.k2450.write("sour:volt:read:back 1")
-        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
+        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
         self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
         self.k2450.source_voltage = self.params["Rvoltage"]
 
@@ -509,7 +512,7 @@ class app_Retention(Ui_Retention):
             connect_sample_with_SMU(self.k2700)
         
         self.k2450.write("TRIG:LOAD 'SimpleLoop', {}, 0".format(self.params["Average"]))
-        self.k2450.source_voltage = self.params["Rvoltage"]
+        self.k2450.source_voltage = self.k2450.readV
         
         if self.pulses_to_apply[self.i][0] == self.params["Vset"]:
             self.ntimesSet = []
@@ -594,6 +597,17 @@ class app_Retention(Ui_Retention):
                 self.stopCall = True
                 self.measurement_status = "Idle"
                 return
+            LRSCurrent, HRSCurrent = self.read_LRS_HRS_states()
+        else:
+            vset = vreset = 0
+            vsetpulse = vresetpulse = 0.1
+            if self.setVcheck.isChecked():
+                vset = self.params["Vset"]
+                setpulse = self.setTimestep
+            if self.resetVcheck.isChecked():
+                vreset = self.params["Vreset"]
+                resetpulse = self.resetTimestep
+            LRSCurrent, HRSCurrent = self.k2450.read_resistance_states([(vset,setpulse),(vreset,resetpulse)])
         self.stopCall = False
         self.skip = False
         self.status.setText("Program Running..")
@@ -603,7 +617,7 @@ class app_Retention(Ui_Retention):
         self.retentionPlot.clear()
         ntimes = [0.01]
         self.pulses_to_apply = []
-        LRSCurrent, HRSCurrent = self.read_LRS_HRS_states()
+        
         if self.setVcheck.isChecked():
             self.LRScurrents = [LRSCurrent]
             self.LRS = [abs(self.params["Rvoltage"]/LRSCurrent)]

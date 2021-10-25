@@ -292,8 +292,10 @@ class app_RVLoop(Ui_RVLoop):
         self.stop_Button.clicked.connect(self.stop_program)
         self.initialize_plot()
         self.update_limits()
-        self.nplc = 0.01
+        self.k2450.nplc = 0.01
+        self.k2450.readV = 0.1
         self.avg_over_n_readings = 10
+        self.k2450.avg = self.avg_over_n_readings
         self.filename = sName
         self.file_name.setReadOnly(True)
         self.file_name.setText(self.filename)
@@ -347,6 +349,7 @@ class app_RVLoop(Ui_RVLoop):
             "ILimit": self.Ilimit.value()/1000,
             "Rvoltage": self.read_voltage.value(),
             "temperature": self.temperature.value()}
+        self.k2450.readV = self.params["Rvoltage"]
         self.npoints = int(
             (self.params["Vmax"] - self.params["Vmin"])/(self.params["Vstep"]))*2+1
         if self.params["VPwidth"] == 0:
@@ -372,16 +375,16 @@ class app_RVLoop(Ui_RVLoop):
             self.k2450 = FakeAdapter()
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
         if self.params["Speed"] == 0:
-            self.nplc = 5
+            self.k2450.nplc = 5
         elif self.params["Speed"] == 1:
-            self.nplc = 2
+            self.k2450.nplc = 2
         elif self.params["Speed"] == 2:
-            self.nplc = 1
+            self.k2450.nplc = 1
         elif self.params["Speed"] == 3:
-            self.nplc = 0.1
+            self.k2450.nplc = 0.1
         elif self.params["Speed"] == 4:
-            self.nplc = 0.01
-        self.k2450.measure_current(self.nplc)
+            self.k2450.nplc = 0.01
+        self.k2450.measure_current(self.k2450.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
         self.k2450.write("Sense:curr:AZero ON")  # correct for zero
         self.k2450.write("sour:volt:read:back 1")
@@ -450,7 +453,7 @@ class app_RVLoop(Ui_RVLoop):
             connect_sample_with_SMU(self.k2700)
             self.timer.singleShot(0, self.measure_RV_SMU)
         else:
-            self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
+            self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
             self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
                 self.avg_over_n_readings))
             self.k2450.source_voltage = self.params["Rvoltage"]
@@ -476,7 +479,7 @@ class app_RVLoop(Ui_RVLoop):
         v, c = setData[0], setData[1]
         self.actual_setVolts.append(v)
         self.set_currents.append(c)
-        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
+        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
         self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
             self.avg_over_n_readings))
         self.k2450.source_voltage = self.params["Rvoltage"]

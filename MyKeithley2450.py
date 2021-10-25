@@ -379,3 +379,22 @@ class Keithley2450:
         self.start_buffer()
         self.wait_till_done()
         return float(self.ask("TRAC:stat:average?")[:-1])
+    
+    def read_resistance_states(self,voltagePulses): #list of (voltage,pulse_width) tuples
+        # Assuming function generator is connected and SMU is disconnected
+        Currents = []
+        for vp in voltagePulses:
+            if vp[0] != 0:
+                self.apply_switch_pulse(*vp)
+                self.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
+                self.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.avg))
+                self.source_voltage = self.readV
+                self.start_buffer()
+                self.wait_till_done()
+                c = abs(float(self.ask("TRAC:stat:average?")[:-1]))
+                if c == 0:
+                    c = 1e-12
+            else:
+                c = 1e-12
+            Currents.append(c)
+        return Currents

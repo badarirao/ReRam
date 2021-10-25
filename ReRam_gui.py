@@ -7,6 +7,7 @@ Not tested for other Python versions or OS
 # TODO: Program to initiate forming process
 # TODO: Allow for both SCPI and TSP commands (currently only SCPI works)
 # TODO: Save the last entered parameters of each program in file, which is reloaded at the starting of the program
+# TODO: Button to reconnect the instrument
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'

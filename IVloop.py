@@ -254,6 +254,7 @@ class app_IVLoop(Ui_IVLoop):
         self.stop_Button.clicked.connect(self.stop_ivloop)
         self.initialize_plot()
         self.npoints = 500
+        self.k2450.nplc = 1
         self.filename = sName
         self.file_name.setText(self.filename)
         self.measurement_status = "Idle"
@@ -326,8 +327,9 @@ class app_IVLoop(Ui_IVLoop):
         elif self.params["Speed"] == 4:
             nplc = 0.01
             self.speed = "Very Fast"
+        self.k2450.nplc = nplc
         # set read time per point according to required speed
-        self.k2450.write("SENS:NPLC {0}".format(nplc))
+        self.k2450.write("SENS:NPLC {0}".format(self.k2450.nplc))
         self.k2450.write("sour:func volt")  # set source as voltage
         self.k2450.write("sour:volt:rang 20")  # set voltage range to 20 V
         # correct for zero only at the beginning

@@ -338,7 +338,9 @@ class app_Fatigue(Ui_Fatigue):
         self.set_pulseWidth.setMinimum(0.1)
         self.reset_pulseWidth.setMinimum(0.1)
         self.initialize_plot()
-        self.nplc = 1
+        self.k2450.nplc = 1
+        self.k2450.avg = 5
+        self.k2450.readV = 0.1
         self.filename = sName
         self.file_name.setText(self.filename)
         self.measurement_status = "Idle"
@@ -435,6 +437,8 @@ class app_Fatigue(Ui_Fatigue):
             "pulseUnit": self.nPulse_unit.currentIndex(),
             "ILimit": self.iLimit.value()/1000,
             "temperature": self.temperature.value()}
+        self.k2450.avg = self.params["Average"]
+        self.k2450.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:
             self.setTimestep = self.params["setPwidth"]*1e-6
         elif self.params["set_timeUnit"] == 1:
@@ -483,11 +487,11 @@ class app_Fatigue(Ui_Fatigue):
             self.afg1022.configure_user7(x)
             waitFor(2000) # wait for 2 seconds for new pulse to be written
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
-        self.k2450.measure_current(nplc=self.nplc)
+        self.k2450.measure_current(nplc=self.k2450.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
         self.k2450.write(":DISPlay:LIGHT:STATe ON25")
         self.k2450.write("sour:volt:read:back 1")
-        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
+        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
         self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
         self.k2450.source_voltage = self.params["Rvoltage"]
         connect_sample_with_AFG(self.k2700)
