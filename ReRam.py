@@ -17,6 +17,7 @@ from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
 from Switch import app_Switch
+from utilities import checkInstrument
 
 
 def get_valid_filename(s):
@@ -43,19 +44,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
 
     def __init__(self, *args, obj=None, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
-        self.k2450 = Keithley2450(
-            "USB0::0x05E6::0x2450::04488850::INSTR")
-        self.k2450.reset()
         self.initialPath = os.getcwd()
-        with open('path.txt') as f:
-            self.settingPath = f.readline()# store path of SettingFile.dnd here
+        #with open('address.txt') as f:
+        #    self.settingPath = f.readline()# store path of SettingFile.dnd here
+        #    k2450Addr = f.readline()
+        k2450Addr = "USB0::0x05E6::0x2450::04488850::INSTR"
+        self.k2450 = checkInstrument(k2450Addr,test=True)
+        self.k2450.reset()
         #Default file storage location is set to desktop
-        self.defaultPath = os.path.join(
-            os.path.expandvars("%userprofile%"), "Desktop")
+        self.settingPath = self.initialPath
+        self.defaultPath = os.path.join(os.path.expandvars("%userprofile%"), "Desktop")
         if not os.path.exists(self.defaultPath):
             self.defaultPath = self.initialPath 
-        if not os.path.exists(self.settingPath):
-            self.settingPath = self.initialPath
+        #if not os.path.exists(self.settingPath):
+        #    self.settingPath = self.initialPath
         self.setupUi(self)
         self.dir_Button.clicked.connect(self.openDir)
         self.iv_button.clicked.connect(self.open_ivloop)
@@ -109,8 +111,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         os.chdir(self.settingPath)
         with open('SettingFile.dnd', 'w') as f:
             f.write(self.currPath+'\n')
-            f.write(self.sampleID)
+            f.write(self.sampleID+'\n')
         os.chdir(self.initialPath)
+        with open('address.txt','w') as f:
+            f.write(self.settingPath)
+            if self.k2450.address:
+                f.write('\n'+self.k2450.address)
         event.accept()
 
     def openDir(self):
