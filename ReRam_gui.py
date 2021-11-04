@@ -15,7 +15,7 @@ Not tested for other Python versions or OS
 #  except VisaIOError:
 import sys
 import os
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
@@ -301,4 +301,5 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     main = MainWindow()
     main.show()
-    sys.exit(app.exec_())
+    app.exec_()
+    app.quit()

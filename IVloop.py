@@ -9,11 +9,9 @@ The IV-loop module of the ReRam project.
 from winsound import MessageBeep
 from itertools import chain
 from datetime import date
-from time import sleep
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
-from pymeasure.instruments.keithley import Keithley2450
 from numpy import linspace, array_split, around, concatenate, append
 from numpy import reshape, array, savetxt, hsplit, insert, loadtxt
 from openpyxl import Workbook
