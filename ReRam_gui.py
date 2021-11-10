@@ -17,6 +17,7 @@ import sys
 import os
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import QTimer
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
@@ -38,8 +39,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.initial = 0
         self.checkPaths()
-        self.check_instrument_connection()
-        self.k2450.reset()
         self.setupUi(self)
         self.filename.setText(self.sampleID)
         self.dir_Button.clicked.connect(self.openDir)
@@ -59,13 +58,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.forming_button.setEnabled(False)
         self.filename.editingFinished.connect(self.setFilename)
         self.setFilename(1)  # 1 indicates initial setting of filename
+        QTimer.singleShot(10,self.initialize_apps)
+
+    def initialize_apps(self):
+        self.check_instrument_connection()
+        self.k2450.reset()
         self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
         #self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
         self.rv = app_RVLoop(self, self.k2450, self.k2700, self.afg1022, self.RVfilename)
         self.st = app_Switch(self, self.k2450, self.k2700, self.afg1022, self.Switchfilename)
         self.ft = app_Fatigue(self, self.k2450, self.k2700, self.afg1022, self.Fatiguefilename)
         self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename)
-
+    
+    
     def checkPaths(self):
         """
         Check for paths to store data and setting files.
@@ -142,6 +147,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.k2450, self.k2700, self.afg1022 = checkInstrument(a1,a2,a3,test = TESTING)
         
     def check_instrument_connection(self):
+        try:
+            self.k2450.close()
+            self.k2700.close()
+            self.afg1022.close()
+        except:
+            pass
+        self.inst_button.setDisabled(True)
+        self.dir_Button.setDisabled(True)
+        self.filename.setDisabled(True)
+        self.iv_button.setDisabled(True)
+        self.rv_button.setDisabled(True)
+        self.switch_button.setDisabled(True)
+        self.endurance_button.setDisabled(True)
+        self.retention_button.setDisabled(True)
+        self.statusBar.showMessage('Establishing instrument connection... Please wait')
         self.connectInstrument()
         status = 0
         if self.k2450.ID == 'Fake':
@@ -151,21 +171,29 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         if self.afg1022.ID == 'Fake':
             status = status + 4
         if status == 0:
-            self.statusBar().showMessage('All instruments connected.')
+            self.statusBar.showMessage('All instruments connected.')
         elif status == 1:
-            self.statusBar().showMessage('Sourcemeter not connected.')
+            self.statusBar.showMessage('Sourcemeter not connected.')
         elif status == 2:
-            self.statusBar().showMessage('Multiplexer not connected.')
+            self.statusBar.showMessage('Multiplexer not connected.')
         elif status == 3:
-            self.statusBar().showMessage('Function generator not connected.')
+            self.statusBar.showMessage('Function generator not connected.')
         elif status == 4:
-            self.statusBar().showMessage('Sourcemeter, Multiplexer not connected.')
+            self.statusBar.showMessage('Sourcemeter, Multiplexer not connected.')
         elif status == 5:
-            self.statusBar().showMessage('Sourcemeter, Function generator not connected.')
+            self.statusBar.showMessage('Sourcemeter, Function generator not connected.')
         elif status == 6:
-            self.statusBar().showMessage('Multiplexer, Function generator not connected.')
+            self.statusBar.showMessage('Multiplexer, Function generator not connected.')
         elif status == 7:
-            self.statusBar().showMessage('No instruments connected.')
+            self.statusBar.showMessage('No instruments connected.')
+        self.inst_button.setEnabled(True)
+        self.dir_Button.setEnabled(True)
+        self.filename.setEnabled(True)
+        self.iv_button.setEnabled(True)
+        self.rv_button.setEnabled(True)
+        self.switch_button.setEnabled(True)
+        self.endurance_button.setEnabled(True)
+        self.retention_button.setEnabled(True)
     
     def openDir(self):
         """

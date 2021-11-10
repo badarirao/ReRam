@@ -139,7 +139,7 @@ class Ui_Memory(object):
     def retranslateUi(self, Memory):
         _translate = QtCore.QCoreApplication.translate
         Memory.setWindowTitle(_translate("Memory", "ReRam"))
-        self.inst_button.setText(_translate("Memory", "Check Instrument \n Connection"))
+        self.inst_button.setText(_translate("Memory", "Reconnect \n Instrument"))
         self.dir_Button.setText(_translate("Memory", "Select Directory"))
         self.filename_label.setText(_translate("Memory", "<html><head/><body><p align=\"center\"><span style=\" font-size:14pt; font-weight:600; color:#5500ff;\">Sample ID</span></p></body></html>"))
         self.filename.setToolTip(_translate("Memory", "<html><head/><body><p>Enter sample ID. All the experiments will have this ID as prefix in the filename.</p></body></html>"))
