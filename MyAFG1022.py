@@ -64,6 +64,7 @@ class AFG1022:
             self._arbitrary_waveform_resolution = 16383  # 14 bit
             self._max_waveform_memory_user_locations = 255
             self.output(1)
+            self.ID = 'AFG1022'
         else:
             raise VisaIOError(-1073807346)
         

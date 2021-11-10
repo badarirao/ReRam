@@ -44,6 +44,7 @@ class Keithley2450:
             rm = ResourceManager()
             self.inst = rm.open_resource(adapter)
             self.address = adapter
+            self.ID = 'K2450'
         else:
             raise VisaIOError(-1073807346)
         self.name = "Keithley 2450 SMU"

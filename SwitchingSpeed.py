@@ -388,5 +388,6 @@ if __name__ == "__main__":
     ui = Ui_Switch()
     ui.setupUi(Switch)
     Switch.show()
-    sys.exit(app.exec_())
+    app.exec_()
+    app.quit()
 

@@ -14,7 +14,7 @@ The Switch module of the ReRam project.
 from csv import writer
 from os.path import exists as fileExists
 from winsound import MessageBeep
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QPalette, QColor, QBrush
 from pyqtgraph import GraphicsLayoutWidget, ViewBox, mkPen
@@ -789,4 +789,5 @@ if __name__ == "__main__":
     k2450, k2700, afg1022 = checkInstrument(test = True)
     ui = app_Switch(Switch, k2450, k2700, afg1022)
     ui.show()
-    sys.exit(app.exec_())
+    app.exec_()
+    app.quit()

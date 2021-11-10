@@ -1,16 +1,16 @@
-"""
-The main GUI for the ReRam Project.
+# -*- coding: utf-8 -*-
 
-    Just contains the GUI for the main ReRam menu-driven interface
-
-"""
+# Form implementation generated from reading ui file 'Memory_2.ui'
+#
+# Created by: PyQt5 UI code generator 5.9.2
+#
+# WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtGui import QIcon, QFont
 
-
-class Ui_Memory:
+class Ui_Memory(object):
     """The pyqt5 gui class for ReRam project."""
-
     def setupUi(self, Memory):
         """
         Draw and initialize the main menu.
@@ -29,17 +29,25 @@ class Ui_Memory:
         """
         Memory.setObjectName("Memory")
         Memory.resize(320, 550)
-        Memory.setMinimumSize(QtCore.QSize(320, 550))
-        Memory.setMaximumSize(QtCore.QSize(320, 550))
+        Memory.setMinimumSize(QtCore.QSize(320, 600))
+        Memory.setMaximumSize(QtCore.QSize(320, 600))
         self.centralwidget = QtWidgets.QWidget(Memory)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName("verticalLayout")
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.inst_button = QtWidgets.QPushButton(self.centralwidget)
+        self.inst_button.setMinimumSize(QtCore.QSize(0, 50))
+        self.inst_button.setObjectName("inst_button")
+        self.horizontalLayout_2.addWidget(self.inst_button)
         self.dir_Button = QtWidgets.QPushButton(self.centralwidget)
-        self.dir_Button.setMinimumSize(QtCore.QSize(0, 40))
+        self.dir_Button.setMinimumSize(QtCore.QSize(0, 50))
         self.dir_Button.setObjectName("dir_Button")
-        self.verticalLayout.addWidget(self.dir_Button)
+        self.horizontalLayout_2.addWidget(self.dir_Button)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.frame = QtWidgets.QFrame(self.centralwidget)
+        self.frame.setMinimumSize(QtCore.QSize(0, 50))
         self.frame.setMaximumSize(QtCore.QSize(16777215, 50))
         self.frame.setObjectName("frame")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.frame)
@@ -51,6 +59,12 @@ class Ui_Memory:
         self.filename = QtWidgets.QLineEdit(self.frame)
         self.filename.setAlignment(QtCore.Qt.AlignCenter)
         self.filename.setObjectName("filename")
+        self.frame.setMinimumHeight(35)
+        self.filename.setMinimumHeight(35)
+        self.filename_label.setMinimumHeight(35)
+        f = self.filename.font()
+        f.setPointSize(13)
+        self.filename.setFont(f)
         self.horizontalLayout.addWidget(self.filename)
         self.verticalLayout.addWidget(self.frame)
         self.experiment_label = QtWidgets.QLabel(self.centralwidget)
@@ -58,99 +72,101 @@ class Ui_Memory:
         self.experiment_label.setObjectName("experiment_label")
         self.verticalLayout.addWidget(self.experiment_label)
         self.iv_button = QtWidgets.QPushButton(self.centralwidget)
+        self.iv_button.setMinimumSize(QtCore.QSize(0, 30))
         self.iv_button.setObjectName("iv_button")
         self.verticalLayout.addWidget(self.iv_button)
         self.rv_button = QtWidgets.QPushButton(self.centralwidget)
+        self.rv_button.setMinimumSize(QtCore.QSize(0, 30))
         self.rv_button.setObjectName("rv_button")
         self.verticalLayout.addWidget(self.rv_button)
         self.switch_button = QtWidgets.QPushButton(self.centralwidget)
+        self.switch_button.setMinimumSize(QtCore.QSize(0, 30))
         self.switch_button.setObjectName("switch_button")
         self.verticalLayout.addWidget(self.switch_button)
         self.endurance_button = QtWidgets.QPushButton(self.centralwidget)
+        self.endurance_button.setMinimumSize(QtCore.QSize(0, 30))
         self.endurance_button.setObjectName("endurance_button")
         self.verticalLayout.addWidget(self.endurance_button)
         self.retention_button = QtWidgets.QPushButton(self.centralwidget)
+        self.retention_button.setMinimumSize(QtCore.QSize(0, 30))
         self.retention_button.setObjectName("retention_button")
         self.verticalLayout.addWidget(self.retention_button)
         self.speed_button = QtWidgets.QPushButton(self.centralwidget)
+        self.speed_button.setMinimumSize(QtCore.QSize(0, 30))
         self.speed_button.setObjectName("speed_button")
         self.verticalLayout.addWidget(self.speed_button)
+        self.forming_button = QtWidgets.QPushButton(self.centralwidget)
+        self.forming_button.setMinimumSize(QtCore.QSize(0, 30))
+        self.forming_button.setObjectName("forming_button")
+        self.verticalLayout.addWidget(self.forming_button)
         self.aging_button = QtWidgets.QPushButton(self.centralwidget)
+        self.aging_button.setMinimumSize(QtCore.QSize(0, 30))
         self.aging_button.setObjectName("aging_button")
         self.verticalLayout.addWidget(self.aging_button)
         self.memristor_button = QtWidgets.QPushButton(self.centralwidget)
+        self.memristor_button.setMinimumSize(QtCore.QSize(0, 30))
         self.memristor_button.setObjectName("memristor_button")
         self.verticalLayout.addWidget(self.memristor_button)
         self.temperature_button = QtWidgets.QPushButton(self.centralwidget)
+        self.temperature_button.setMinimumSize(QtCore.QSize(0, 30))
         self.temperature_button.setObjectName("temperature_button")
         self.verticalLayout.addWidget(self.temperature_button)
         self.batch_button = QtWidgets.QPushButton(self.centralwidget)
+        self.batch_button.setMinimumSize(QtCore.QSize(0, 30))
         self.batch_button.setObjectName("batch_button")
         self.verticalLayout.addWidget(self.batch_button)
         Memory.setCentralWidget(self.centralwidget)
+
         self.retranslateUi(Memory)
         QtCore.QMetaObject.connectSlotsByName(Memory)
+        self.dir_Button.setStyleSheet('QPushButton {background-color: #A3C1Da;}')
+        self.dir_Button.setFont(QFont('Times',12, QFont.Bold))
+        self.inst_button.setStyleSheet('QPushButton {background-color: #daa3b8;}')
+        self.inst_button.setFont(QFont('Times',12, QFont.Bold))
+        self.statusBar = Memory.statusBar()
+        self.iv_button.setFont(QFont('Times',12))
+        self.rv_button.setFont(QFont('Times',12))
+        self.switch_button.setFont(QFont('Times',12))
+        self.endurance_button.setFont(QFont('Times',12))
+        self.retention_button.setFont(QFont('Times',12))
+        self.speed_button.setFont(QFont('Times',12))
+        self.forming_button.setFont(QFont('Times',12))
+        self.aging_button.setFont(QFont('Times',12))
+        self.memristor_button.setFont(QFont('Times',12))
+        self.temperature_button.setFont(QFont('Times',12))
+        self.batch_button.setFont(QFont('Times',12))
 
     def retranslateUi(self, Memory):
-        """
-        Code generated by QT Designer.
-
-        Parameters
-        ----------
-        Memory : QMainWindow
-
-        Returns
-        -------
-        None.
-
-        """
         _translate = QtCore.QCoreApplication.translate
         Memory.setWindowTitle(_translate("Memory", "ReRam"))
-        self.dir_Button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Choose the directory to save your data. By default, last used directory is chosen.</p></body></html>"))
-        self.dir_Button.setText(_translate("Memory", "SELECT DIRECTORY"))
-        self.filename_label.setText(_translate(
-            "Memory", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt; font-weight:600; color:#5500ff;\">Sample ID</span></p></body></html>"))
-        self.filename.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Enter sample ID. All the experiments will have this ID as prefix in the filename.</p></body></html>"))
+        self.inst_button.setText(_translate("Memory", "Check Instrument \n Connection"))
+        self.dir_Button.setText(_translate("Memory", "Select Directory"))
+        self.filename_label.setText(_translate("Memory", "<html><head/><body><p align=\"center\"><span style=\" font-size:14pt; font-weight:600; color:#5500ff;\">Sample ID</span></p></body></html>"))
+        self.filename.setToolTip(_translate("Memory", "<html><head/><body><p>Enter sample ID. All the experiments will have this ID as prefix in the filename.</p></body></html>"))
         self.filename.setText(_translate("Memory", "Sample"))
-        self.experiment_label.setText(_translate(
-            "Memory", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt; font-weight:600; color:#aa0000;\">Choose Experiment</span></p></body></html>"))
-        self.iv_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Perform Current Vs Voltage measurement</p></body></html>"))
-        self.iv_button.setText(_translate("Memory", "1. IV-Loop"))
-        self.rv_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Perform write voltage vs Resistance at read voltage for cyclic write voltages.</p></body></html>"))
-        self.rv_button.setText(_translate(
-            "Memory", "2. Resistive Switching Loop"))
-        self.switch_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Apply set and reset voltage pulses and check its resistance</p></body></html>"))
-        self.switch_button.setText(_translate("Memory", "3. Switching Test"))
-        self.endurance_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Perform set and reset operations several times and check the stability of the resistive states.</p><p>(Fatigue testing)</p></body></html>"))
-        self.endurance_button.setText(
-            _translate("Memory", "4. Endurance Test"))
-        self.retention_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Check the stability of the set and reset states to read voltage for long time durations.</p></body></html>"))
-        self.retention_button.setText(
-            _translate("Memory", "5. Retention Test"))
-        self.speed_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Test the minimum pulse-width essential for particular write voltage to cause switching</p></body></html>"))
-        self.speed_button.setText(_translate("Memory", "6. Switching Speed"))
-        self.aging_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Compare the stability of set and reset states after several days.</p></body></html>"))
-        self.aging_button.setText(_translate("Memory", "7. Aging Test"))
-        self.memristor_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Check the suitability of the device as analogue memory, which is needed for neuromorphic computation</p></body></html>"))
-        self.memristor_button.setText(
-            _translate("Memory", "8. Memristor Test"))
-        self.temperature_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>Check the variation of set and reset resistances with changing temperature.</p></body></html>"))
-        self.temperature_button.setText(_translate(
-            "Memory", "9. Temperature Dependence"))
-        self.batch_button.setToolTip(_translate(
-            "Memory", "<html><head/><body><p>An automation program intended to carry out several of the above tests automatically in a pre-determined order.</p></body></html>"))
-        self.batch_button.setText(_translate("Memory", "10. Batch Program"))
+        self.experiment_label.setText(_translate("Memory", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt; font-weight:600; color:#aa0000;\">Choose Experiment</span></p></body></html>"))
+        self.iv_button.setToolTip(_translate("Memory", "<html><head/><body><p>Perform Current Vs Voltage measurement</p></body></html>"))
+        self.iv_button.setText(_translate("Memory", "IV-Loop"))
+        self.rv_button.setToolTip(_translate("Memory", "<html><head/><body><p>Perform write voltage vs Resistance at read voltage for cyclic write voltages.</p></body></html>"))
+        self.rv_button.setText(_translate("Memory", "Resistive Switching Loop"))
+        self.switch_button.setToolTip(_translate("Memory", "<html><head/><body><p>Apply set and reset voltage pulses and check its resistance</p></body></html>"))
+        self.switch_button.setText(_translate("Memory", "Switching Test"))
+        self.endurance_button.setToolTip(_translate("Memory", "<html><head/><body><p>Perform set and reset operations several times and check the stability of the resistive states.</p><p>(Fatigue testing)</p></body></html>"))
+        self.endurance_button.setText(_translate("Memory", "Endurance Test"))
+        self.retention_button.setToolTip(_translate("Memory", "<html><head/><body><p>Check the stability of the set and reset states to read voltage for long time durations.</p></body></html>"))
+        self.retention_button.setText(_translate("Memory", "Retention Test"))
+        self.speed_button.setToolTip(_translate("Memory", "<html><head/><body><p>Access the minimum pulse-width essential for particular write voltage to cause switching</p></body></html>"))
+        self.speed_button.setText(_translate("Memory", "Switching Speed"))
+        self.forming_button.setToolTip(_translate("Memory", "<html><head/><body><p>This program incremently applies voltage with controlled limiting current to help the sample exhibit good resistive switching.</p></body></html>"))
+        self.forming_button.setText(_translate("Memory", "Forming"))
+        self.aging_button.setToolTip(_translate("Memory", "<html><head/><body><p>Compare the stability of set and reset states after several days.</p></body></html>"))
+        self.aging_button.setText(_translate("Memory", "Aging Test"))
+        self.memristor_button.setToolTip(_translate("Memory", "<html><head/><body><p>Check the suitability of the device as analogue memory, which is needed for neuromorphic computation</p></body></html>"))
+        self.memristor_button.setText(_translate("Memory", "Memristor Test"))
+        self.temperature_button.setToolTip(_translate("Memory", "<html><head/><body><p>Check the variation of set and reset resistances with changing temperature.</p></body></html>"))
+        self.temperature_button.setText(_translate("Memory", "Temperature Dependence"))
+        self.batch_button.setToolTip(_translate("Memory", "<html><head/><body><p>An automation program intended to carry out several of the above tests automatically in a pre-determined order.</p></body></html>"))
+        self.batch_button.setText(_translate("Memory", "Batch Program"))
 
 
 if __name__ == "__main__":
@@ -160,4 +176,6 @@ if __name__ == "__main__":
     ui = Ui_Memory()
     ui.setupUi(Memory)
     Memory.show()
-    sys.exit(app.exec_())
+    app.exec_()
+    app.quit()
+

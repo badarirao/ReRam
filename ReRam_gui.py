@@ -38,7 +38,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.initial = 0
         self.checkPaths()
-        self.connectInstrument()
+        self.check_instrument_connection()
         self.k2450.reset()
         self.setupUi(self)
         self.filename.setText(self.sampleID)
@@ -46,6 +46,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.iv_button.clicked.connect(self.open_ivloop)
         self.rv_button.clicked.connect(self.open_rvloop)
         self.switch_button.clicked.connect(self.open_switchTest)
+        self.inst_button.clicked.connect(self.check_instrument_connection)
         self.endurance_button.clicked.connect(self.open_fatigue)
         self.retention_button.clicked.connect(self.open_retention)
         #self.endurance_button.setEnabled(False)
@@ -55,6 +56,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.memristor_button.setEnabled(False)
         self.temperature_button.setEnabled(False)
         self.batch_button.setEnabled(False)
+        self.forming_button.setEnabled(False)
         self.filename.editingFinished.connect(self.setFilename)
         self.setFilename(1)  # 1 indicates initial setting of filename
         self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
@@ -139,6 +141,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         a3 = self.AFG1022Addr
         self.k2450, self.k2700, self.afg1022 = checkInstrument(a1,a2,a3,test = TESTING)
         
+    def check_instrument_connection(self):
+        self.connectInstrument()
+        status = 0
+        if self.k2450.ID == 'Fake':
+            status = status + 1
+        if self.k2700.ID == 'Fake':
+            status = status + 2
+        if self.afg1022.ID == 'Fake':
+            status = status + 4
+        if status == 0:
+            self.statusBar().showMessage('All instruments connected.')
+        elif status == 1:
+            self.statusBar().showMessage('Sourcemeter not connected.')
+        elif status == 2:
+            self.statusBar().showMessage('Multiplexer not connected.')
+        elif status == 3:
+            self.statusBar().showMessage('Function generator not connected.')
+        elif status == 4:
+            self.statusBar().showMessage('Sourcemeter, Multiplexer not connected.')
+        elif status == 5:
+            self.statusBar().showMessage('Sourcemeter, Function generator not connected.')
+        elif status == 6:
+            self.statusBar().showMessage('Multiplexer, Function generator not connected.')
+        elif status == 7:
+            self.statusBar().showMessage('No instruments connected.')
+    
     def openDir(self):
         """
         Open the dialog for selecting directory.

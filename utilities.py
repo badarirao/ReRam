@@ -97,6 +97,7 @@ class FakeAdapter():
 
     def __init__(self):
         self.address = ''
+        self.ID = 'Fake'
 
     def read(self):
         """Return last commands given after the last read call."""

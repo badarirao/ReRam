@@ -664,4 +664,5 @@ if __name__ == "__main__":
     k2450, k2700, _ = checkInstrument(test = True)
     ui = app_IVLoop(IVLoop,k2450,k2700)
     ui.show()
-    sys.exit(app.exec_())
+    app.exec_()
+    app.quit()

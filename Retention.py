@@ -782,4 +782,5 @@ if __name__ == "__main__":
     k2450, k2700, afg1022 = checkInstrument(test = True)
     ui = app_Retention(Retention, k2450, k2700, afg1022)
     ui.show()
-    sys.exit(app.exec_())
+    app.exec_()
+    app.quit()

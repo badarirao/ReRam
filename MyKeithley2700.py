@@ -113,6 +113,7 @@ class Keithley2700:
             rm = ResourceManager()
             self.inst = rm.open_resource(adapter)
             self.address = adapter
+            self.ID = 'K2700'
         else:
             raise VisaIOError(-1073807346)
         #self.check_errors()
