@@ -29,8 +29,8 @@ class Ui_Fatigue(QtWidgets.QWidget):
     
     def setupUi(self, Fatigue):
         Fatigue.setObjectName("Fatigue")
-        Fatigue.resize(1050, 600)
-        Fatigue.setMinimumSize(QtCore.QSize(1050, 550))
+        Fatigue.resize(1050, 620)
+        Fatigue.setMinimumSize(QtCore.QSize(1050, 580))
         self.gridLayout_2 = QtWidgets.QGridLayout(Fatigue)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.widget = QtWidgets.QWidget(Fatigue)
