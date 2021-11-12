@@ -33,7 +33,7 @@ class Ui_Memory(object):
         Memory.setObjectName("Memory")
         Memory.resize(320, 550)
         Memory.setMinimumSize(QtCore.QSize(320, 600))
-        Memory.setMaximumSize(QtCore.QSize(320, 600))
+        Memory.setMaximumSize(QtCore.QSize(500, 800))
         self.centralwidget = QtWidgets.QWidget(Memory)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
