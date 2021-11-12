@@ -7,8 +7,7 @@
 # WARNING! All changes made in this file will be lost!
 
 # TODO: Add tooltips
-# TODO: The pulse application with SMU only is not implemented correctly.
-# the read_hrs_lrs function currently requires function generator no matter what source is selected
+# TODO: Verify pulse application with SMU
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
@@ -480,6 +479,7 @@ class app_Retention(Ui_Retention):
         Returns
         TODO: Feed the whole retention program into SMU, and receive buffer every n seconds.
         TODO: Ensure read voltage is always applied to sample during measurement
+        TODO: Implement continuous measurement? Use threading to plot
         -------
         None.
 
@@ -600,7 +600,7 @@ class app_Retention(Ui_Retention):
             LRSCurrent, HRSCurrent = self.read_LRS_HRS_states()
         else:
             vset = vreset = 0
-            vsetpulse = vresetpulse = 0.1
+            setpulse = resetpulse = 0.1
             if self.setVcheck.isChecked():
                 vset = self.params["Vset"]
                 setpulse = self.setTimestep
