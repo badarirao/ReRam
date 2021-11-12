@@ -11,6 +11,7 @@ from PyQt5.QtCore import QEventLoop, QTimer, QSize, QRect, QMetaObject, QCoreApp
 from PyQt5.QtCore import pyqtSignal, QThread
 from PyQt5.QtWidgets import QWidget, QPushButton, QStatusBar, QApplication, QMainWindow, QMessageBox
 from numpy import zeros, uint16, int32, min as npmin, max as npmax
+from time import sleep
 
 class Ui_MainWindow(QMainWindow):
     def setupUi(self, MainWindow):
@@ -280,8 +281,11 @@ class AFG1022:
         pass
     
     def trgNwait(self):
+        sleep(0.1)
         pw = 1000/float(self.ask('source1:frequency:fixed?'))  # milliseconds
+        sleep(0.1)
         nc = int(self.ask("SOURce1:BURST:NCYCles?"))
+        sleep(0.1)
         self.trigger()
         if (pw*nc) < 10: # fix min wait time as 10 ms.
             pw = 10
