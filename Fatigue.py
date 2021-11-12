@@ -20,6 +20,7 @@ from csv import writer
 from utilities import linlogspace, getBinnedPoints, SMU, AFG, waitFor, connectedSpinBox
 from utilities import connect_sample_with_AFG, unique_filename, checkInstrument
 
+
 class Ui_Fatigue(QtWidgets.QWidget):
     
     def __init__(self, parent=None):

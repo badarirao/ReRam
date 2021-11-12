@@ -21,8 +21,6 @@ from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
 from utilities import unique_filename, FakeAdapter, checkInstrument
 from utilities import connect_sample_with_SMU
 
-
-
 class Ui_IVLoop(QtWidgets.QWidget):
     """The pyqt5 gui class for IV loop measurement."""
 
