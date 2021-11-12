@@ -10,14 +10,18 @@ Not tested for other Python versions or OS
 # TODO: Save the last entered parameters of each program in file, which is reloaded at the starting of the program
 # TODO: Scan the existing directory for saved files, and obtain the last used parameters from it, and put it in the program.
 # TODO: Not able to cleanly exit if no instrument is connected and TESTING = False.
+# TODO: correct the tab order of all the windows
+# TODO: Resolve taskbar icon issue. Currently the taskbar icon is hidden when main window is hidden.
+# TODO: Bug: minimizing the main window also minimized the child window, even if child.show() is given later.
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
 # 'TEKTRONIX,AFG1022,1643763,SCPI:99.0 FV:V1.2.3\n'
 #  except VisaIOError:
+    
 import sys
 import os
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QTimer
 from Memory import Ui_Memory
@@ -67,11 +71,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.check_instrument_connection()
         self.k2450.reset()
         self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
-        #self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
         self.rv = app_RVLoop(self, self.k2450, self.k2700, self.afg1022, self.RVfilename)
+        self.rv.setWindowModality(QtCore.Qt.ApplicationModal)
         self.st = app_Switch(self, self.k2450, self.k2700, self.afg1022, self.Switchfilename)
+        self.st.setWindowModality(QtCore.Qt.ApplicationModal)
         self.ft = app_Fatigue(self, self.k2450, self.k2700, self.afg1022, self.Fatiguefilename)
+        self.ft.setWindowModality(QtCore.Qt.ApplicationModal)
         self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename)
+        self.rt.setWindowModality(QtCore.Qt.ApplicationModal)
     
     
     def checkPaths(self):
@@ -257,7 +265,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.iv.filename = self.IVfilename
         self.iv.file_name.setText(self.iv.filename)
-        self.hide()
+        #self.hide()
         self.iv.show()
 
     def open_rvloop(self):
@@ -271,7 +279,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.rv.filename = self.RVfilename
         self.rv.file_name.setText(self.rv.filename)
-        self.hide()
+        #self.hide()
+        #self.showMinimized()
         self.rv.show()
 
     def open_switchTest(self):
@@ -285,7 +294,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.st.filename = self.Switchfilename
         self.st.file_name.setText(self.st.filename)
-        self.hide()
+        #self.hide()
+        #self.showMinimized()
         self.st.show()
     
     def open_fatigue(self):
@@ -299,7 +309,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.ft.filename = self.Fatiguefilename
         self.ft.file_name.setText(self.st.filename)
-        self.hide()
+        #self.hide()
+        #self.showMinimized()
         self.ft.show()
     
     def open_retention(self):
@@ -313,7 +324,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         """
         self.rt.filename = self.Retentionfilename
         self.rt.file_name.setText(self.rt.filename)
-        self.hide()
+        #self.hide()
+        #self.showMinimized()
         self.rt.show()
     
     def closeEvent(self, event):
