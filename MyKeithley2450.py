@@ -45,9 +45,20 @@ class Keithley2450:
             self.inst = rm.open_resource(adapter)
             self.address = adapter
             self.ID = 'K2450'
+            self._source_voltage = 0
         else:
             raise VisaIOError(-1073807346)
         self.name = "Keithley 2450 SMU"
+
+    @property 
+    def source_voltage(self):
+        self._source_voltage = float(self.ask(":SOUR:VOLT?"))
+        return self._source_voltage
+        
+    @source_voltage.setter 
+    def source_voltage(self,value):
+        self._source_voltage = value
+        self.write(":SOUR:VOLT:LEV {}".format(value))
 
     def ask(self,cmd):
         return self.inst.query(cmd)
