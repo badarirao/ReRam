@@ -6,6 +6,9 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+# TODO: Set program ICON
+    
+    
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QIcon, QFont
 
