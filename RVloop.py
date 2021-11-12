@@ -289,7 +289,7 @@ class app_RVLoop(Ui_RVLoop):
         self.stop_Button.setEnabled(False)
         self.stopCall = False
         self.start_Button.clicked.connect(self.start_rvloop)
-        self.stop_Button.clicked.connect(self.stop_program)
+        self.stop_Button.clicked.connect(self.stop_rvLoop)
         self.initialize_plot()
         self.update_limits()
         self.k2450.nplc = 0.01
@@ -611,7 +611,6 @@ class app_RVLoop(Ui_RVLoop):
                 
     def stop_rvLoop(self):
         self.stopCall = True
-        self.k2450.write("Abort")
         
     def stop_program(self):
         """
@@ -623,8 +622,9 @@ class app_RVLoop(Ui_RVLoop):
 
         """
         if self.stopCall:
+            self.k2450.write("Abort")
             self.measurement_status = "Aborted"
-            self.status.setText("Measurement aborted.")
+            self.statusbar.setText("Measurement aborted.")
         else:
             self.measurement_status = "Idle"
             self.statusbar.setText("Measurement Finished.")
