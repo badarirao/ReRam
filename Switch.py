@@ -3,9 +3,8 @@ The Switch module of the ReRam project.
 
     Contains the GUI for switching experiment,
     associated functions to set parameters, make measurement, and save the data
-
     You can apply customized pulses, and observe how resistance changes
-    TODO: option to add series resistance to limit current, when function generator is used
+    
     TODO: Check if enough time is provided after switching
     TODO: Ensure only new data is saved into the file.
     TODO: Add tooltips
@@ -355,6 +354,7 @@ class app_Switch(Ui_Switch):
         super(app_Switch, self).__init__(parent)
         self.parent = parent
         self.new_flag = True
+        self.savedFlag = True
         self.initial_source = 0 # 0 = SMU, 1 = AFG
         self.k2450 = k2450
         self.k2700 = k2700
@@ -376,7 +376,7 @@ class app_Switch(Ui_Switch):
         self.k2450.nplc = 1
         self.k2450.avg = 5
         self.k2450.readV = 0.1
-        self.filename = sName
+        self.filename = self.fullfilename = sName
         self.file_name.setText(self.filename)
         self.file_name.setReadOnly(True)
         self.params = {
@@ -626,6 +626,16 @@ class app_Switch(Ui_Switch):
         None.
 
         """
+        self.configurePulse()
+        if self.params['Vsource'] == 1:
+            limiting_current = self.Ilimit.value()
+            max_applied_voltage = max(abs(self.minV.value()),abs(self.maxV.value()))
+            resistance = round(max_applied_voltage/limiting_current,2)    
+            title = "Confirm resistance."
+            text = "Is resistor of {} kΩ connected?".format(resistance)
+            reply = QMessageBox.question(self, title,text,QMessageBox.Yes,QMessageBox.No)
+            if reply == QMessageBox.No:
+                return
         self.statusbar.setText("Measurement Running..")
         self.measurement_status = "Running"
         self.i = 0
@@ -660,7 +670,6 @@ class app_Switch(Ui_Switch):
         self.clearGraph_Button.setEnabled(False)
         self.save_Button.setEnabled(True)
         self.stop_Button.setEnabled(True)
-        self.configurePulse()
         self.k2450.enable_source()
         self.savedFlag = False
         if self.params["Vsource"] == 0:
