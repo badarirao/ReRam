@@ -6,15 +6,16 @@ from pyvisa import ResourceManager, VisaIOError
 from os import makedirs
 from copy import copy
 from re import sub
-from sys import exit as exitprogram
+import sys
 from MyKeithley2450 import Keithley2450
 from MyKeithley2700 import Keithley2700
 from MyAFG1022 import AFG1022 
 from PyQt5.QtCore import QObject, QTimer, QEventLoop, pyqtSignal
-from PyQt5.QtWidgets import QTimeEdit, QAbstractSpinBox, QSpinBox
+from PyQt5.QtWidgets import QTimeEdit, QSpinBox
 from math import log10
 from numpy import logspace, linspace, diff
 from time import sleep
+from PyQt5.QtWidgets import QMessageBox
 
 SMU = 111
 AFG = 112
@@ -176,9 +177,15 @@ def connectDevice(inst,addr,test = False):
         if test == True:
             return FakeAdapter(), 0
         else:
-            # TODO: prompt a gui message instead
-            print("Instrument not connected! Check connections!")
-            exitprogram()
+            msg = QMessageBox()
+            title = "No Instrument connected"
+            text = "Cannot find required instruments. Check connections again and restart program."
+            msg.setIcon(QMessageBox.Critical)
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setWindowTitle(title)
+            msg.setText(text)
+            msg.exec()
+            return 0,0
         
 def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None, 
                     test = False):
@@ -221,11 +228,17 @@ def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
         k2700Addr = deviceAddr[1]
         AFG1022Addr = deviceAddr[2]
         if k2450Status == 0:
-                k2450,_ = connectDevice(Keithley2450,k2450Addr,test)
+            k2450,_ = connectDevice(Keithley2450,k2450Addr,test)
+            if _ == 0 and test == False:
+                return 0,0,0
         if k2700Status == 0:
             k2700,_ = connectDevice(Keithley2700,k2700Addr,test)
+            if _ == 0 and test == False:
+                return 0,0,0
         if afgStatus == 0:
             afg,_ = connectDevice(AFG1022,AFG1022Addr,test)
+            if _ == 0 and test == False:
+                return 0,0,0
     return k2450, k2700, afg
 
 def connect_sample_with_AFG(k2700,sample_no=1):
