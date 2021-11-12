@@ -104,7 +104,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.resetV.setMinimum(-5.0)
         self.resetV.setMaximum(5.0)
         self.resetV.setSingleStep(0.1)
-        self.resetV.setProperty("value", 3.0)
+        self.resetV.setProperty("value", -3.0)
         self.resetV.setObjectName("resetV")
         self.horizontalLayout_3.addWidget(self.resetV)
         self.gridLayout.addLayout(self.horizontalLayout_3, 5, 2, 1, 1)
@@ -113,7 +113,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.reset_pulseWidth = QtWidgets.QDoubleSpinBox(self.frame)
         self.reset_pulseWidth.setDecimals(1)
         self.reset_pulseWidth.setMaximum(1000.0)
-        self.reset_pulseWidth.setProperty("value", 50.0)
+        self.reset_pulseWidth.setProperty("value", 10.0)
         self.reset_pulseWidth.setObjectName("reset_pulseWidth")
         self.horizontalLayout.addWidget(self.reset_pulseWidth)
         self.reset_timeUnit = QtWidgets.QComboBox(self.frame)
@@ -173,7 +173,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.setV.setMinimum(-5.0)
         self.setV.setMaximum(5.0)
         self.setV.setSingleStep(0.1)
-        self.setV.setProperty("value", -3.0)
+        self.setV.setProperty("value", 3.0)
         self.setV.setObjectName("setV")
         self.horizontalLayout_2.addWidget(self.setV)
         self.gridLayout.addLayout(self.horizontalLayout_2, 3, 2, 1, 1)
@@ -270,8 +270,8 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.gridLayout_2.addWidget(self.widget1, 1, 0, 1, 1)
 
         self.retranslateUi(Fatigue)
-        self.set_timeUnit.setCurrentIndex(0)
-        self.reset_timeUnit.setCurrentIndex(0)
+        self.set_timeUnit.setCurrentIndex(1)
+        self.reset_timeUnit.setCurrentIndex(1)
         self.nPulse_unit.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(Fatigue)
 
@@ -382,11 +382,11 @@ class app_Fatigue(Ui_Fatigue):
     
     def update_total_time(self):
         self.configurePulse()
-        total_time = self.nPulse_order*self.params["nPulses"]*(self.setTimestep+self.resetTimestep)
+        total_time = self.points[-1]*(self.setTimestep+self.resetTimestep)
         total_Qtime = QTime(0,0,0)
         total_Qtime = total_Qtime.addSecs(int(total_time))
         if total_time < 86399:
-            self.timeTaken.setText("Total experiment time = {}".format(total_Qtime.toString("h:mm:ss")))
+            self.timeTaken.setText("Total experiment time: {}".format(total_Qtime.toString("h:mm:ss")))
         else:
             days = int(total_time/86400)
             hours = int((total_time/86400 - days)*24)
@@ -514,7 +514,7 @@ class app_Fatigue(Ui_Fatigue):
         self.afg1022.trgNwait()
         LRScurrent, HRScurrent = self.read_LRS_HRS_states()
         LRS, HRS = self.params['Rvoltage']/LRScurrent, self.params['Rvoltage']/HRScurrent
-        self.ncycles.append(self.fpoints[self.i])
+        self.ncycles.append(self.points[self.i])
         self.LRScurrents.append(LRScurrent)
         self.LRS.append(LRS)
         self.HRScurrents.append(HRScurrent)
@@ -525,15 +525,17 @@ class app_Fatigue(Ui_Fatigue):
         
         self.i = self.i + 1
         # if ratio between HRS & LRS is less than 1.5, then sample is considered to have failed.
+        """
         if HRS/LRS < 1.5: # stop program if sample has stopped switching
             # sometimes, sample starts behaving in opposite manner after some cycles. 
             # Program will continue experiment, if that happens.
-            if LRS/HRS < 1.5: 
+            if LRS/HRS < 1.5:
+                print("HRS = {0}, LRS = {1}".format(HRS,LRS))
                 self.stopCall = True
                 title = "Sample Failed!"
                 text = "Sample is not showing resistive switching anymore! Please change sample or measurement paramters."
                 QMessageBox.critical(self,title,text)
-        
+        """
         if self.i >= self.number_of_points or self.stopCall:
             self.stop_program()
             return
@@ -562,8 +564,13 @@ class app_Fatigue(Ui_Fatigue):
         self.i = 0
         self.configurePulse()
         self.initialize_SMU_and_AFG()
+        self.k2450.enable_source()
         startTime = time()
         LRScurrent,HRScurrent = self.read_LRS_HRS_states()
+        endTime = time()
+        self.readingTime = endTime - startTime
+        self.totalTime = self.points[-1]*(self.setTimestep+self.resetTimestep) + self.readingTime*self.number_of_points
+        self.timeTaken.setText("Total experiment time: {}".format(str(timedelta(seconds=int(self.totalTime)))))
         LRS, HRS = self.params['Rvoltage']/LRScurrent, self.params['Rvoltage']/HRScurrent
         
         self.ncycles = [0]
@@ -571,9 +578,10 @@ class app_Fatigue(Ui_Fatigue):
         self.LRS = [LRS]
         self.HRScurrents = [HRScurrent]
         self.HRS = [HRS]
-        
-        if HRS/LRS < 1.5:
+        """
+        if abs(HRS/LRS) < 1.5 and abs(LRS/HRS) < 1.5:
             self.stopCall = True
+            print("HRS = {0}, LRS = {1}".format(HRS,LRS))
             title = "Sample Failed!"
             text = "Sample does not show resistive switching! Please change measurement parameters, or change sample."
             QMessageBox.critical(self,title,text)
@@ -588,11 +596,7 @@ class app_Fatigue(Ui_Fatigue):
             title = "Parameter change notice!"
             text = "Vset and Vreset has been interchanged as required."
             QMessageBox.warning(self,title,text)
-        endTime = time()
-        self.readingTime = endTime - startTime
-        self.totalTime = self.fpoints[-1]*(self.setTimestep+self.resetTimestep) + self.readingTime*self.number_of_points
-        self.timeTaken.setText("Total run time = {}".format(str(timedelta(seconds=int(self.totalTime)))))
-        
+        """
         pen1 = mkPen(color=(0, 0, 255), width=2)
         pen2 = mkPen(color=(255, 0, 0), width=2)
         self.data_lineLRS = self.fatiguePlot.plot(self.ncycles, self.LRS, pen=pen1, symbol='x', symbolPen='r')
@@ -600,7 +604,6 @@ class app_Fatigue(Ui_Fatigue):
         self.timer = QTimer()
         self.start_Button.setEnabled(False)
         self.abort_Button.setEnabled(True)
-        self.k2450.enable_source()
         self.timer.singleShot(0, self.pulseMeasure_AFG)
 
     def read_LRS_HRS_states(self):
@@ -613,7 +616,7 @@ class app_Fatigue(Ui_Fatigue):
         self.k2700.close_Channels(SMU) # connect SMU
         waitFor(20) # wait for 20msec to ensure switching is complete
         # Measure Read resistance using K2450
-        HRScurrent = self.k2450.readReRAM()
+        LRScurrent = self.k2450.readReRAM()
         
         # Get HRS        
         self.k2700.open_Channels(SMU) # disconnect SMU
@@ -625,7 +628,7 @@ class app_Fatigue(Ui_Fatigue):
         self.k2700.close_Channels(SMU) # connect SMU
         waitFor(20) # wait for 20msec to ensure switching is complete
         # Measure Read resistance using K2450
-        LRScurrent = self.k2450.readReRAM()
+        HRScurrent = self.k2450.readReRAM()
         self.k2700.open_Channels(SMU) # disconnect SMU
         self.k2700.close_Channels(AFG) # connect function generator
         waitFor(20) # wait for 20msec to ensure switching is complete
