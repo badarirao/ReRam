@@ -5,9 +5,11 @@ Works on Python 3.8.5, Windows 10
 Not tested for other Python versions or OS
 
 # TODO: Program to initiate forming process
+# TODO: Program to investigate switching speed
 # TODO: Allow for both SCPI and TSP commands (currently only SCPI works)
 # TODO: Save the last entered parameters of each program in file, which is reloaded at the starting of the program
-# TODO: Button to reconnect the instrument
+# TODO: Scan the existing directory for saved files, and obtain the last used parameters from it, and put it in the program.
+# TODO: Not able to cleanly exit if no instrument is connected and TESTING = False.
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
@@ -59,6 +61,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.filename.editingFinished.connect(self.setFilename)
         self.setFilename(1)  # 1 indicates initial setting of filename
         QTimer.singleShot(10,self.initialize_apps)
+        self.abort = False
 
     def initialize_apps(self):
         self.check_instrument_connection()
