@@ -318,9 +318,9 @@ def linlogspace(counts,start=1,points_per_order=9):
     npoints = list(dict.fromkeys(npoints))
     return npoints
 
-def getBinnedPoints(points):
-    fpoints = [1]
-    fpoints.extend(list(diff(points).astype(int)))
+def getBinnedPoints(points,start=1):
+    fpoints = [start]
+    fpoints.extend(list(diff(points).astype(float)))
     return fpoints
     
     
