@@ -656,7 +656,7 @@ class app_Switch(Ui_Switch):
             self.pulseWidths = []
             self.ilimits = []
             self.new_flag = False
-            self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='csv')
+            self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
             self.initialize_SMU()
             pen1 = mkPen(color=(0, 0, 255), width=2)
             pen2 = mkPen(color=(255, 0, 0), width=2)
@@ -728,8 +728,8 @@ class app_Switch(Ui_Switch):
         """
         if self.savedFlag is True:
             return
-        filePresent = bool(fileExists(self.params['fname']))
-        with open(self.params['fname'], "a", newline='') as f:
+        filePresent = bool(fileExists(self.fullfilename))
+        with open(self.fullfilename, "a", newline='') as f:
             if self.params["Vsource"] == 0:
                 if not filePresent:
                     f.write("#Pulse voltage source: Keithley 2450 source-measure unit.\n")
@@ -792,6 +792,7 @@ class app_Switch(Ui_Switch):
             if __name__ != "__main__":
                 self.parent.show()
             self.clearGraph()
+            self.new_flag = True
             event.accept()
         else:
             event.ignore()
