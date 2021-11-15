@@ -532,11 +532,12 @@ class app_Switch(Ui_Switch):
         elif self.points[self.i] == self.params["Vreset"]:
             self.timestep = self.resetTimestep
         elif self.points[self.i] == 0:
-            self.timestep = 0
+            self.timestep = self.setTimestep+self.resetTimestep
         # apply pulse and measure pulse resistance
         if self.timestep > 0 and self.points[self.i] != 0:
             v1, c1 = self.k2450.apply_switch_pulse(self.points[self.i],self.timestep)
         else:
+            waitFor(self.timestep*1000)
             v1 = 0
             c1 = -1
         # measure read resistance
@@ -672,6 +673,7 @@ class app_Switch(Ui_Switch):
         self.stop_Button.setEnabled(True)
         self.k2450.enable_source()
         self.savedFlag = False
+        self.stopCall = False
         if self.params["Vsource"] == 0:
             connect_sample_with_SMU(self.k2700)
             self.timer.singleShot(0, self.pulseMeasure_SMU)
@@ -782,7 +784,7 @@ class app_Switch(Ui_Switch):
             quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
             reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
-                self.stop_program()
+                self.stopCall = True
         if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()

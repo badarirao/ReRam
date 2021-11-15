@@ -663,7 +663,7 @@ class app_RVLoop(Ui_RVLoop):
             quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
             reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
-                self.stop_program()
+                self.stopCall = True
         if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()

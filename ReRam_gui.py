@@ -13,6 +13,8 @@ Not tested for other Python versions or OS
 # TODO: correct the tab order of all the windows
 # TODO: Resolve taskbar icon issue. Currently the taskbar icon is hidden when main window is hidden.
 # TODO: Bug: minimizing the main window also minimized the child window, even if child.show() is given later.
+# TODO: clear the graphs in all apps when directory of filename is changed.
+# TODO: If instrument is not connected by mistake, then address file erases instrument address.
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'

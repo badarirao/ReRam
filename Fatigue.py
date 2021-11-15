@@ -708,7 +708,7 @@ class app_Fatigue(Ui_Fatigue):
             reply = QMessageBox.question(self, 'Message', 
                      quit_msg, QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
-                self.stop_program()
+                self.stopCall = True
         if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()
