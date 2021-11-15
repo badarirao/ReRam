@@ -8,6 +8,7 @@ The Switch module of the ReRam project.
     TODO: Check if enough time is provided after switching
     TODO: Ensure only new data is saved into the file.
     TODO: Add tooltips
+
 """
 
 from csv import writer
@@ -725,6 +726,8 @@ class app_Switch(Ui_Switch):
         None.
 
         """
+        if self.savedFlag is True:
+            return
         filePresent = bool(fileExists(self.params['fname']))
         with open(self.params['fname'], "a", newline='') as f:
             if self.params["Vsource"] == 0:
@@ -788,6 +791,7 @@ class app_Switch(Ui_Switch):
         if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()
+            self.clearGraph()
             event.accept()
         else:
             event.ignore()
