@@ -287,7 +287,7 @@ class Ui_Switch(QtWidgets.QWidget):
 
         """
         _translate = QtCore.QCoreApplication.translate
-        Switch.setWindowTitle(_translate("Switch", "Form"))
+        Switch.setWindowTitle(_translate("Switch", "Switch Test"))
         self.title_label.setText(_translate(
             "Switch", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt; color:#0000ff;\">Switching Test</span></p></body></html>"))
         self.setting_label.setText(_translate(
@@ -381,13 +381,12 @@ class app_Switch(Ui_Switch):
         self.file_name.setText(self.filename)
         self.file_name.setReadOnly(True)
         self.params = {
-            "fname": self.filename,
             "Vsource": 0, # 0 = SMU, 1 = AFG
-            "Vset": -3,
+            "Vset": 3,
             "VsetCheck": 1,
             "setPwidth": 50,
             "set_timeUnit": 1,  # 0 = us, 1=ms, 2 = s
-            "Vreset": 3,
+            "Vreset": -3,
             "VresetCheck": 1,
             "resetPwidth": 50,
             "reset_timeUnit": 1,  # 0 = us, 1=ms, 2 = s
@@ -395,8 +394,10 @@ class app_Switch(Ui_Switch):
             "Average": 5,
             "nPulses": 1,
             "ILimit": 1/1000,
-            "temperature": 300}
-
+            "temperature": 300,
+            "temp_check": 0}
+        self.parameters = list(self.params.values())
+    
     def update_limits(self):
         if self.source.currentIndex() == 0:
             self.minV.setMaximum(190)
@@ -446,7 +447,27 @@ class app_Switch(Ui_Switch):
             self.maxV.setEnabled(True)
         else:
             self.maxV.setEnabled(False)
-
+    
+    def load_parameters(self):
+        try:
+            self.source.setCurrentIndex(self.parameters[0])
+            self.minV.setValue(self.parameters[1]),
+            self.minV_check.setChecked(self.parameters[2]),
+            self.set_pulseWidth.setValue(self.parameters[3]),
+            self.set_timeUnit.setCurrentIndex(self.parameters[4]),
+            self.maxV.setValue(self.parameters[5]),
+            self.maxV_check.setChecked(self.parameters[6]),
+            self.reset_pulseWidth.setValue(self.parameters[7]),
+            self.reset_timeUnit.setCurrentIndex(self.parameters[8]),
+            self.read_voltage.setValue(self.parameters[9]),
+            self.avg.setValue(self.parameters[10]),
+            self.nPulses.setValue(self.parameters[11]),
+            self.Ilimit.setValue(self.parameters[12]*1000),
+            self.temperature.setValue(self.parameters[13]),
+            self.temp_check.setChecked(self.parameters[14])
+        except Exception:
+            pass
+    
     def configurePulse(self):
         """
         Configure the pulse parameters.
@@ -457,7 +478,6 @@ class app_Switch(Ui_Switch):
 
         """
         self.params = {
-            "fname": self.fullfilename,
             "Vsource": self.source.currentIndex(),
             "Vset": self.minV.value(),
             "VsetCheck": self.minV_check.checkState(),
@@ -471,7 +491,9 @@ class app_Switch(Ui_Switch):
             "Average": self.avg.value(),
             "nPulses": self.nPulses.value(),
             "ILimit": self.Ilimit.value()/1000,
-            "temperature": self.temperature.value()}
+            "temperature": self.temperature.value(),
+            "temp_check": int(self.temp_check.isChecked())}
+        self.parameters = list(self.params.values())
         self.k2450.readV = self.params["Rvoltage"]
         self.k2450.avg = self.params["Average"]
         if self.params["set_timeUnit"] == 0:

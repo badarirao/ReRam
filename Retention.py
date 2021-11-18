@@ -282,13 +282,13 @@ class Ui_Retention(QtWidgets.QWidget):
 
         self.retranslateUi(Retention)
         self.setTimeUnit.setCurrentIndex(1)
-        self.vsource.setCurrentIndex(1)
+        self.vsource.setCurrentIndex(0)
         self.resetTimeUnit.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(Retention)
 
     def retranslateUi(self, Retention):
         _translate = QtCore.QCoreApplication.translate
-        Retention.setWindowTitle(_translate("Retention", "Form"))
+        Retention.setWindowTitle(_translate("Retention", "Retention"))
         self.Program_label.setText(_translate("Retention", "<html><head/><body><p align=\"center\"><span style=\" font-size:11pt; color:#0000ff;\">Retention Test</span></p></body></html>"))
         self.setting_label.setText(_translate("Retention", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt; font-weight:600; color:#aa0000;\">Settings</span></p></body></html>"))
         self.setTimeUnit.setToolTip(_translate("Retention", "<html><head/><body><p>Select time unit</p></body></html>"))
@@ -371,17 +371,22 @@ class app_Retention(Ui_Retention):
         self.file_name.setReadOnly(True)
         self.update_total_time()
         self.params = {
+            "Vsource": 0,
             "Vset": 3,
-            "setPwidth": 1,
+            "Vset_check" : 1,
+            "setPwidth": 50,
             "set_timeUnit": 1,  # 0 = us, 1=ms, 2 = s
             "Vreset": -3,
-            "resetPwidth": 1,
+            "Vreset_check" : 1,
+            "resetPwidth": 50,
             "reset_timeUnit": 1,  # 0 = us, 1=ms, 2 = s
-            "ILimit": 0.001,
+            "ILimit": 1/1000,
             "Measure_time": 10000,
             "Rvoltage": 0.1,  # V
             "Average": 5,
-            "temperature": 300}
+            "temperature": 300,
+            "temp_check": 0}
+        self.parameters = list(self.params.values())
 
     def skip_to_next(self):
         self.skip = True
@@ -433,6 +438,26 @@ class app_Retention(Ui_Retention):
         time = self.time_hr.time()
         self.time_sec.setValue(time.hour()*3600+time.minute()*60+time.second())
         
+    def load_parameters(self):
+        try:
+            self.vsource.setCurrentIndex(self.parameters[0])
+            self.setV.setValue(self.parameters[1])
+            self.setVcheck.setChecked(self.parameters[2])
+            self.setPwidth.setValue(self.parameters[3])
+            self.setTimeUnit.setCurrentIndex(self.parameters[4])
+            self.resetV.setValue(self.parameters[5])
+            self.resetVcheck.setChecked(self.parameters[6])
+            self.resetPwidth.setValue(self.parameters[7])
+            self.resetTimeUnit.setCurrentIndex(self.parameters[8])
+            self.iLimit.setValue(self.parameters[9]*1000)
+            self.time_sec.setValue(self.parameters[10])
+            self.read_voltage.setValue(self.parameters[11])
+            self.avg.setValue(self.parameters[12])
+            self.temperature.setValue(self.parameters[13])
+            self.temp_check.setChecked(self.parameters[14])
+        except Exception:
+            pass
+    
     def configurePulse(self):
         """
         Configure the pulse parameters.
@@ -443,17 +468,22 @@ class app_Retention(Ui_Retention):
 
         """
         self.params = {
+            "Vsource": self.vsource.currentIndex(),
             "Vset": self.setV.value(),
+            "Vset_check" : int(self.setVcheck.isChecked()),
             "setPwidth": self.setPwidth.value(),
             "set_timeUnit": self.setTimeUnit.currentIndex(),
             "Vreset": self.resetV.value(),
+            "Vreset_check" : int(self.resetVcheck.isChecked()),
             "resetPwidth": self.resetPwidth.value(),
             "reset_timeUnit": self.resetTimeUnit.currentIndex(),
             "ILimit": self.iLimit.value()/1000,
             "Measure_time": self.time_sec.value(),
             "Rvoltage": self.read_voltage.value(),
             "Average": self.avg.value(),
-            "temperature": self.temperature.value()}
+            "temperature": self.temperature.value(),
+            "temp_check": int(self.temp_check.isChecked())}
+        self.parameters = list(self.params.values())
         self.k2450.avg = self.params["Average"]
         self.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:

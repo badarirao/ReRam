@@ -277,7 +277,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
 
     def retranslateUi(self, Fatigue):
         _translate = QtCore.QCoreApplication.translate
-        Fatigue.setWindowTitle(_translate("Fatigue", "Form"))
+        Fatigue.setWindowTitle(_translate("Fatigue", "Fatigue/Endurance"))
         self.title_label.setText(_translate("Fatigue", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt; color:#0000ff;\">Fatigue Test / Endurance Test</span></p></body></html>"))
         self.setting_label.setText(_translate("Fatigue", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt; font-weight:600; color:#aa0000;\">Settings</span></p></body></html>"))
         self.set_timeUnit.setToolTip(_translate("Fatigue", "<html><head/><body><p>Select time unit. Time below 50 ms may not be reliable for Keithley 2450</p></body></html>"))
@@ -361,19 +361,21 @@ class app_Fatigue(Ui_Fatigue):
         self.nPulses.hasWrapped.message.connect(lambda value: self.update_time_unit(value)) # not working, seems to be some version incompatibility problem
         self.ratio = 1.5
         self.params = {
-            "Vset": -3,
+            "Vset": 3,
             "setPwidth": 10,
-            "set_timeUnit": 0,  # 0 = us, 1=ms, 2 = s
-            "Vreset": 3,
+            "set_timeUnit": 1,  # 0 = us, 1=ms, 2 = s
+            "Vreset": -3,
             "resetPwidth": 10,
-            "reset_timeUnit": 0,  # 0 = us, 1=ms, 2 = s
+            "reset_timeUnit": 1,  # 0 = us, 1=ms, 2 = s
             "Rvoltage": 0.1,  # V
             "Average": 5,
             "nPulses": 1,
             "pulseUnit": 3,
-            "ILimit": 0,
-            "temperature": 300}
-
+            "ILimit": 1/1000,
+            "temperature": 300,
+            "temp_check": 0}
+        self.parameters = list(self.params.values())
+    
     def update_resistor(self):
         limiting_current = self.iLimit.value()
         max_applied_voltage = max(abs(self.setV.value()),abs(self.resetV.value()))
@@ -416,6 +418,24 @@ class app_Fatigue(Ui_Fatigue):
         elif factor == 1 and currentIndex == 8:
             self.nPulses.setValue(9)
     
+    def load_parameters(self):
+        try:
+            self.setV.setValue(self.parameters[0]),
+            self.set_pulseWidth.setValue(self.parameters[1]),
+            self.set_timeUnit.setCurrentIndex(self.parameters[2]),
+            self.resetV.setValue(self.parameters[3]),
+            self.reset_pulseWidth.setValue(self.parameters[4]),
+            self.reset_timeUnit.setCurrentIndex(self.parameters[5]),
+            self.read_voltage.setValue(self.parameters[6]),
+            self.avg.setValue(self.parameters[7]),
+            self.nPulses.setValue(self.parameters[8]),
+            self.nPulse_unit.setCurrentIndex(self.parameters[9]),
+            self.iLimit.setValue(self.parameters[10]*1000),
+            self.temperature.setValue(self.parameters[11]),
+            self.temp_check.setChecked(self.parameters[12])
+        except Exception:
+            pass
+    
     def configurePulse(self):
         """
         Configure the pulse parameters.
@@ -437,7 +457,9 @@ class app_Fatigue(Ui_Fatigue):
             "nPulses": self.nPulses.value(),
             "pulseUnit": self.nPulse_unit.currentIndex(),
             "ILimit": self.iLimit.value()/1000,
-            "temperature": self.temperature.value()}
+            "temperature": self.temperature.value(),
+            "temp_check": int(self.temp_check.isChecked())}
+        self.parameters = list(self.params.values())
         self.k2450.avg = self.params["Average"]
         self.k2450.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:

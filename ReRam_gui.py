@@ -50,7 +50,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         contents of address.txt:
             line 1: path where SettingFile.dnd is (or should be) stored
         """
-        self.initial = 0
         self.checkPaths()
         self.setupUi(self)
         self.filename.setText(self.sampleID)
@@ -87,7 +86,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.ft.setWindowModality(QtCore.Qt.ApplicationModal)
         self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename)
         self.rt.setWindowModality(QtCore.Qt.ApplicationModal)
-    
+        self.load_parameters()
     
     def checkPaths(self):
         """
@@ -116,10 +115,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.initialPath = os.getcwd()
         try:
             with open('address.txt') as f:
-                self.settingPath = f.readline().strip('\n\r')# get path of SettingFile.dnd
-                self.k2450Addr = f.readline().strip('\n\r').split()[0] # get address of K2450 if present
-                self.k2700Addr = f.readline().strip('\n\r').split()[0] # get address of K700 if present
-                self.AFG1022Addr = f.readline().strip('\n\r').split()[0] # get address of AFG1022 if present
+                self.settingPath = f.readline().strip()# get path of SettingFile.dnd
+                self.k2450Addr = f.readline().strip().split() # get address of K2450 if present
+                if self.k2450Addr:
+                    self.k2450Addr = self.k2450Addr[0]
+                else:
+                    self.k2450Addr = ''
+                self.k2700Addr = f.readline().strip().split() # get address of K700 if present
+                if self.k2700Addr:
+                    self.k2700Addr = self.k2700Addr[0]
+                else:
+                    self.k2700Addr = ''
+                self.AFG1022Addr = f.readline().strip().split() # get address of AFG1022 if present
+                if self.AFG1022Addr:
+                    self.AFG1022Addr = self.AFG1022Addr[0]
+                else:
+                    self.AFG1022Addr = ''
                 os.chdir(self.settingPath)
         except FileNotFoundError:
             with open('address.txt','w') as f:
@@ -137,7 +148,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         try:
             with open('SettingFile.dnd', 'r') as f:
                 self.currPath = f.readline().strip('\n\r')
-                self.sampleID = get_valid_filename(f.readline().strip('\n\r'))
+                self.sampleID = get_valid_filename(f.readline().strip())
                 if self.sampleID == '' or self.sampleID.isspace():
                     self.sampleID = "Sample"
                 os.chdir(self.currPath)
@@ -227,8 +238,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         options.setDirectory(os.getcwd())
         dirName = options.getExistingDirectory()
         if dirName:
-            self.currPath = dirName
-            os.chdir(self.currPath)
+            if self.currPath != dirName:
+                self.filename.setText(dirName.split('/')[-1])
+                self.setFilename(1)
+                self.save_parameters()
+                self.currPath = dirName
+                self.load_parameters()
 
     def setFilename(self, initial=0):
         """
@@ -315,7 +330,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
 
         """
         self.ft.filename = self.Fatiguefilename
-        self.ft.file_name.setText(self.st.filename)
+        self.ft.file_name.setText(self.ft.filename)
         #self.hide()
         #self.showMinimized()
         self.ft.show()
@@ -335,6 +350,31 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         #self.showMinimized()
         self.rt.show()
     
+    def load_parameters(self):
+        os.chdir(self.currPath)
+        if os.path.isfile("parameter_file.prm"):
+            with open("parameter_file.prm",'r') as f:
+                self.iv.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
+                self.rv.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
+                self.st.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
+                self.ft.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
+                self.rt.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
+                self.iv.load_parameters()
+                self.rv.load_parameters()
+                self.st.load_parameters()
+                self.ft.load_parameters()
+                self.rt.load_parameters()
+
+    def save_parameters(self):
+        os.chdir(self.currPath)
+        with open("parameter_file.prm",'w') as f:
+            print(self.iv.parameters)
+            f.write(' '.join(str(item) for item in self.iv.parameters)+'\n')
+            f.write(' '.join(str(item) for item in self.rv.parameters)+'\n')
+            f.write(' '.join(str(item) for item in self.st.parameters)+'\n')
+            f.write(' '.join(str(item) for item in self.ft.parameters)+'\n')
+            f.write(' '.join(str(item) for item in self.rt.parameters)+'\n')
+                
     def closeEvent(self, event):
         """
         Perform necessary operations just before exiting the program.
@@ -355,8 +395,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             event.ignore()
         else:
             connect_sample_with_SMU(self.k2700)
-            with open("parameter_file.prm",'w') as f:
-                f.write(' '.join(str(item) for item in self.iv.params)+'\n')
+            self.save_parameters()
             os.chdir(self.settingPath)
             with open('SettingFile.dnd', 'w') as f:
                 f.write(self.currPath+'\n')

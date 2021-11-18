@@ -191,7 +191,7 @@ class Ui_IVLoop(QtWidgets.QWidget):
 
         """
         _translate = QtCore.QCoreApplication.translate
-        IVLoop.setWindowTitle(_translate("IVLoop", "Form"))
+        IVLoop.setWindowTitle(_translate("IVLoop", "IV Loop"))
         self.maxV_label.setText(_translate(
             "IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Maximum Voltage (V)</span></p></body></html>"))
         self.maxV.setToolTip(_translate(
@@ -255,18 +255,30 @@ class app_IVLoop(Ui_IVLoop):
         self.file_name.setText(self.filename)
         self.measurement_status = "Idle"
         self.nowDate = date.today().strftime("%Y-%m-%d")
-        self.params = [-3, 3, 1, 2, 0.5/1000,1,300]
-        """
-        {
+        self.params = {
             "Vmin": -3,
             "Vmax": 3,
-            "Delay": 1,
-            "Speed": 2,
-            "ILimit": 0.5/1000,
+            "Delay": 50/1000,
+            "Speed": 3,
+            "ILimit": 1/1000,
             "ncycles": 1,
-            "temperature": 300}
-        """
+            "temperature": 300,
+            "temp_check": 0}
+        self.parameters = list(self.params.values())
 
+    def load_parameters(self):
+        try:
+            self.minV.setValue(self.parameters[0])
+            self.maxV.setValue(self.parameters[1])
+            self.delay.setValue(self.parameters[2]*1000)
+            self.scan_speed.setCurrentIndex(self.parameters[3])
+            self.Ilimit.setValue(self.parameters[4]*1000)
+            self.ncycles.setValue(self.parameters[5])
+            self.temperature.setValue(self.parameters[6])
+            self.temp_check.setChecked(self.parameters[7])
+        except Exception:
+            pass
+    
     def update_params(self):
         """
         Update the measurement parameters.
@@ -276,14 +288,6 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
-        self.params = [self.minV.value(),
-                       self.maxV.value(),
-                       self.delay.value()/1000,
-                       self.scan_speed.currentIndex(),
-                       self.Ilimit.value()/1000,
-                       self.ncycles.value(),
-                       self.temperature.value()]
-        """
         self.params = {
             "Vmin": self.minV.value(),
             "Vmax": self.maxV.value(),
@@ -291,14 +295,15 @@ class app_IVLoop(Ui_IVLoop):
             "Speed": self.scan_speed.currentIndex(),
             "ILimit": self.Ilimit.value()/1000,
             "ncycles": self.ncycles.value(),
-            "temperature": self.temperature.value()}
-        """
-        if self.params[1] < self.params[0]:
-            t = self.params[1]
-            self.params[1] = self.params[0]
-            self.params[0] = t
-            self.minV.setValue(self.params[0])
-            self.maxV.setValue(self.params[1])
+            "temperature": self.temperature.value(),
+            "temp_check": int(self.temp_check.isChecked())}
+        self.parameters = list(self.params.values())
+        if self.params["Vmax"] < self.params["Vmin"]:
+            t = self.params["Vmax"]
+            self.params["Vmax"] = self.params["Vmin"]
+            self.params["Vmin"] = t
+            self.minV.setValue(self.params["Vmin"])
+            self.maxV.setValue(self.params["Vmax"])
 
     def initialize_SMU(self):
         """
@@ -320,19 +325,19 @@ class app_IVLoop(Ui_IVLoop):
         self.k2450.write("SENS:CURR:RANG:AUTO ON")  # current autorange on
         #self.k2450.write("SENS:CURR:RANG:AUTO:REB ON")
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
-        if self.params[3] == 0:
+        if self.params["Speed"] == 0:
             nplc = 5
             self.speed = "Very Slow"
-        elif self.params[3] == 1:
+        elif self.params["Speed"] == 1:
             nplc = 2
             self.speed = "Slow"
-        elif self.params[3] == 2:
+        elif self.params["Speed"] == 2:
             nplc = 1
             self.speed = "Normal"
-        elif self.params[3] == 3:
+        elif self.params["Speed"] == 3:
             nplc = 0.1
             self.speed = "Fast"
-        elif self.params[3] == 4:
+        elif self.params["Speed"] == 4:
             nplc = 0.01
             self.speed = "Very Fast"
         self.k2450.nplc = nplc
@@ -343,7 +348,7 @@ class app_IVLoop(Ui_IVLoop):
         # correct for zero only at the beginning
         self.k2450.write("Sense:AZero:ONCE")
         self.k2450.write("source:voltage:ilimit {0}".format(
-            self.params[4]))  # set compliance current
+            self.params["ILimit"]))  # set compliance current
         self.k2450.write("SOUR:VOLT:READ:BACK ON")
         #self.k2450.write(":DISPlay:LIGHT:STATe OFF")
 
@@ -359,24 +364,24 @@ class app_IVLoop(Ui_IVLoop):
         self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat')
         with open(self.fullfilename,'w') as f:
             f.write("# IV loop measurement using Keithley 2450 source measure unit.\n")
-            f.write("# Min voltage = {0}V, Max voltage = {1}V\n".format(self.params[0],self.params[1]))
-            f.write('# Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params[4]*1000,self.params[2]))
-            f.write('# Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed,self.params[5]))
+            f.write("# Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
+            f.write('# Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"]*1000,self.params["Delay"]))
+            f.write('# Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed,self.params["ncycles"]))
             f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
             
-        if self.params[1] == self.params[0]:
-            self.points = [self.params[1]]
+        if self.params["Vmax"] == self.params["Vmin"]:
+            self.points = [self.params["Vmax"]]
             self.k2450.write("SOURce:LIST:VOLTage {0}".format(
                 str(self.points)[1:-1]))
-        elif self.params[1] >= 0 >= self.params[0]:
+        elif self.params["Vmax"] >= 0 >= self.params["Vmin"]:
             nplus = int(
-                self.params[1]/(self.params[1]-self.params[0])*self.npoints*0.5)
+                self.params["Vmax"]/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
             nminus = int(abs(
-                self.params[0])/(self.params[1]-self.params[0])*self.npoints*0.5)
-            l1 = linspace(0, self.params[1], nplus, endpoint=False)
+                self.params["Vmin"])/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
+            l1 = linspace(0, self.params["Vmax"], nplus, endpoint=False)
             l2 = linspace(
-                self.params[1], self.params[0], nplus+nminus, endpoint=False)
-            l3 = linspace(self.params[0], 0, nminus+1, endpoint=True)
+                self.params["Vmax"], self.params["Vmin"], nplus+nminus, endpoint=False)
+            l3 = linspace(self.params["Vmin"], 0, nminus+1, endpoint=True)
             self.points = around(concatenate((l1, l2, l3)), 3)
             self.points[self.points == 0] = 0.0001
             # split the points into 6 chunks of equal size
@@ -390,9 +395,9 @@ class app_IVLoop(Ui_IVLoop):
                     self.k2450.write(
                         "SOURce:LIST:VOLTage:APPend {0}".format(str(list(i))[1:-1]))
         else:
-            l1 = linspace(self.params[0], self.params[1], int(
+            l1 = linspace(self.params["Vmin"], self.params["Vmax"], int(
                 self.npoints/2), endpoint=False)
-            l2 = linspace(self.params[1], self.params[0], int(
+            l2 = linspace(self.params["Vmax"], self.params["Vmin"], int(
                 self.npoints/2)+1, endpoint=True)
             self.points = around(concatenate((l1, l2)), 3)
             self.chunks = array_split(self.points, 5)
@@ -440,7 +445,7 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
-        if self.i >= self.params[5] or self.stop_flag:
+        if self.i >= self.params["ncycles"] or self.stop_flag:
             if not self.stop_flag:
                 self.statusbar.setText("Measurement Finished.")
                 self.measurement_status = "Idle"
