@@ -7,17 +7,10 @@ Not tested for other Python versions or OS
 # TODO: Program to initiate forming process
 # TODO: Program to investigate switching speed
 # TODO: Allow for both SCPI and TSP commands (currently only SCPI works)
-# TODO: Save the last entered parameters of each program in file, which is reloaded at the starting of the program
-# TODO: Scan the existing directory for saved files, and obtain the last used parameters from it, and put it in the program.
 # TODO: Not able to cleanly exit if no instrument is connected and TESTING = False.
 # TODO: correct the tab order of all the windows
-# TODO: Resolve taskbar icon issue. Currently the taskbar icon is hidden when main window is hidden.
 # TODO: Bug: minimizing the main window also minimized the child window, even if child.show() is given later.
 # TODO: clear the graphs in all apps when directory of filename is changed.
-# TODO: If instrument is not connected by mistake, then address file erases instrument address.
-# TODO: While resuming an experiment, selecting a directory should automatically select that sample's filename.
-# TODO: Correct tab order of all the programs.
-# TODO: Put shortcut for reconnect instrument, change directory, start experiment
 # TODO: some VisaError occurs when open_resources finds an instrument over lan, and tries to connect to it.
 # TODO: Implement threading to plot data in a separate thread as a separate process.
 """
@@ -54,12 +47,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.setupUi(self)
         self.filename.setText(self.sampleID)
         self.dir_Button.clicked.connect(self.openDir)
+        self.dir_Button.setShortcut('Ctrl+d')
+        self.dir_Button.setAutoDefault(True)
         self.iv_button.clicked.connect(self.open_ivloop)
+        self.iv_button.setAutoDefault(True)
         self.rv_button.clicked.connect(self.open_rvloop)
+        self.rv_button.setAutoDefault(True)
         self.switch_button.clicked.connect(self.open_switchTest)
+        self.switch_button.setAutoDefault(True)
         self.inst_button.clicked.connect(self.check_instrument_connection)
+        self.inst_button.setAutoDefault(True)
+        self.inst_button.setShortcut('Ctrl+r')
         self.endurance_button.clicked.connect(self.open_fatigue)
+        self.endurance_button.setAutoDefault(True)
         self.retention_button.clicked.connect(self.open_retention)
+        self.retention_button.setAutoDefault(True)
         #self.endurance_button.setEnabled(False)
         #self.retention_button.setEnabled(False)
         self.speed_button.setEnabled(False)
@@ -239,8 +241,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         dirName = options.getExistingDirectory()
         if dirName:
             if self.currPath != dirName:
-                self.filename.setText(dirName.split('/')[-1])
-                self.setFilename(1)
                 self.save_parameters()
                 self.currPath = dirName
                 self.load_parameters()
@@ -354,6 +354,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         os.chdir(self.currPath)
         if os.path.isfile("parameter_file.prm"):
             with open("parameter_file.prm",'r') as f:
+                self.filename.setText(f.readline().strip())
+                self.setFilename(1)
                 self.iv.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
                 self.rv.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
                 self.st.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
@@ -364,10 +366,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 self.st.load_parameters()
                 self.ft.load_parameters()
                 self.rt.load_parameters()
+        else:
+            self.filename.setText(self.currPath.split('/')[-1])
+            self.setFilename(1)
 
     def save_parameters(self):
         os.chdir(self.currPath)
         with open("parameter_file.prm",'w') as f:
+            f.write(self.filename.text()+'\n')
             f.write(' '.join(str(item) for item in self.iv.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.rv.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.st.parameters)+'\n')

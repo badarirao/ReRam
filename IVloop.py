@@ -249,6 +249,8 @@ class app_IVLoop(Ui_IVLoop):
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_ivloop)
         self.stop_Button.clicked.connect(self.stop_ivloop)
+        self.start_Button.setShortcut('Ctrl+Return')
+        self.stop_Button.setShortcut('Ctrl+q')
         self.initialize_plot()
         self.npoints = 500
         self.k2450.nplc = 1

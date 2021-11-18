@@ -336,6 +336,8 @@ class app_Fatigue(Ui_Fatigue):
         self.stopCall = False
         self.start_Button.clicked.connect(self.startFatigue)
         self.abort_Button.clicked.connect(self.abortFatigue)
+        self.start_Button.setShortcut('ctrl+Return')
+        self.abort_Button.setShortcut('ctrl+q')
         self.set_pulseWidth.setMinimum(0.1)
         self.reset_pulseWidth.setMinimum(0.1)
         self.initialize_plot()

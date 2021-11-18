@@ -6,7 +6,7 @@ The RV-loop module of the ReRam project.
     
 """
 # TODO: Add tooltips
-# TODO: There is some problem when stopping the measurement in between
+# TODO: There is some problem when stopping the measurement in between (I think it is resolved)
 
 from winsound import MessageBeep
 from csv import writer
@@ -291,6 +291,8 @@ class app_RVLoop(Ui_RVLoop):
         self.stopCall = False
         self.start_Button.clicked.connect(self.start_rvloop)
         self.stop_Button.clicked.connect(self.stop_rvLoop)
+        self.start_Button.setShortcut('ctrl+Return')
+        self.stop_Button.setShortcut('ctrl+q')
         self.initialize_plot()
         self.update_limits()
         self.k2450.nplc = 0.01

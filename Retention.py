@@ -7,8 +7,6 @@
 # WARNING! All changes made in this file will be lost!
 
 # TODO: Add tooltips
-# TODO: Verify pulse application with SMU
-# TODO: If program is aborted in between, there is some problem in saving data
 # TODO: There is some resistance inconsistency with application of next pulse after long retention.
 #        Probably, you can think of applying about 2-3 set-reset pulse trains, and then apply required next pulse?
 
@@ -349,6 +347,9 @@ class app_Retention(Ui_Retention):
         self.start_Button.clicked.connect(self.startRetention)
         self.skip_Button.clicked.connect(self.skip_to_next)
         self.abort_Button.clicked.connect(self.abortRetention)
+        self.start_Button.setShortcut('ctrl+Return')
+        self.skip_Button.setShortcut('ctrl+n')
+        self.abort_Button.setShortcut('ctrl+q')
         self.vsource.currentIndexChanged.connect(self.update_limits)
         self.time_sec.valueChanged.connect(self.connect_sec_to_hr)
         self.time_hr.timeChanged.connect(self.connect_hr_to_sec)
