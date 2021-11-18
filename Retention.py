@@ -14,7 +14,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import QTime, QTimer
+from PyQt5.QtCore import QTime, QTimer, Qt
 from time import time
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from os.path import exists as fileExists
@@ -770,6 +770,14 @@ class app_Retention(Ui_Retention):
         self.retentionPlot.setLabel('bottom', 'Time (s)', **styles)
         self.retentionPlot.getPlotItem().setLogMode(True, True)
         self.retentionPlot.addLegend(offset=(180,170))
+    
+    def keyPressEvent(self, event):
+        """Close application from escape key.
+
+        results in QMessageBox dialog from closeEvent, good but how/why?
+        """
+        if event.key() == Qt.Key_Escape:
+            self.close()
     
     def closeEvent(self, event):
         """

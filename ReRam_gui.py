@@ -30,7 +30,7 @@ import sys
 import os
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
@@ -368,13 +368,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
     def save_parameters(self):
         os.chdir(self.currPath)
         with open("parameter_file.prm",'w') as f:
-            print(self.iv.parameters)
             f.write(' '.join(str(item) for item in self.iv.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.rv.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.st.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.ft.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.rt.parameters)+'\n')
                 
+    def keyPressEvent(self, event):
+        """Close application from escape key.
+
+        results in QMessageBox dialog from closeEvent, good but how/why?
+        """
+        if event.key() == Qt.Key_Escape:
+            self.close()
+    
     def closeEvent(self, event):
         """
         Perform necessary operations just before exiting the program.

@@ -9,6 +9,7 @@ The IV-loop module of the ReRam project.
 from winsound import MessageBeep
 from itertools import chain
 from datetime import date
+from PyQt5.QtCore import Qt
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
@@ -645,6 +646,14 @@ class app_IVLoop(Ui_IVLoop):
         plotsheet.add_chart(ivChart, 'C3')
         wb.save('.'.join(fname.split('.')[:-1])+'.xlsx')
         # wb.save(self.filename+'.xlsx')
+    
+    def keyPressEvent(self, event):
+        """Close application from escape key.
+
+        results in QMessageBox dialog from closeEvent, good but how/why?
+        """
+        if event.key() == Qt.Key_Escape:
+            self.close()
     
     def closeEvent(self, event):
         """

@@ -17,6 +17,7 @@ from winsound import MessageBeep
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QPalette, QColor, QBrush
+from PyQt5.QtCore import Qt
 from pyqtgraph import GraphicsLayoutWidget, ViewBox, mkPen
 from utilities import unique_filename, FakeAdapter, checkInstrument, AFG, SMU
 from utilities import connect_sample_with_SMU, connect_sample_with_AFG
@@ -790,6 +791,14 @@ class app_Switch(Ui_Switch):
         self.Rplot.setLabel('left', 'Read Resistance (Ohms)', **styles)
         self.Vplot.setLabel('left', 'Pulse Voltage (V)', **styles)
         self.Vplot.setLabel('bottom', 'Pulse count', **styles)
+    
+    def keyPressEvent(self, event):
+        """Close application from escape key.
+
+        results in QMessageBox dialog from closeEvent, good but how/why?
+        """
+        if event.key() == Qt.Key_Escape:
+            self.close()
     
     def closeEvent(self, event):
         """

@@ -10,7 +10,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import QTime, QTimer
+from PyQt5.QtCore import QTime, QTimer, Qt
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from os.path import exists as fileExists
 from time import time
@@ -710,6 +710,14 @@ class app_Fatigue(Ui_Fatigue):
         self.fatiguePlot.setLabel('bottom', 'N. cycles', **styles)
         self.fatiguePlot.getPlotItem().setLogMode(True, True)
         self.fatiguePlot.addLegend()
+    
+    def keyPressEvent(self, event):
+        """Close application from escape key.
+
+        results in QMessageBox dialog from closeEvent, good but how/why?
+        """
+        if event.key() == Qt.Key_Escape:
+            self.close()
     
     def closeEvent(self, event):
         """

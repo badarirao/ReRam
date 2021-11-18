@@ -12,6 +12,7 @@ from winsound import MessageBeep
 from csv import writer
 from numpy import linspace, around, concatenate, array
 from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from utilities import unique_filename, FakeAdapter, checkInstrument, SMU, AFG
@@ -665,6 +666,14 @@ class app_RVLoop(Ui_RVLoop):
         self.save_data()
         MessageBeep()
             
+    def keyPressEvent(self, event):
+        """Close application from escape key.
+
+        results in QMessageBox dialog from closeEvent, good but how/why?
+        """
+        if event.key() == Qt.Key_Escape:
+            self.close()
+    
     def closeEvent(self, event):
         """
         Perform necessary operations just before exiting the program.
