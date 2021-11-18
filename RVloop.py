@@ -302,6 +302,8 @@ class app_RVLoop(Ui_RVLoop):
         self.temp_check.setEnabled(False)
         self.measurement_status = "Idle"
         self.vsource.currentIndexChanged.connect(self.update_limits)
+        self.params = [0,-3,3,0.1,1,1,2,0.5/1000,0.1,300]
+        """
         self.params = {
             "Vsource": 0,
             "Vmin": -3,
@@ -313,6 +315,7 @@ class app_RVLoop(Ui_RVLoop):
             "ILimit": 0.5/1000,
             "Rvoltage": 0.1,
             "temperature": 300}
+        """
 
     def update_limits(self):
         if self.vsource.currentIndex() == 0:
@@ -338,6 +341,17 @@ class app_RVLoop(Ui_RVLoop):
         None.
 
         """
+        self.params = [self.vsource.currentIndex(),
+                       self.minV.value(),
+                       self.maxV.value(),
+                       self.vstep.value(),
+                       self.pulse_width.value(),
+                       self.time_unit.currentIndex(),
+                       self.scan_speed.currentIndex(),
+                       self.Ilimit.value()/1000,
+                       self.read_voltage.value(),
+                       self.temperature.value()]
+        """
         self.params = {
             "Vsource": self.vsource.currentIndex(),
             "Vmin": self.minV.value(),
@@ -349,18 +363,19 @@ class app_RVLoop(Ui_RVLoop):
             "ILimit": self.Ilimit.value()/1000,
             "Rvoltage": self.read_voltage.value(),
             "temperature": self.temperature.value()}
-        self.k2450.readV = self.params["Rvoltage"]
+        """
+        self.k2450.readV = self.params[8]
         self.npoints = int(
-            (self.params["Vmax"] - self.params["Vmin"])/(self.params["Vstep"]))*2+1
-        if self.params["VPwidth"] == 0:
-            self.params["VPwidth"] = 1
-            self.params["timeunit"] = 0
-        if self.params["timeunit"] == 0:
-            self.timestep = self.params["VPwidth"]*1e-6
-        elif self.params["timeunit"] == 1:
-            self.timestep = self.params["VPwidth"]*1e-3
-        elif self.params["timeunit"] == 2:
-            self.timestep = self.params["VPwidth"]
+            (self.params[2] - self.params[1])/(self.params[3]))*2+1
+        if self.params[4] == 0:
+            self.params[4] = 1
+            self.params[5] = 0
+        if self.params[5] == 0:
+            self.timestep = self.params[4]*1e-6
+        elif self.params[5] == 1:
+            self.timestep = self.params[4]*1e-3
+        elif self.params[5] == 2:
+            self.timestep = self.params[4]
 
     def initialize_SMU(self):
         """
@@ -373,16 +388,16 @@ class app_RVLoop(Ui_RVLoop):
         """
         if self.k2450 is None:
             self.k2450 = FakeAdapter()
-        self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
-        if self.params["Speed"] == 0:
+        self.k2450.apply_voltage(compliance_current=self.params[7])
+        if self.params[6] == 0:
             self.k2450.nplc = 5
-        elif self.params["Speed"] == 1:
+        elif self.params[6] == 1:
             self.k2450.nplc = 2
-        elif self.params["Speed"] == 2:
+        elif self.params[6] == 2:
             self.k2450.nplc = 1
-        elif self.params["Speed"] == 3:
+        elif self.params[6] == 3:
             self.k2450.nplc = 0.1
-        elif self.params["Speed"] == 4:
+        elif self.params[6] == 4:
             self.k2450.nplc = 0.01
         self.k2450.measure_current(self.k2450.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
@@ -399,9 +414,9 @@ class app_RVLoop(Ui_RVLoop):
         None.
 
         """
-        l1 = linspace(self.params["Vmax"], self.params["Vmin"], int(
+        l1 = linspace(self.params[2], self.params[1], int(
             self.npoints/2), endpoint=False)
-        l2 = linspace(self.params["Vmin"], self.params["Vmax"], int(
+        l2 = linspace(self.params[1], self.params[2], int(
             self.npoints/2)+1, endpoint=True)
         self.points = around(concatenate((l1, l2)), 2)
         self.points[self.points == 0] = 0.0001
@@ -439,7 +454,7 @@ class app_RVLoop(Ui_RVLoop):
         """
         self.i = 0
         self.volts = [self.points[-1]]
-        self.resistances = [self.params["Rvoltage"]/self.params["ILimit"]]
+        self.resistances = [self.params[8]/self.params[7]]
         pen1 = mkPen(color=(0, 0, 255), width=2)
         self.data_line = self.graphWidget.plot(
             self.volts, self.resistances, pen=pen1)
@@ -449,14 +464,14 @@ class app_RVLoop(Ui_RVLoop):
         self.actual_setVolts = []
         self.set_currents = []
         self.timer = QtCore.QTimer()
-        if self.params['Vsource'] == 0:
+        if self.params[0] == 0:
             connect_sample_with_SMU(self.k2700)
             self.timer.singleShot(0, self.measure_RV_SMU)
         else:
             self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
             self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
                 self.avg_over_n_readings))
-            self.k2450.source_voltage = self.params["Rvoltage"]
+            self.k2450.source_voltage = self.params[8]
             self.timer.singleShot(0, self.measure_RV_AFG)
 
     def measure_RV_SMU(self):
@@ -482,7 +497,7 @@ class app_RVLoop(Ui_RVLoop):
         self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
         self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
             self.avg_over_n_readings))
-        self.k2450.source_voltage = self.params["Rvoltage"]
+        self.k2450.source_voltage = self.params[8]
         self.k2450.start_buffer()
         self.wait_till_done()
         self.read_currents.append(
@@ -491,7 +506,7 @@ class app_RVLoop(Ui_RVLoop):
             self.read_currents[self.i] = 1e-20
         self.volts.append(self.points[self.i])
         self.resistances.append(
-            self.params["Rvoltage"]/self.read_currents[self.i])
+            self.params[8]/self.read_currents[self.i])
         # make sure that the program waits until the current measurement is taken
         self.data_line.setData(self.volts, self.resistances)
         self.i = self.i + 1
@@ -526,7 +541,7 @@ class app_RVLoop(Ui_RVLoop):
             self.read_currents[self.i] = 1e-20
         self.volts.append(self.points[self.i])
         self.resistances.append(
-            self.params["Rvoltage"]/self.read_currents[self.i])
+            self.params[8]/self.read_currents[self.i])
         # make sure that the program waits until the current measurement is taken
         self.data_line.setData(self.volts, self.resistances)
         self.i = self.i + 1
@@ -582,17 +597,17 @@ class app_RVLoop(Ui_RVLoop):
 
     def save_data(self):
         self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
-        if self.params['Vsource'] == 0:
+        if self.params[0] == 0:
             # For SMU
             with open(self.fullfilename, "w", newline='') as f:
                 f.write("#Pulse voltage source: Keithley 2450 source-measure unit.\n")
                 f.write("#Resistance read using Keithley 2450 source-measure unit.\n")  
-                f.write("#Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
+                f.write("#Min voltage = {0}, Max Voltage = {1}.\n".format(self.params[1],self.params[2]))
                 f.write("#Pulse width = {0}s\n".format(self.timestep))
-                f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))
-                f.write("#Limiting current = {}mA\n".format(self.params["ILimit"]*1000))
+                f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params[8],self.avg_over_n_readings))
+                f.write("#Limiting current = {}mA\n".format(self.params[7]*1000))
                 f.write("Set Voltage(V),Actual Volts applied(V),Set Current(A),Read Current at {0}V,\
-                        Read Resistance at {0}V (Ω)\n".format(self.params["Rvoltage"]))
+                        Read Resistance at {0}V (Ω)\n".format(self.params[8]))
                 write_data = writer(f)
                 write_data.writerows(zip(self.volts, self.actual_setVolts,self.set_currents, self.read_currents, self.resistances))
         else:    
@@ -600,12 +615,12 @@ class app_RVLoop(Ui_RVLoop):
             with open(self.fullfilename, "w", newline='') as f:
                 f.write("#Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
                 f.write("#Resistance read using Keithley 2450 source-measure unit.\n")  
-                f.write("#Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
+                f.write("#Min voltage = {0}, Max Voltage = {1}.\n".format(self.params[1],self.params[2]))
                 f.write("#Pulse width = {0}s\n".format(self.timestep))
-                f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))
-                f.write("#Limiting current = {}mA\n".format(self.params["ILimit"]*1000))
+                f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params[8],self.avg_over_n_readings))
+                f.write("#Limiting current = {}mA\n".format(self.params[7]*1000))
                 f.write("Set Voltage(V),Read Current at {0}V,Read Resistance\
-                        at {0}V (Ω)\n".format(self.params["Rvoltage"]))
+                        at {0}V (Ω)\n".format(self.params[8]))
                 write_data = writer(f)
                 write_data.writerows(zip(self.volts, self.read_currents, self.resistances))
                 

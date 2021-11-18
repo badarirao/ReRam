@@ -15,6 +15,11 @@ Not tested for other Python versions or OS
 # TODO: Bug: minimizing the main window also minimized the child window, even if child.show() is given later.
 # TODO: clear the graphs in all apps when directory of filename is changed.
 # TODO: If instrument is not connected by mistake, then address file erases instrument address.
+# TODO: While resuming an experiment, selecting a directory should automatically select that sample's filename.
+# TODO: Correct tab order of all the programs.
+# TODO: Put shortcut for reconnect instrument, change directory, start experiment
+# TODO: some VisaError occurs when open_resources finds an instrument over lan, and tries to connect to it.
+# TODO: Implement threading to plot data in a separate thread as a separate process.
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
@@ -112,9 +117,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         try:
             with open('address.txt') as f:
                 self.settingPath = f.readline().strip('\n\r')# get path of SettingFile.dnd
-                self.k2450Addr = f.readline().strip('\n\r') # get address of K2450 if present
-                self.k2700Addr = f.readline().strip('\n\r') # get address of K700 if present
-                self.AFG1022Addr = f.readline().strip('\n\r') # get address of AFG1022 if present
+                self.k2450Addr = f.readline().strip('\n\r').split()[0] # get address of K2450 if present
+                self.k2700Addr = f.readline().strip('\n\r').split()[0] # get address of K700 if present
+                self.AFG1022Addr = f.readline().strip('\n\r').split()[0] # get address of AFG1022 if present
                 os.chdir(self.settingPath)
         except FileNotFoundError:
             with open('address.txt','w') as f:
@@ -176,28 +181,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.retention_button.setDisabled(True)
         self.statusBar.showMessage('Establishing instrument connection... Please wait')
         self.connectInstrument()
-        status = 0
+        self.status = 0
         if self.k2450.ID == 'Fake':
-            status = status + 1
+            self.status = self.status + 1
         if self.k2700.ID == 'Fake':
-            status = status + 2
+            self.status = self.status + 2
         if self.afg1022.ID == 'Fake':
-            status = status + 4
-        if status == 0:
+            self.status = self.status + 4
+        if self.status == 0:
             self.statusBar.showMessage('All instruments connected.')
-        elif status == 1:
+        elif self.status == 1:
             self.statusBar.showMessage('Sourcemeter not connected.')
-        elif status == 2:
+        elif self.status == 2:
             self.statusBar.showMessage('Multiplexer not connected.')
-        elif status == 3:
+        elif self.status == 3:
             self.statusBar.showMessage('Function generator not connected.')
-        elif status == 4:
+        elif self.status == 4:
             self.statusBar.showMessage('Sourcemeter, Multiplexer not connected.')
-        elif status == 5:
+        elif self.status == 5:
             self.statusBar.showMessage('Sourcemeter, Function generator not connected.')
-        elif status == 6:
+        elif self.status == 6:
             self.statusBar.showMessage('Multiplexer, Function generator not connected.')
-        elif status == 7:
+        elif self.status == 7:
             self.statusBar.showMessage('No instruments connected.')
         self.inst_button.setEnabled(True)
         self.dir_Button.setEnabled(True)
@@ -350,20 +355,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             event.ignore()
         else:
             connect_sample_with_SMU(self.k2700)
+            with open("parameter_file.prm",'w') as f:
+                f.write(' '.join(str(item) for item in self.iv.params)+'\n')
             os.chdir(self.settingPath)
             with open('SettingFile.dnd', 'w') as f:
                 f.write(self.currPath+'\n')
                 f.write(self.sampleID)
             os.chdir(self.initialPath)
-            with open('address.txt','w') as f:
-                self.k2450Addr = self.k2450.address
-                self.k2700Addr = self.k2700.address
-                self.AFG1022Addr = self.afg1022.address
-                self.AFG1022Addr
-                f.write(self.settingPath+'\n') # write path of SettingFile.dnd
-                f.write(self.k2450Addr+'\n') # write address of K2450 if present
-                f.write(self.k2700Addr+'\n') # write address of K700 if present
-                f.write(self.AFG1022Addr) # write get address of AFG1022 if present
+            if self.status == 0:
+                with open('address.txt','w') as f:
+                    self.k2450Addr = self.k2450.address
+                    self.k2700Addr = self.k2700.address
+                    self.AFG1022Addr = self.afg1022.address
+                    self.AFG1022Addr
+                    f.write(self.settingPath+'\n') # write path of SettingFile.dnd
+                    f.write(self.k2450Addr+' (Keithley 2450 Sourcemeter)'+'\n') # write address of K2450 if present
+                    f.write(self.k2700Addr+' (Keithley 2700 Multiplexer)'+'\n') # write address of K700 if present
+                    f.write(self.AFG1022Addr+' (Textronix 1022 Function Generator)') # write get address of AFG1022 if present
             self.k2450.close()
             self.k2700.write("DISPlay:ENABle ON")
             self.k2700.close()
