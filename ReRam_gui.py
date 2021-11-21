@@ -23,7 +23,7 @@ import sys
 import os
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtCore import QTimer, Qt, QObject, QThread, pyqtSignal
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
@@ -33,6 +33,19 @@ from Retention import app_Retention
 from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
+
+class Worker(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(int)
+    
+    def __init__(self):
+        super(Worker,self).__init__()
+        
+    def run(self):
+        for i in range(5):
+            #sleep(1)
+            self.progress.emit(i+1)
+        self.finished.emit()
 
 class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
     """Class to initialize the main menu."""
