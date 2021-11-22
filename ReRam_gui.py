@@ -23,7 +23,7 @@ import sys
 import os
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtCore import QTimer, Qt, QObject, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
 from functools import partial
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
@@ -31,8 +31,7 @@ from RVloop import app_RVLoop
 from Switch import app_Switch
 from Fatigue import app_Fatigue
 from Retention import app_Retention
-from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU, FakeAdapter
-from time import sleep
+from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
 
