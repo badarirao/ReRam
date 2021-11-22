@@ -8,7 +8,6 @@ The IV-loop module of the ReRam project.
 
 from winsound import MessageBeep
 from itertools import chain
-from datetime import date
 from PyQt5.QtCore import Qt
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtWidgets import QMessageBox
@@ -137,8 +136,7 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.delay.setObjectName("delay")
         self.gridLayout.addWidget(self.delay, 5, 2, 1, 1)
         self.gridLayout_2.addWidget(self.groupBox, 0, 0, 1, 1)
-        self.graphWidget = PlotWidget(
-            IVLoop, viewBox=ViewBox(border=mkPen(color='k', width=2)))
+        self.graphWidget = PlotWidget(IVLoop, viewBox=ViewBox(border=mkPen(color='k', width=2)))
         self.graphWidget.setBackground((255, 182, 193, 25))
         self.graphWidget.setMinimumSize(QtCore.QSize(411, 379))
         self.graphWidget.setObjectName("graphWidget")
@@ -257,7 +255,6 @@ class app_IVLoop(Ui_IVLoop):
         self.filename = sName
         self.file_name.setText(self.filename)
         self.measurement_status = "Idle"
-        self.nowDate = date.today().strftime("%Y-%m-%d")
         self.params = {
             "Vmin": -3,
             "Vmax": 3,

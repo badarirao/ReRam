@@ -13,6 +13,7 @@ Not tested for other Python versions or OS
 # TODO: clear the graphs in all apps when directory of filename is changed.
 # TODO: some VisaError occurs when open_resources finds an instrument over lan, and tries to connect to it.
 # TODO: Implement threading to plot data in a separate thread as a separate process.
+# TODO: Include date, start and end time of experiment in saved file.
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
@@ -31,6 +32,7 @@ from RVloop import app_RVLoop
 from Switch import app_Switch
 from Fatigue import app_Fatigue
 from Retention import app_Retention
+from Forming import app_Forming
 from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
@@ -75,6 +77,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.endurance_button.setAutoDefault(True)
         self.retention_button.clicked.connect(self.open_retention)
         self.retention_button.setAutoDefault(True)
+        self.forming_button.setAutoDefault(True)
+        self.forming_button.clicked.connect(self.open_forming)
         #self.endurance_button.setEnabled(False)
         #self.retention_button.setEnabled(False)
         self.speed_button.setEnabled(False)
@@ -82,7 +86,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.memristor_button.setEnabled(False)
         self.temperature_button.setEnabled(False)
         self.batch_button.setEnabled(False)
-        self.forming_button.setEnabled(False)
         self.filename.editingFinished.connect(self.setFilename)
         self.setFilename(1)  # 1 indicates initial setting of filename
         self.abort = False
@@ -173,6 +176,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.switch_button.setDisabled(True)
         self.endurance_button.setDisabled(True)
         self.retention_button.setDisabled(True)
+        self.forming_button.setDisabled(True)
         self.statusBar.showMessage('Establishing instrument connection... Please wait')
         
         self.thread = QThread()
@@ -227,6 +231,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.switch_button.setEnabled(True)
         self.endurance_button.setEnabled(True)
         self.retention_button.setEnabled(True)
+        self.forming_button.setEnabled(True)
     
     def initialize_apps(self):
         self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
@@ -239,6 +244,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.ft.setWindowModality(QtCore.Qt.ApplicationModal)
         self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename)
         self.rt.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.fr = app_Forming(self, self.k2450, self.k2700, self.Formingfilename)
+        self.fr.setWindowModality(QtCore.Qt.ApplicationModal)
         self.load_parameters()
     
     def openDir(self):
@@ -290,6 +297,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             self.Switchfilename = self.sampleID+'_Switch'
             self.Fatiguefilename = self.sampleID+'_Fatigue'
             self.Retentionfilename = self.sampleID+'_Retention'
+            self.Formingfilename = self.sampleID+'_Forming'
 
     def open_ivloop(self):
         """
@@ -364,6 +372,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         #self.hide()
         #self.showMinimized()
         self.rt.show()
+    
+    def open_forming(self):
+        """
+        Load the Forming program module.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.fr.filename = self.Formingfilename
+        self.fr.file_name.setText(self.fr.filename)
+        #self.hide()
+        #self.showMinimized()
+        self.fr.show()
     
     def load_parameters(self):
         os.chdir(self.currPath)
