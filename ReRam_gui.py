@@ -24,27 +24,30 @@ import os
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QTimer, Qt, QObject, QThread, pyqtSignal
+from functools import partial
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
 from Switch import app_Switch
 from Fatigue import app_Fatigue
 from Retention import app_Retention
-from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU
+from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU, FakeAdapter
+from time import sleep
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
 
 class Worker(QObject):
     finished = pyqtSignal()
-    progress = pyqtSignal(int)
+    adapters = pyqtSignal(list)
     
     def __init__(self):
         super(Worker,self).__init__()
         
-    def run(self):
-        for i in range(5):
-            #sleep(1)
-            self.progress.emit(i+1)
+    def connect_instrument(self,a1,a2,a3,test):
+        #instruments = list(checkInstrument(a1,a2,a3,test))
+        instruments = [FakeAdapter(),FakeAdapter(),FakeAdapter()]
+        sleep(5)
+        self.adapters.emit(instruments)
         self.finished.emit()
 
 class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
@@ -85,23 +88,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.forming_button.setEnabled(False)
         self.filename.editingFinished.connect(self.setFilename)
         self.setFilename(1)  # 1 indicates initial setting of filename
-        QTimer.singleShot(10,self.initialize_apps)
         self.abort = False
-
-    def initialize_apps(self):
         self.check_instrument_connection()
-        self.k2450.reset()
-        self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
-        self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rv = app_RVLoop(self, self.k2450, self.k2700, self.afg1022, self.RVfilename)
-        self.rv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.st = app_Switch(self, self.k2450, self.k2700, self.afg1022, self.Switchfilename)
-        self.st.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.ft = app_Fatigue(self, self.k2450, self.k2700, self.afg1022, self.Fatiguefilename)
-        self.ft.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename)
-        self.rt.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.load_parameters()
     
     def checkPaths(self):
         """
@@ -171,26 +159,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             self.currPath = self.defaultPath
             os.chdir(self.defaultPath)
             self.sampleID = "Sample"
-
-    def connectInstrument(self):
-        """
-        Connect to K2450, K2700 and function generator.
-        
-        if TESTING is True, use FakeAdapter even when instrument not available.
-        if TESTING is False, quit program when instrument not available.
-
-        Returns
-        -------
-        Instrument objects
-
-        """
-        global TESTING
-        a1 = self.k2450Addr
-        a2 = self.k2700Addr
-        a3 = self.AFG1022Addr
-        self.k2450, self.k2700, self.afg1022 = checkInstrument(a1,a2,a3,test = TESTING)
         
     def check_instrument_connection(self):
+        global TESTING
         try:
             self.k2450.close()
             self.k2700.close()
@@ -206,7 +177,28 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.endurance_button.setDisabled(True)
         self.retention_button.setDisabled(True)
         self.statusBar.showMessage('Establishing instrument connection... Please wait')
-        self.connectInstrument()
+        
+        self.thread = QThread()
+        self.worker = Worker()
+        self.worker.moveToThread(self.thread)
+        a1 = self.k2450Addr
+        a2 = self.k2700Addr
+        a3 = self.AFG1022Addr
+        self.thread.started.connect(partial(self.worker.connect_instrument,a1,a2,a3,TESTING))
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.adapters.connect(self.getInstruments)
+        self.thread.finished.connect(self.afterConnect)
+        self.thread.finished.connect(self.initialize_apps)
+        self.thread.start()
+    
+    def getInstruments(self,instruments):
+        self.k2450 = instruments[0]
+        self.k2700 = instruments[1]
+        self.afg1022 = instruments[2]
+        
+    def afterConnect(self):
         self.status = 0
         if self.k2450.ID == 'Fake':
             self.status = self.status + 1
@@ -238,6 +230,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.switch_button.setEnabled(True)
         self.endurance_button.setEnabled(True)
         self.retention_button.setEnabled(True)
+    
+    def initialize_apps(self):
+        self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
+        self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.rv = app_RVLoop(self, self.k2450, self.k2700, self.afg1022, self.RVfilename)
+        self.rv.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.st = app_Switch(self, self.k2450, self.k2700, self.afg1022, self.Switchfilename)
+        self.st.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.ft = app_Fatigue(self, self.k2450, self.k2700, self.afg1022, self.Fatiguefilename)
+        self.ft.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename)
+        self.rt.setWindowModality(QtCore.Qt.ApplicationModal)
+        self.load_parameters()
     
     def openDir(self):
         """
