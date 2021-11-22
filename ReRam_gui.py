@@ -44,9 +44,7 @@ class Worker(QObject):
         super(Worker,self).__init__()
         
     def connect_instrument(self,a1,a2,a3,test):
-        #instruments = list(checkInstrument(a1,a2,a3,test))
-        instruments = [FakeAdapter(),FakeAdapter(),FakeAdapter()]
-        sleep(5)
+        instruments = list(checkInstrument(a1,a2,a3,test))
         self.adapters.emit(instruments)
         self.finished.emit()
 
