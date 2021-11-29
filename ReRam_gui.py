@@ -214,9 +214,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         elif self.status == 2:
             self.statusBar.showMessage('Multiplexer not connected.')
         elif self.status == 3:
-            self.statusBar.showMessage('Function generator not connected.')
-        elif self.status == 4:
             self.statusBar.showMessage('Sourcemeter, Multiplexer not connected.')
+        elif self.status == 4:
+            self.statusBar.showMessage('Function generator not connected.')
         elif self.status == 5:
             self.statusBar.showMessage('Sourcemeter, Function generator not connected.')
         elif self.status == 6:
