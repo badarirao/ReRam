@@ -139,6 +139,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             with open('address.txt','w') as f:
                 f.write(self.initialPath)
             self.settingPath = self.initialPath
+            self.k2450Addr = ''
+            self.k2700Addr = ''
+            self.AFG1022Addr = ''
             
         # set default path to store measured data as desktop
         self.defaultPath = os.path.join(
@@ -459,9 +462,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                     self.AFG1022Addr = self.afg1022.address
                     self.AFG1022Addr
                     f.write(self.settingPath+'\n') # write path of SettingFile.dnd
-                    f.write(self.k2450Addr+' (Keithley 2450 Sourcemeter)'+'\n') # write address of K2450 if present
-                    f.write(self.k2700Addr+' (Keithley 2700 Multiplexer)'+'\n') # write address of K700 if present
-                    f.write(self.AFG1022Addr+' (Textronix 1022 Function Generator)') # write get address of AFG1022 if present
+                    f.write(self.k2450Addr+' (Keithley 2450 Sourcemeter)'+'\n') # write address of K2450
+                    f.write(self.k2700Addr+' (Keithley 2700 Multiplexer)'+'\n') # write address of K700
+                    f.write(self.AFG1022Addr+' (Textronix 1022 Function Generator)') # write get address of AFG1022
             self.k2450.close()
             self.k2700.write("DISPlay:ENABle ON")
             self.k2700.close()
