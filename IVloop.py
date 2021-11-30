@@ -361,7 +361,7 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
-        self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat')
+        self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat', datetimeformat="")
         with open(self.fullfilename,'w') as f:
             f.write("# IV loop measurement using Keithley 2450 source measure unit.\n")
             f.write("# Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))

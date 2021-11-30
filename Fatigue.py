@@ -597,7 +597,7 @@ class app_Fatigue(Ui_Fatigue):
         self.timeTaken.setText("Total experiment time: {}".format(str(timedelta(seconds=int(self.totalTime)))))
         LRS, HRS = self.params['Rvoltage']/LRScurrent, self.params['Rvoltage']/HRScurrent
         
-        self.ncycles = [0]
+        self.ncycles = [1] # log plot cannot have 0 in its axis
         self.LRScurrents = [LRScurrent]
         self.LRS = [LRS]
         self.HRScurrents = [HRScurrent]
@@ -625,6 +625,9 @@ class app_Fatigue(Ui_Fatigue):
         pen2 = mkPen(color=(255, 0, 0), width=2)
         self.data_lineLRS = self.fatiguePlot.plot(self.ncycles, self.LRS, pen=pen1, symbol='x', symbolPen='r')
         self.data_lineHRS = self.fatiguePlot.plot(self.ncycles, self.HRS, pen=pen2, symbol='o')
+        del self.ncycles[0]
+        del self.LRS[0]
+        del self.HRS[0]
         self.timer = QTimer()
         self.start_Button.setEnabled(False)
         self.abort_Button.setEnabled(True)
@@ -674,6 +677,7 @@ class app_Fatigue(Ui_Fatigue):
     
     def abortFatigue(self):
         self.status.setText("Aborting the program. Please wait..")
+        self.abort_Button.setEnabled(False)
         self.stopCall = True
         
     def saveData(self):

@@ -13,34 +13,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QStatusBar, QApplication, QMai
 from numpy import zeros, uint16, int32, min as npmin, max as npmax
 from time import sleep
 
-class Ui_MainWindow(QMainWindow):
-    def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(192, 129)
-        MainWindow.setMinimumSize(QSize(192, 129))
-        MainWindow.setMaximumSize(QSize(192, 129))
-        self.centralwidget = QWidget(MainWindow)
-        self.centralwidget.setObjectName("centralwidget")
-        self.trigger_Button = QPushButton(self.centralwidget)
-        self.trigger_Button.setGeometry(QRect(60, 20, 75, 23))
-        self.trigger_Button.setObjectName("trigger_Button")
-        self.triggerNwait_Button = QPushButton(self.centralwidget)
-        self.triggerNwait_Button.setGeometry(QRect(30, 60, 131, 23))
-        self.triggerNwait_Button.setObjectName("triggerNwait_Button")
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.statusbar = QStatusBar(MainWindow)
-        self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
-
-        self.retranslateUi(MainWindow)
-        QMetaObject.connectSlotsByName(MainWindow)
-
-    def retranslateUi(self, MainWindow):
-        _translate = QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.trigger_Button.setText(_translate("MainWindow", "Apply trigger"))
-        self.triggerNwait_Button.setText(_translate("MainWindow", "Apply trigger and wait"))
-        
+# afg = AFG1022("USB::0x0699::0x0353::1643763::INSTR")
 class AFG1022:
     def __init__(self,adapter,**kwargs):
         if isinstance(adapter,str):
@@ -277,9 +250,6 @@ class AFG1022:
         waveform[x:] = -1
         self._set_custom_waveform(waveform,memory_num=7)
         
-    def apply_pulse(self,volts,pulse_width):
-        pass
-    
     def trgNwait(self):
         sleep(0.1)
         pw = 1000/float(self.ask('source1:frequency:fixed?'))  # milliseconds
@@ -291,7 +261,7 @@ class AFG1022:
             pw = 10
             nc = 1
         loop = QEventLoop()
-        QTimer.singleShot(pw*nc, loop.quit)
+        QTimer.singleShot(int(pw*nc), loop.quit)
         loop.exec_()
     
     def trigger(self):
@@ -302,17 +272,3 @@ class AFG1022:
         
     def output(self,state):
         self.write('OUTPut1:STATe {}'.format(state))
-        
-"""
-if __name__ == "__main__":
-    import sys
-    app = QApplication(sys.argv)
-    MainWindow = QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    afg = AFG1022('USB::0x0699::0x0353::1643763::INSTR')
-    ui.trigger_Button.clicked.connect(afg.trigger)
-    ui.triggerNwait_Button.clicked.connect(afg.trgNwait)
-    sys.exit(app.exec_())
-"""        

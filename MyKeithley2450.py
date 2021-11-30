@@ -33,6 +33,7 @@ from PyQt5.QtCore import QEventLoop, QTimer
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
+# k2450 = Keithley2450("USB0::0x05E6::0x2450::04488850::INSTR")
 class Keithley2450:
     """ Represents the Keithely 2450 SourceMeter and provides a
     high-level interface for interacting with the instrument.

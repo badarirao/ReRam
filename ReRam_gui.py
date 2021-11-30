@@ -14,6 +14,7 @@ Not tested for other Python versions or OS
 # TODO: some VisaError occurs when open_resources finds an instrument over lan, and tries to connect to it.
 # TODO: Implement threading to plot data in a separate thread as a separate process.
 # TODO: Include date, start and end time of experiment in saved file.
+# BUG: If soucemeter is Idle for long time, it connects, but no command works, gives visaerror
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
@@ -79,8 +80,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.retention_button.setAutoDefault(True)
         self.forming_button.setAutoDefault(True)
         self.forming_button.clicked.connect(self.open_forming)
-        #self.endurance_button.setEnabled(False)
-        #self.retention_button.setEnabled(False)
         self.speed_button.setEnabled(False)
         self.aging_button.setEnabled(False)
         self.memristor_button.setEnabled(False)
@@ -234,7 +233,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.switch_button.setEnabled(True)
         self.endurance_button.setEnabled(True)
         self.retention_button.setEnabled(True)
-        self.forming_button.setEnabled(True)
+        #self.forming_button.setEnabled(True)
     
     def initialize_apps(self):
         self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
