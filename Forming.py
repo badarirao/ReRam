@@ -10,6 +10,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
 from PyQt5.QtCore import Qt
 from utilities import unique_filename, FakeAdapter, checkInstrument
+from numpy import linspace
+from time import sleep
+
+volts = []
+currents = []
 
 class Ui_Forming(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -182,9 +187,67 @@ class app_Forming(Ui_Forming):
     def initialize_plot(self):
         pass
     
-    def start_Forming(self):
-        pass
+    def disable_input(self):
+        self.vLimit.setEnabled(False)
+        self.iLimit.setEnabled(False)
+        self.start_Button.setEnabled(False)
+        self.abort_Button.setEnabled(True)
     
+    def enable_input(self):
+        self.vLimit.setEnabled(True)
+        self.iLimit.setEnabled(True)
+        self.start_Button.setEnabled(True)
+        self.abort_Button.setEnabled(False)
+        
+    def start_Forming(self):
+        self.disable_input()
+        self.fullfilename = unique_filename('.',prefix=self.filename,ext='dat')
+        nPoints = int(abs(self.vLimit.value())) * 5 + 1
+        vPoints = linspace(0,self.vLimit.value(),nPoints)
+        nIpoints = int(abs(self.iLimit.value())) * 5 + 1
+        iPoints = linspace(0,self.iLimit.value(),nIpoints)/1000
+        l = 1
+        i = iPoints[l]
+        self.k2450.measure_current(nplc=2)
+        self.k2450.source_voltage = 0
+        self.k2450.write(":Sense:count 1")
+        self.k2450.write("SOUR:VOLT:READ:BACK ON")
+        self.k2450.enable_source()
+        file = open(self.fullfilename,'w')
+        file.write("#Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
+        file.write("# Voltage Limit = {}\n".format(self.vLimit.value()))
+        file.write("# Current Limit = {}\n".format(self.iLimit.value()))
+        file.write("# Applied Voltgage (V) Current(A)\n")
+        iFlag = False
+        global volts
+        global currents
+        for v in vPoints:
+            self.k2450.write("SOUR:VOLT:ILIM {}".format(i))
+            self.k2450.source_voltage = v
+            m = 0
+            while True:
+                sleep(0.1)
+                if int(self.k2450.ask("SOUR:VOLT:ILIM:TRIP?").strip()):
+                    m = 11
+                    if l < nIpoints-1:
+                        l = l+1
+                        i = iPoints[l]
+                    else:
+                        iFlag = True # if the user specified current limit is reached
+                else:
+                    m = m + 1
+                if m > 10:
+                    values = self.k2450.ask(":read? SOURce READing").strip()
+                    file.write(values+'\n')
+                    file.flush()
+                    values = values.split()
+                    volts.append(values[0])
+                    currents.append(values[1])
+                    break
+            if iFlag:
+                break
+        file.close()
+                
     def stop_Forming(self):
         pass
     
