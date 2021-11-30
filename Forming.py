@@ -8,7 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
 from utilities import unique_filename, FakeAdapter, checkInstrument
 from numpy import linspace
 from time import sleep
@@ -201,7 +201,7 @@ class app_Forming(Ui_Forming):
         
     def start_Forming(self):
         self.disable_input()
-        self.fullfilename = unique_filename('.',prefix=self.filename,ext='dat')
+        self.fullfilename = unique_filename('.',prefix=self.filename,ext='dat',datetimeformat="")
         nPoints = int(abs(self.vLimit.value())) * 5 + 1
         vPoints = linspace(0,self.vLimit.value(),nPoints)
         nIpoints = int(abs(self.iLimit.value())) * 5 + 1
@@ -221,11 +221,14 @@ class app_Forming(Ui_Forming):
         iFlag = False
         global volts
         global currents
-        for v in vPoints:
+        for v in vPoints[1:]:
             self.k2450.write("SOUR:VOLT:ILIM {}".format(i))
             self.k2450.source_voltage = v
             m = 0
             while True:
+                if self.stopCall:
+                    iFlag = True
+                    break
                 sleep(0.1)
                 if int(self.k2450.ask("SOUR:VOLT:ILIM:TRIP?").strip()):
                     m = 11
@@ -237,12 +240,12 @@ class app_Forming(Ui_Forming):
                 else:
                     m = m + 1
                 if m > 10:
-                    values = self.k2450.ask(":read? SOURce READing").strip()
+                    values = self.k2450.ask(":read? 'defbuffer1', SOURce, READing").strip()
                     file.write(values+'\n')
                     file.flush()
-                    values = values.split()
-                    volts.append(values[0])
-                    currents.append(values[1])
+                    values = values.split(',')
+                    volts.append(float(values[0]))
+                    currents.append(float(values[1]))
                     break
             if iFlag:
                 break
@@ -258,7 +261,20 @@ class app_Forming(Ui_Forming):
         """
         if event.key() == Qt.Key_Escape:
             self.close()
+
+class Procedure:
+    pass
     
+class Worker(QObject,Procedure):
+    finished = pyqtSignal()
+    adapters = pyqtSignal(list)
+    
+    def __init__(self):
+        super(Worker,self).__init__()
+        
+    def start_forming(self):
+        pass
+        
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
