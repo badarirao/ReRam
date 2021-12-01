@@ -464,8 +464,7 @@ class app_RVLoop(Ui_RVLoop):
         self.volts = [self.points[-1]]
         self.resistances = [self.params["Rvoltage"]/self.params["ILimit"]]
         pen1 = mkPen(color=(0, 0, 255), width=2)
-        self.data_line = self.graphWidget.plot(
-            self.volts, self.resistances, pen=pen1)
+        self.data_line = self.graphWidget.plot(self.volts, self.resistances, pen=pen1)
         del self.volts[0]
         del self.resistances[0]
         self.read_currents = []
@@ -671,7 +670,7 @@ class app_RVLoop(Ui_RVLoop):
     def keyPressEvent(self, event):
         """Close application from escape key.
 
-        results in QMessageBox dialog from closeEvent, good but how/why?
+        results in QMessageBox dialog from closeEvent
         """
         if event.key() == Qt.Key_Escape:
             self.close()
