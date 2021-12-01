@@ -233,7 +233,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.switch_button.setEnabled(True)
         self.endurance_button.setEnabled(True)
         self.retention_button.setEnabled(True)
-        #self.forming_button.setEnabled(True)
+        self.forming_button.setEnabled(True)
     
     def initialize_apps(self):
         self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
@@ -401,11 +401,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 self.st.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
                 self.ft.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
                 self.rt.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
+                self.fr.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
                 self.iv.load_parameters()
                 self.rv.load_parameters()
                 self.st.load_parameters()
                 self.ft.load_parameters()
                 self.rt.load_parameters()
+                self.fr.load_parameters()
         else:
             self.filename.setText(self.currPath.split('/')[-1])
             self.setFilename(1)
@@ -419,6 +421,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             f.write(' '.join(str(item) for item in self.st.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.ft.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.rt.parameters)+'\n')
+            f.write(' '.join(str(item) for item in self.fr.parameters)+'\n')
                 
     def keyPressEvent(self, event):
         """Close application from escape key.

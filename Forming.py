@@ -7,14 +7,14 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
+from pyqtgraph import PlotWidget, ViewBox, mkPen
 from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
-from utilities import unique_filename, FakeAdapter, checkInstrument
+from utilities import unique_filename, checkInstrument
+from PyQt5.QtWidgets import QMessageBox
 from numpy import linspace
 from time import sleep
-
-volts = []
-currents = []
+from functools import partial
+from random import random
 
 class Ui_Forming(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -169,7 +169,7 @@ class app_Forming(Ui_Forming):
         self.abort_Button.setEnabled(False)
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_Forming)
-        self.abort_Button.clicked.connect(self.stop_Forming)
+        self.abort_Button.clicked.connect(self.abort)
         self.start_Button.setShortcut('Ctrl+Return')
         self.abort_Button.setShortcut('Ctrl+q')
         self.initialize_plot()
@@ -184,8 +184,35 @@ class app_Forming(Ui_Forming):
             "temp_check": 0}
         self.parameters = list(self.params.values())
     
+    def load_parameters(self):
+        try:
+            self.vLimit.setValue(self.parameters[0])
+            self.iLimit.setValue(self.parameters[1]*1000)
+            self.temperature.setValue(self.parameters[2])
+            self.temp_check.setChecked(self.parameters[3])
+        except Exception:
+            pass
+        
     def initialize_plot(self):
-        pass
+        """
+        Initialize the plot to display IV loop.
+
+        Returns
+        -------
+        None.
+
+        """
+        styles = {'color': 'r', 'font-size': '20px'}
+        self.graphWidget.setLabel('left', '|Current (A)|', **styles)
+        self.graphWidget.setLabel('bottom', 'Voltage (V)', **styles)
+        #self.graphWidget.setRange(QtCore.QRectF(self.minV.value(), 1e-12, self.maxV.value()-self.minV.value(), self.Ilimit.value()), padding=0)
+        #self.graphWidget.getPlotItem().setLogMode(None, True)
+        self.graphWidget.addLegend()
+    
+    def plotData(self, data):
+        self.volts.append(data[0])
+        self.currents.append(abs(data[1]))
+        self.data_line.setData(self.volts, self.currents)
     
     def disable_input(self):
         self.vLimit.setEnabled(False)
@@ -199,28 +226,113 @@ class app_Forming(Ui_Forming):
         self.start_Button.setEnabled(True)
         self.abort_Button.setEnabled(False)
         
+    def startThread(self,vPoints,iPoints):
+        self.thread = QThread()
+        self.worker = Worker(self.k2450,self.fullfilename)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(partial(self.worker.start_forming,vPoints,iPoints))
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.data.connect(self.plotData)
+        self.thread.finished.connect(self.stop_Forming)
+        self.thread.start()
+        
     def start_Forming(self):
+        self.params = {
+            "VLimit": self.vLimit.value(),
+            "ILimit": self.iLimit.value()/1000,
+            "temperature": self.temperature.value(),
+            "temp_check": int(self.temp_check.isChecked())}
+        self.measurement_status = "Running"
+        self.parameters = list(self.params.values())
         self.disable_input()
         self.fullfilename = unique_filename('.',prefix=self.filename,ext='dat',datetimeformat="")
         nPoints = int(abs(self.vLimit.value())) * 5 + 1
         vPoints = linspace(0,self.vLimit.value(),nPoints)
         nIpoints = int(abs(self.iLimit.value())) * 5 + 1
         iPoints = linspace(0,self.iLimit.value(),nIpoints)/1000
+        pen1 = mkPen(color=(0, 0, 255), width=2)
+        self.volts = [vPoints[0]]
+        self.currents = [iPoints[0]]
+        self.graphWidget.clear()
+        self.data_line = self.graphWidget.plot(self.volts, self.currents, pen=pen1)
+        del self.volts[0]
+        del self.currents[0]
+        self.startThread(vPoints,iPoints)
+    
+    def abort(self):
+        self.worker.stopcall.emit()
+    
+    def stop_Forming(self):
+        self.measurement_status = "Idle"
+        self.enable_input()
+    
+    def keyPressEvent(self, event):
+        """Close application from escape key.
+
+        results in QMessageBox dialog from closeEvent
+        """
+        if event.key() == Qt.Key_Escape:
+            self.close()
+    
+    def closeEvent(self, event):
+        """
+        Perform necessary operations just before exiting the program.
+
+        Parameters
+        ----------
+        event : QCloseEvent
+
+        Returns
+        -------
+        None.
+
+        """
+        reply = QMessageBox.Yes
+        if self.measurement_status == "Running":
+            quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
+            reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.abort()
+        if reply == QMessageBox.Yes:
+            if __name__ != "__main__":
+                self.parent.show()
+            event.accept()
+        else:
+            event.ignore()
+
+class Worker(QObject):
+    finished = pyqtSignal()
+    data = pyqtSignal(list)
+    stopcall = pyqtSignal()
+    
+    def __init__(self, k2450=None, fullfilename="sample.dat"):
+        super(Worker,self).__init__()
+        self.stopCall = False
+        self.k2450 = k2450
+        self.fullfilename = fullfilename
+        self.stopcall.connect(self.stopcalled)
+     
+    def stopcalled(self):
+        self.stopCall = True
+    
+    def start_forming(self, vPoints, iPoints):
         l = 1
         i = iPoints[l]
+        
         self.k2450.measure_current(nplc=2)
         self.k2450.source_voltage = 0
         self.k2450.write(":Sense:count 1")
         self.k2450.write("SOUR:VOLT:READ:BACK ON")
         self.k2450.enable_source()
+        
         file = open(self.fullfilename,'w')
         file.write("#Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
-        file.write("# Voltage Limit = {}\n".format(self.vLimit.value()))
-        file.write("# Current Limit = {}\n".format(self.iLimit.value()))
-        file.write("# Applied Voltgage (V) Current(A)\n")
+        file.write("# Voltage Limit = {}\n".format(vPoints[-1]))
+        file.write("# Current Limit = {}\n".format(iPoints[-1]))
+        file.write("# Applied Voltgage (V)\tCurrent(A)\n")
         iFlag = False
-        global volts
-        global currents
         for v in vPoints[1:]:
             self.k2450.write("SOUR:VOLT:ILIM {}".format(i))
             self.k2450.source_voltage = v
@@ -229,59 +341,37 @@ class app_Forming(Ui_Forming):
                 if self.stopCall:
                     iFlag = True
                     break
-                sleep(0.1)
                 if int(self.k2450.ask("SOUR:VOLT:ILIM:TRIP?").strip()):
                     m = 11
-                    if l < nIpoints-1:
+                    if l < len(iPoints)-1:
                         l = l+1
                         i = iPoints[l]
                     else:
                         iFlag = True # if the user specified current limit is reached
+                        
                 else:
                     m = m + 1
+                sleep(0.1)
                 if m > 10:
-                    values = self.k2450.ask(":read? 'defbuffer1', SOURce, READing").strip()
-                    file.write(values+'\n')
+                    values = self.k2450.ask(":read? 'defbuffer1', SOURce, READing").strip().split(',')
+                    file.write(values[0]+'\t'+values[1]+'\n')
                     file.flush()
-                    values = values.split(',')
-                    volts.append(float(values[0]))
-                    currents.append(float(values[1]))
+                    volt = float(values[0])
+                    current = float(values[1])
+                    self.data.emit([volt,current])
                     break
             if iFlag:
                 break
         file.close()
-                
-    def stop_Forming(self):
-        pass
-    
-    def keyPressEvent(self, event):
-        """Close application from escape key.
-
-        results in QMessageBox dialog from closeEvent, good but how/why?
-        """
-        if event.key() == Qt.Key_Escape:
-            self.close()
-
-class Procedure:
-    pass
-    
-class Worker(QObject,Procedure):
-    finished = pyqtSignal()
-    adapters = pyqtSignal(list)
-    
-    def __init__(self):
-        super(Worker,self).__init__()
-        
-    def start_forming(self):
-        pass
+        self.k2450.source_voltage = 0
+        self.k2450.disable_source()
+        self.finished.emit()
         
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     Forming = QtWidgets.QWidget()
-    #k2450, k2700, _ = checkInstrument(test = True)
-    k2450 = FakeAdapter()
-    k2700 = FakeAdapter()
+    k2450, k2700, _ = checkInstrument(test = True)
     ui = app_Forming(Forming,k2450,k2700)
     ui.show()
     app.exec_()
