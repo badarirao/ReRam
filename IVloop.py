@@ -566,6 +566,7 @@ class Worker(QObject):
         self.stopcall.connect(self.stopcalled)
         self.npoints = 500
         self.k2450.nplc = 1
+        self.status = 1
         
     def initialize_SMU(self):
         """
@@ -676,12 +677,19 @@ class Worker(QObject):
         while i<self.params["ncycles"] and not self.stopCall:
             self.k2450.start_buffer()  # start the measurement
             # TODO: get buffered data every n seconds
-            self.k2450.wait_till_done(1000)
-            start_point = int(self.k2450.ask("trace:actual:start?")[:-1])
-            end_point = int(self.k2450.ask("trace:actual:end?")[:-1])
-            data = self.k2450.ask("TRAC:data? {0}, {1}, 'defbuffer1', sour, read".format(start_point, end_point))
-            data = reshape(array(data.split(','), dtype=float), (-1, 2))
-            self.data.emit(data,i+1)
+            while True:
+                #self.k2450.wait_till_done(1000)
+                sleep(0.5)
+                start_point = int(self.k2450.ask("trace:actual:start?")[:-1])
+                end_point = int(self.k2450.ask("trace:actual:end?")[:-1])
+                data = self.k2450.ask("TRAC:data? {0}, {1}, 'defbuffer1', sour, read".format(start_point, end_point))
+                data = reshape(array(data.split(','), dtype=float), (-1, 2))
+                self.data.emit(data,i+1)
+                state = self.ask("Trigger:state?").split(';')[0]
+                if state != 'RUNNING':
+                    if state != 'IDLE':
+                        self.status = 0
+                    break
             with open(self.fullfilename, "a") as f:
                 f.write("#Cycle {0}\n".format(self.i+1))
                 data = insert(data, 0, self.points[0:len(data)], axis=1)
