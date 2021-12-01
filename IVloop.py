@@ -8,7 +8,9 @@ The IV-loop module of the ReRam project.
 
 from winsound import MessageBeep
 from itertools import chain
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
+from time import sleep
+from functools import partial
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
@@ -250,8 +252,6 @@ class app_IVLoop(Ui_IVLoop):
         self.start_Button.setShortcut('Ctrl+Return')
         self.stop_Button.setShortcut('Ctrl+q')
         self.initialize_plot()
-        self.npoints = 500
-        self.k2450.nplc = 1
         self.filename = sName
         self.file_name.setText(self.filename)
         self.measurement_status = "Idle"
@@ -305,114 +305,6 @@ class app_IVLoop(Ui_IVLoop):
             self.minV.setValue(self.params["Vmin"])
             self.maxV.setValue(self.params["Vmax"])
 
-    def initialize_SMU(self):
-        """
-        Initialize the SMU.
-
-        Returns
-        -------
-        None.
-
-        """
-        if self.k2450 is None:
-            self.k2450 = FakeAdapter()
-        if self.k2700 is None:
-            self.k2700 = FakeAdapter()
-        
-        # if afg is connected, remove and connect the source meter
-        connect_sample_with_SMU(self.k2700)
-        self.k2450.write("SENS:FUNC 'CURR'")  # measure current
-        self.k2450.write("SENS:CURR:RANG:AUTO ON")  # current autorange on
-        #self.k2450.write("SENS:CURR:RANG:AUTO:REB ON")
-        self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
-        if self.params["Speed"] == 0:
-            nplc = 5
-            self.speed = "Very Slow"
-        elif self.params["Speed"] == 1:
-            nplc = 2
-            self.speed = "Slow"
-        elif self.params["Speed"] == 2:
-            nplc = 1
-            self.speed = "Normal"
-        elif self.params["Speed"] == 3:
-            nplc = 0.1
-            self.speed = "Fast"
-        elif self.params["Speed"] == 4:
-            nplc = 0.01
-            self.speed = "Very Fast"
-        self.k2450.nplc = nplc
-        # set read time per point according to required speed
-        self.k2450.write("SENS:NPLC {0}".format(self.k2450.nplc))
-        self.k2450.write("sour:func volt")  # set source as voltage
-        self.k2450.write("sour:volt:rang 20")  # set voltage range to 20 V
-        # correct for zero only at the beginning
-        self.k2450.write("Sense:AZero:ONCE")
-        self.k2450.write("source:voltage:ilimit {0}".format(
-            self.params["ILimit"]))  # set compliance current
-        self.k2450.write("SOUR:VOLT:READ:BACK ON")
-        #self.k2450.write(":DISPlay:LIGHT:STATe OFF")
-
-    def configure_sweep(self):
-        """
-        Configure the sweep conditions based on given parameters.
-
-        Returns
-        -------
-        None.
-
-        """
-        self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat', datetimeformat="")
-        with open(self.fullfilename,'w') as f:
-            f.write("# IV loop measurement using Keithley 2450 source measure unit.\n")
-            f.write("# Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
-            f.write('# Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"]*1000,self.params["Delay"]))
-            f.write('# Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed,self.params["ncycles"]))
-            f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
-            
-        if self.params["Vmax"] == self.params["Vmin"]:
-            self.points = [self.params["Vmax"]]
-            self.k2450.write("SOURce:LIST:VOLTage {0}".format(
-                str(self.points)[1:-1]))
-        elif self.params["Vmax"] >= 0 >= self.params["Vmin"]:
-            nplus = int(
-                self.params["Vmax"]/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
-            nminus = int(abs(
-                self.params["Vmin"])/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
-            l1 = linspace(0, self.params["Vmax"], nplus, endpoint=False)
-            l2 = linspace(
-                self.params["Vmax"], self.params["Vmin"], nplus+nminus, endpoint=False)
-            l3 = linspace(self.params["Vmin"], 0, nminus+1, endpoint=True)
-            self.points = around(concatenate((l1, l2, l3)), 3)
-            self.points[self.points == 0] = 0.0001
-            # split the points into 6 chunks of equal size
-            self.chunks = array_split(self.points, 6)
-            # write the first chunk into the list
-            self.k2450.write("SOURce:LIST:VOLTage {0}".format(
-                str(list(self.chunks[0]))[1:-1]))
-            # append the remaining chunks into the list
-            if len(self.chunks) > 1:
-                for i in self.chunks[1:]:
-                    self.k2450.write(
-                        "SOURce:LIST:VOLTage:APPend {0}".format(str(list(i))[1:-1]))
-        else:
-            l1 = linspace(self.params["Vmin"], self.params["Vmax"], int(
-                self.npoints/2), endpoint=False)
-            l2 = linspace(self.params["Vmax"], self.params["Vmin"], int(
-                self.npoints/2)+1, endpoint=True)
-            self.points = around(concatenate((l1, l2)), 3)
-            self.chunks = array_split(self.points, 5)
-            # write the first chunk into the list
-            self.k2450.write("SOURce:LIST:VOLTage {0}".format(
-                str(list(self.chunks[0]))[1:-1]))
-            # append the remaining chunks into the list
-            if len(self.chunks) > 1:
-                for i in self.chunks[1:]:
-                    self.k2450.write(
-                        "SOURce:LIST:VOLTage:APPend {0}".format(str(list(i))[1:-1]))
-        # set the sweep function with the above list
-        self.k2450.write(
-            "SOURce:SWEep:VOLTage:LIST 1, {0}, 1, OFF".format(self.params["Delay"]))
-
     def plot_IVloop(self, data, i):
         """
         Plot the ith IV loop into the graph.
@@ -433,52 +325,7 @@ class app_IVLoop(Ui_IVLoop):
         volts = volts.flatten()
         currents = abs(currents.flatten())
         pen1 = mkPen(intColor(i), width=2)
-        self.graphWidget.plot(
-            self.points[0:len(volts)], currents, name="Cycle {0}".format(i), pen=pen1)
-
-    def one_IV_cycle(self):
-        """
-        Trigger the ith IV loop measurement.
-
-        Returns
-        -------
-        None.
-
-        """
-        if self.i >= self.params["ncycles"] or self.stop_flag:
-            if not self.stop_flag:
-                self.statusbar.setText("Measurement Finished.")
-                self.measurement_status = "Idle"
-                self.stop_flag = True
-            self.k2450.source_voltage = 0
-            self.minV.setEnabled(True)
-            self.maxV.setEnabled(True)
-            self.delay.setEnabled(True)
-            self.scan_speed.setEnabled(True)
-            self.Ilimit.setEnabled(True)
-            self.ncycles.setEnabled(True)
-            self.temp_check.setEnabled(True)
-            self.start_Button.setEnabled(True)
-            self.k2450.source_voltage = 0
-            self.stop_Button.setEnabled(False)
-            app_IVLoop.formatIV_Excel(self.fullfilename)
-            MessageBeep()
-            return
-        self.k2450.start_buffer()  # start the measurement
-        self.k2450.wait_till_done(1000)
-        start_point = int(self.k2450.ask("trace:actual:start?")[:-1])
-        end_point = int(self.k2450.ask("trace:actual:end?")[:-1])
-        data = self.k2450.ask(
-            "TRAC:data? {0}, {1}, 'defbuffer1', sour, read".format(start_point, end_point))
-        data = reshape(array(data.split(','), dtype=float), (-1, 2))
-        self.plot_IVloop(data, self.i+1)
-        with open(self.fullfilename, "a") as f:
-            f.write("#Cycle {0}\n".format(self.i+1))
-            data = insert(data, 0, self.points[0:len(data)], axis=1)
-            savetxt(f, data, delimiter='\t')
-            f.write("\n\n")
-        self.i = self.i + 1
-        self.timer.singleShot(0, self.one_IV_cycle)  # plot next loop
+        self.graphWidget.plot(self.points[0:len(volts)], currents, name="Cycle {0}".format(i), pen=pen1)
 
     def start_ivloop(self):
         """
@@ -489,6 +336,7 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
+        self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat', datetimeformat="")
         self.statusbar.setText("Measurement Running..")
         self.measurement_status = "Running"
         if self.stop_flag:
@@ -504,12 +352,37 @@ class app_IVLoop(Ui_IVLoop):
         self.temp_check.setEnabled(False)
         self.start_Button.setEnabled(False)
         self.update_params()
-        self.initialize_SMU()
-        self.configure_sweep()
-        self.i = 0
-        self.timer = QtCore.QTimer()
-        self.timer.singleShot(0, self.one_IV_cycle)
+        self.startThread()
 
+    def startThread(self):
+        self.thread = QThread()
+        self.worker = Worker(self.params,self.k2450,self.k2700,self.fullfilename)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(partial(self.worker.start_IV))
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.data.connect(self.plot_IVloop)
+        self.thread.finished.connect(self.finishAction)   
+        self.thread.start()
+
+    def finishAction(self):
+        if not self.stop_flag:
+            self.statusbar.setText("Measurement Finished.")
+            self.measurement_status = "Idle"
+            self.stop_flag = True
+        self.minV.setEnabled(True)
+        self.maxV.setEnabled(True)
+        self.delay.setEnabled(True)
+        self.scan_speed.setEnabled(True)
+        self.Ilimit.setEnabled(True)
+        self.ncycles.setEnabled(True)
+        self.temp_check.setEnabled(True)
+        self.start_Button.setEnabled(True)
+        self.k2450.source_voltage = 0
+        self.stop_Button.setEnabled(False)
+        app_IVLoop.formatIV_Excel(self.fullfilename)
+    
     def initialize_plot(self):
         """
         Initialize the plot to display IV loop.
@@ -542,9 +415,7 @@ class app_IVLoop(Ui_IVLoop):
         self.statusbar.setText("Measurement Aborted!")
         self.measurement_status = "Aborted"
         self.stop_flag = True
-        self.k2450.write("Abort")
-        self.k2450.source_voltage = 0
-        self.k2450.disable_source()
+        self.worker.stopcall.emit()
 
     # make sure filename has some extension, it should be the file name that has collected data
     @staticmethod
@@ -672,13 +543,161 @@ class app_IVLoop(Ui_IVLoop):
             quit_msg = "Measurement is in Progress. Are you sure you want to stop and exit?"
             reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
-                self.stop_flag = True
+                self.worker.stopcall.emit()
         if reply == QMessageBox.Yes:
             if __name__ != "__main__":
                 self.parent.show()
             event.accept()
         else:
             event.ignore()
+
+class Worker(QObject):
+    finished = pyqtSignal()
+    data = pyqtSignal(list)
+    stopcall = pyqtSignal()
+    
+    def __init__(self, params, k2450=None, k2700=None, fullfilename="sample.dat"):
+        super(Worker,self).__init__()
+        self.stopCall = False
+        self.params = params
+        self.k2450 = k2450
+        self.k2700 = k2700
+        self.fullfilename = fullfilename
+        self.stopcall.connect(self.stopcalled)
+        self.npoints = 500
+        self.k2450.nplc = 1
+        
+    def initialize_SMU(self):
+        """
+        Initialize the SMU.
+
+        Returns
+        -------
+        None.
+
+        """
+        if self.k2450 is None:
+            self.k2450 = FakeAdapter()
+        if self.k2700 is None:
+            self.k2700 = FakeAdapter()
+        
+        # if afg is connected, remove and connect the source meter
+        connect_sample_with_SMU(self.k2700)
+        self.k2450.write("SENS:FUNC 'CURR'")  # measure current
+        self.k2450.write("SENS:CURR:RANG:AUTO ON")  # current autorange on
+        #self.k2450.write("SENS:CURR:RANG:AUTO:REB ON")
+        self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
+        if self.params["Speed"] == 0:
+            nplc = 5
+            self.speed = "Very Slow"
+        elif self.params["Speed"] == 1:
+            nplc = 2
+            self.speed = "Slow"
+        elif self.params["Speed"] == 2:
+            nplc = 1
+            self.speed = "Normal"
+        elif self.params["Speed"] == 3:
+            nplc = 0.1
+            self.speed = "Fast"
+        elif self.params["Speed"] == 4:
+            nplc = 0.01
+            self.speed = "Very Fast"
+        self.k2450.nplc = nplc
+        # set read time per point according to required speed
+        self.k2450.write("SENS:NPLC {0}".format(self.k2450.nplc))
+        self.k2450.write("sour:func volt")  # set source as voltage
+        self.k2450.write("sour:volt:rang 20")  # set voltage range to 20 V
+        # correct for zero only at the beginning
+        self.k2450.write("Sense:AZero:ONCE")
+        self.k2450.write("source:voltage:ilimit {0}".format(
+            self.params["ILimit"]))  # set compliance current
+        self.k2450.write("SOUR:VOLT:READ:BACK ON")
+        #self.k2450.write(":DISPlay:LIGHT:STATe OFF")
+
+    def configure_sweep(self):
+        """
+        Configure the sweep conditions based on given parameters.
+
+        Returns
+        -------
+        None.
+
+        """
+        with open(self.fullfilename,'w') as f:
+            f.write("# IV loop measurement using Keithley 2450 source measure unit.\n")
+            f.write("# Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
+            f.write('# Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"]*1000,self.params["Delay"]))
+            f.write('# Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed,self.params["ncycles"]))
+            f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
+            
+        if self.params["Vmax"] == self.params["Vmin"]:
+            self.points = [self.params["Vmax"]]
+            self.k2450.write("SOURce:LIST:VOLTage {0}".format(self.points[0]))
+        elif self.params["Vmax"] >= 0 >= self.params["Vmin"]:
+            nplus = int(
+                self.params["Vmax"]/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
+            nminus = int(abs(
+                self.params["Vmin"])/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
+            l1 = linspace(0, self.params["Vmax"], nplus, endpoint=False)
+            l2 = linspace(
+                self.params["Vmax"], self.params["Vmin"], nplus+nminus, endpoint=False)
+            l3 = linspace(self.params["Vmin"], 0, nminus+1, endpoint=True)
+            self.points = around(concatenate((l1, l2, l3)), 3)
+            self.points[self.points == 0] = 0.0001
+            # split the points into 6 chunks of equal size
+            self.chunks = array_split(self.points, 6)
+            # write the first chunk into the list
+            self.k2450.write("SOURce:LIST:VOLTage {0}".format(str(list(self.chunks[0]))[1:-1]))
+            # append the remaining chunks into the list
+            if len(self.chunks) > 1:
+                for i in self.chunks[1:]:
+                    self.k2450.write("SOURce:LIST:VOLTage:APPend {0}".format(str(list(i))[1:-1]))
+        else:
+            l1 = linspace(self.params["Vmin"], self.params["Vmax"], int(
+                self.npoints/2), endpoint=False)
+            l2 = linspace(self.params["Vmax"], self.params["Vmin"], int(
+                self.npoints/2)+1, endpoint=True)
+            self.points = around(concatenate((l1, l2)), 3)
+            self.chunks = array_split(self.points, 5)
+            # write the first chunk into the list
+            self.k2450.write("SOURce:LIST:VOLTage {0}".format(
+                str(list(self.chunks[0]))[1:-1]))
+            # append the remaining chunks into the list
+            if len(self.chunks) > 1:
+                for i in self.chunks[1:]:
+                    self.k2450.write("SOURce:LIST:VOLTage:APPend {0}".format(str(list(i))[1:-1]))
+        # set the sweep function with the above list
+        self.k2450.write("SOURce:SWEep:VOLTage:LIST 1, {0}, 1, OFF".format(self.params["Delay"]))
+    
+    def start_IV(self):
+        self.initialize_SMU()
+        self.configure_sweep()
+        i = 0
+        while i<self.params["ncycles"] and not self.stopCall:
+            self.k2450.start_buffer()  # start the measurement
+            # TODO: get buffered data every n seconds
+            self.k2450.wait_till_done(1000)
+            start_point = int(self.k2450.ask("trace:actual:start?")[:-1])
+            end_point = int(self.k2450.ask("trace:actual:end?")[:-1])
+            data = self.k2450.ask("TRAC:data? {0}, {1}, 'defbuffer1', sour, read".format(start_point, end_point))
+            data = reshape(array(data.split(','), dtype=float), (-1, 2))
+            self.data.emit(data,i+1)
+            with open(self.fullfilename, "a") as f:
+                f.write("#Cycle {0}\n".format(self.i+1))
+                data = insert(data, 0, self.points[0:len(data)], axis=1)
+                savetxt(f, data, delimiter='\t')
+                f.write("\n\n")
+            i = i + 1
+        if self.stopCall:
+            self.k2450.write("Abort")
+        self.k2450.source_voltage = 0
+        self.k2450.disable_source()
+        MessageBeep()
+        self.finished.emit()
+    
+    def stopcalled(self):
+        print("stopcall")
+        self.stopCall = True
 
 if __name__ == "__main__":
     import sys
