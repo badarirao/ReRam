@@ -320,7 +320,6 @@ class Worker(QObject):
     def start_forming(self, vPoints, iPoints):
         l = 1
         i = iPoints[l]
-        
         self.k2450.measure_current(nplc=2)
         self.k2450.source_voltage = 0
         self.k2450.write(":Sense:count 1")
