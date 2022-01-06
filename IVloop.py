@@ -244,6 +244,7 @@ class app_IVLoop(Ui_IVLoop):
         self.file_name.setReadOnly(True)
         self.k2450 = k2450
         self.k2700 = k2700
+        self.k2450.reset()
         self.stop_Button.setEnabled(False)
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_ivloop)
@@ -304,7 +305,7 @@ class app_IVLoop(Ui_IVLoop):
             self.minV.setValue(self.params["Vmin"])
             self.maxV.setValue(self.params["Vmax"])
 
-    def plot_IVloop(self, data, i):
+    def plot_IVloop(self, Data):
         """
         Plot the ith IV loop into the graph.
 
@@ -320,11 +321,18 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
+        data = Data[0]
+        i = Data[1]
+        self.currentCycle = i
         volts, currents = hsplit(data, 2)
         volts = volts.flatten()
         currents = abs(currents.flatten())
         pen1 = mkPen(intColor(i), width=2)
-        self.graphWidget.plot(self.points[0:len(volts)], currents, name="Cycle {0}".format(i), pen=pen1)
+        if self.currentCycle == self.previousCycle:
+            self.data_line.setData(self.points[0:len(volts)], currents)
+        else:
+            self.data_line = self.graphWidget.plot(self.points[0:len(volts)], currents, name="Cycle {0}".format(i), pen=pen1)
+        self.previousCycle = i
 
     def start_ivloop(self):
         """
@@ -335,6 +343,7 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
+        self.previousCycle = 0
         self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat', datetimeformat="")
         self.statusbar.setText("Measurement Running..")
         self.measurement_status = "Running"
@@ -363,7 +372,12 @@ class app_IVLoop(Ui_IVLoop):
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.data.connect(self.plot_IVloop)
         self.thread.finished.connect(self.finishAction)
+        self.worker.sendPoints.connect(self.getPoints)
+        self.thread.finished.connect(self.finishAction)   
         self.thread.start()
+
+    def getPoints(self,points):
+        self.points = points[0]
 
     def finishAction(self):
         if not self.stop_flag:
@@ -442,19 +456,29 @@ class app_IVLoop(Ui_IVLoop):
         legend = []
         cycles = 0
         myfile = open(fname, "r")
+        h = ''
         while myfile:
             line = myfile.readline()
             li = line.strip()
+            if li.startswith('##'):
+                continue
             if li.startswith('#'):
+                line2 = myfile.readline()
+                li2 = line2.strip()
+                if li2.startswith('#'):
+                    l = li2
+                    li2 = li
+                    li = l
+                    li2 = li2[1:].split('\t')
+                    li2.append('Absolute Current (A)')
+                    h = li2
+                header2s.append(h)
                 legend.append(li)
                 header1s.append([' ', ' ', ' ', li])
                 line2 = myfile.readline()
                 li2 = line2.strip()
                 cycles = cycles + 1
-                if li2.startswith('#'):
-                    li2 = li2[1:].split('\t')
-                    li2.append('Absolute Current (A)')
-                    header2s.append(li2)
+
             if line == "":
                 break
         myfile.close()
@@ -554,6 +578,7 @@ class Worker(QObject):
     finished = pyqtSignal()
     data = pyqtSignal(list)
     stopcall = pyqtSignal()
+    sendPoints = pyqtSignal(list)
     
     def __init__(self, params, k2450=None, k2700=None, fullfilename="sample.dat"):
         super(Worker,self).__init__()
@@ -624,10 +649,10 @@ class Worker(QObject):
 
         """
         with open(self.fullfilename,'w') as f:
-            f.write("# IV loop measurement using Keithley 2450 source measure unit.\n")
-            f.write("# Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
-            f.write('# Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"]*1000,self.params["Delay"]))
-            f.write('# Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed,self.params["ncycles"]))
+            f.write("## IV loop measurement using Keithley 2450 source measure unit.\n")
+            f.write("## Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
+            f.write('## Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"]*1000,self.params["Delay"]))
+            f.write('## Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed,self.params["ncycles"]))
             f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
             
         if self.params["Vmax"] == self.params["Vmin"]:
@@ -668,6 +693,7 @@ class Worker(QObject):
                     self.k2450.write("SOURce:LIST:VOLTage:APPend {0}".format(str(list(i))[1:-1]))
         # set the sweep function with the above list
         self.k2450.write("SOURce:SWEep:VOLTage:LIST 1, {0}, 1, OFF".format(self.params["Delay"]))
+        self.sendPoints.emit([self.points])
     
     def start_IV(self):
         self.initialize_SMU()
@@ -676,21 +702,23 @@ class Worker(QObject):
         while i<self.params["ncycles"] and not self.stopCall:
             self.k2450.start_buffer()  # start the measurement
             # TODO: get buffered data every n seconds
-            while True:
+            while self.stopCall == False:
                 #self.k2450.wait_till_done(1000)
-                sleep(0.5)
+                sleep(1)
                 start_point = int(self.k2450.ask("trace:actual:start?")[:-1])
+                if start_point == 0:
+                    continue
                 end_point = int(self.k2450.ask("trace:actual:end?")[:-1])
                 data = self.k2450.ask("TRAC:data? {0}, {1}, 'defbuffer1', sour, read".format(start_point, end_point))
                 data = reshape(array(data.split(','), dtype=float), (-1, 2))
-                self.data.emit(data,i+1)
-                state = self.ask("Trigger:state?").split(';')[0]
+                self.data.emit([data,i+1])
+                state = self.k2450.ask("Trigger:state?").split(';')[0]
                 if state != 'RUNNING':
                     if state != 'IDLE':
                         self.status = 0
                     break
             with open(self.fullfilename, "a") as f:
-                f.write("#Cycle {0}\n".format(self.i+1))
+                f.write("#Cycle {0}\n".format(i+1))
                 data = insert(data, 0, self.points[0:len(data)], axis=1)
                 savetxt(f, data, delimiter='\t')
                 f.write("\n\n")
@@ -703,7 +731,6 @@ class Worker(QObject):
         self.finished.emit()
     
     def stopcalled(self):
-        print("stopcall")
         self.stopCall = True
 
 if __name__ == "__main__":

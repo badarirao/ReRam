@@ -239,11 +239,11 @@ class app_Forming(Ui_Forming):
         self.start_Button.setEnabled(True)
         self.abort_Button.setEnabled(False)
         
-    def startThread(self,vPoints,iPoints):
+    def startThread(self):
         self.thread = QThread()
         self.worker = Worker(self.k2450,self.fullfilename)
         self.worker.moveToThread(self.thread)
-        self.thread.started.connect(partial(self.worker.start_forming,vPoints,iPoints))
+        self.thread.started.connect(partial(self.worker.start_forming,self.vPoints,self.iPoints))
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -265,19 +265,19 @@ class app_Forming(Ui_Forming):
         nPoints = int(abs(self.vEnd.value()-self.vStart.value())) * 10 + 1
         if nPoints < 11:
             nPoints = 11
-        vPoints = linspace(self.vStart.value(),self.vEnd.value(),nPoints)
+        self.vPoints = linspace(self.vStart.value(),self.vEnd.value(),nPoints)
         nIpoints = int(abs(self.iLimit.value())) * 10 + 1
         if nIpoints < 11:
             nIpoints = 11
-        iPoints = linspace(0,self.iLimit.value(),nIpoints)/1000
+        self.iPoints = linspace(0,self.iLimit.value(),nIpoints)/1000
         pen1 = mkPen(color=(0, 0, 255), width=2)
-        self.volts = [vPoints[0]]
-        self.currents = [iPoints[0]]
+        self.volts = [self.vPoints[0]]
+        self.currents = [self.iPoints[0]]
         self.graphWidget.clear()
         self.data_line = self.graphWidget.plot(self.volts, self.currents, pen=pen1)
         del self.volts[0]
         del self.currents[0]
-        self.startThread(vPoints,iPoints)
+        self.startThread()
     
     def abort(self):
         self.worker.stopcall.emit()
@@ -343,15 +343,14 @@ class Worker(QObject):
         self.k2450.write(":Sense:count 1")
         self.k2450.write("SOUR:VOLT:READ:BACK ON")
         self.k2450.enable_source()
-        
         file = open(self.fullfilename,'w')
         file.write("#Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
         file.write("# Voltage Limit = {}\n".format(vPoints[-1]))
         file.write("# Current Limit = {}\n".format(iPoints[-1]))
         file.write("# Applied Voltgage (V)\tCurrent(A)\n")
         iFlag = False
+        self.k2450.write("SOUR:VOLT:ILIM {}".format(i))
         for v in vPoints[1:]:
-            self.k2450.write("SOUR:VOLT:ILIM {}".format(i))
             self.k2450.source_voltage = v
             m = 0
             while True:
@@ -359,13 +358,14 @@ class Worker(QObject):
                     iFlag = True
                     break
                 if int(self.k2450.ask("SOUR:VOLT:ILIM:TRIP?").strip()):
-                    m = 11
                     if l < len(iPoints)-1:
                         l = l+1
                         i = iPoints[l]
+                        self.k2450.write("SOUR:VOLT:ILIM {}".format(i))
+                        m = 0
                     else:
                         iFlag = True # if the user specified current limit is reached
-                        
+                        m=11
                 else:
                     m = m + 1
                 sleep(0.1)
