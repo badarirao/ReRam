@@ -14,7 +14,6 @@ from PyQt5.QtWidgets import QMessageBox
 from numpy import linspace
 from time import sleep
 from functools import partial
-from random import random
 
 class Ui_Forming(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -47,53 +46,61 @@ class Ui_Forming(QtWidgets.QWidget):
         self.frame.setObjectName("frame")
         self.gridLayout = QtWidgets.QGridLayout(self.frame)
         self.gridLayout.setObjectName("gridLayout")
-        self.iLimit_label = QtWidgets.QLabel(self.frame)
-        self.iLimit_label.setObjectName("iLimit_label")
-        self.gridLayout.addWidget(self.iLimit_label, 4, 1, 1, 1)
         self.source = QtWidgets.QComboBox(self.frame)
         self.source.setEnabled(False)
         self.source.setObjectName("source")
         self.source.addItem("")
         self.gridLayout.addWidget(self.source, 2, 2, 1, 1)
-        self.file_name = QtWidgets.QLineEdit(self.frame)
-        self.file_name.setObjectName("file_name")
-        self.gridLayout.addWidget(self.file_name, 1, 2, 1, 1)
+        self.source_label = QtWidgets.QLabel(self.frame)
+        self.source_label.setObjectName("source_label")
+        self.gridLayout.addWidget(self.source_label, 2, 1, 1, 1)
         self.temp_check = QtWidgets.QCheckBox(self.frame)
         self.temp_check.setObjectName("temp_check")
-        self.gridLayout.addWidget(self.temp_check, 10, 1, 1, 1)
+        self.gridLayout.addWidget(self.temp_check, 9, 1, 1, 1)
+        self.fname_label = QtWidgets.QLabel(self.frame)
+        self.fname_label.setObjectName("fname_label")
+        self.gridLayout.addWidget(self.fname_label, 1, 1, 1, 1)
+        self.vEnd_label = QtWidgets.QLabel(self.frame)
+        self.vEnd_label.setObjectName("vEnd_label")
+        self.gridLayout.addWidget(self.vEnd_label, 4, 1, 1, 1)
+        self.vStart_label = QtWidgets.QLabel(self.frame)
+        self.vStart_label.setObjectName("vStart_label")
+        self.gridLayout.addWidget(self.vStart_label, 3, 1, 1, 1)
         self.temperature = QtWidgets.QDoubleSpinBox(self.frame)
         self.temperature.setEnabled(False)
         self.temperature.setMaximum(600.0)
         self.temperature.setProperty("value", 300.0)
         self.temperature.setObjectName("temperature")
-        self.gridLayout.addWidget(self.temperature, 10, 2, 1, 1)
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.vLimit = QtWidgets.QDoubleSpinBox(self.frame)
-        self.vLimit.setDecimals(3)
-        self.vLimit.setMinimum(-50.0)
-        self.vLimit.setMaximum(49.0)
-        self.vLimit.setSingleStep(0.1)
-        self.vLimit.setProperty("value", -3.0)
-        self.vLimit.setObjectName("vLimit")
-        self.horizontalLayout_2.addWidget(self.vLimit)
-        self.gridLayout.addLayout(self.horizontalLayout_2, 3, 2, 1, 1)
-        self.source_label = QtWidgets.QLabel(self.frame)
-        self.source_label.setObjectName("source_label")
-        self.gridLayout.addWidget(self.source_label, 2, 1, 1, 1)
-        self.fname_label = QtWidgets.QLabel(self.frame)
-        self.fname_label.setObjectName("fname_label")
-        self.gridLayout.addWidget(self.fname_label, 1, 1, 1, 1)
-        self.vLimit_label = QtWidgets.QLabel(self.frame)
-        self.vLimit_label.setObjectName("vLimit_label")
-        self.gridLayout.addWidget(self.vLimit_label, 3, 1, 1, 1)
+        self.gridLayout.addWidget(self.temperature, 9, 2, 1, 1)
+        self.file_name = QtWidgets.QLineEdit(self.frame)
+        self.file_name.setObjectName("file_name")
+        self.gridLayout.addWidget(self.file_name, 1, 2, 1, 1)
+        self.vEnd = QtWidgets.QDoubleSpinBox(self.frame)
+        self.vEnd.setDecimals(3)
+        self.vEnd.setMinimum(-50.0)
+        self.vEnd.setMaximum(49.0)
+        self.vEnd.setSingleStep(0.1)
+        self.vEnd.setProperty("value", 3.0)
+        self.vEnd.setObjectName("vEnd")
+        self.gridLayout.addWidget(self.vEnd, 4, 2, 1, 1)
+        self.iLimit_label = QtWidgets.QLabel(self.frame)
+        self.iLimit_label.setObjectName("iLimit_label")
+        self.gridLayout.addWidget(self.iLimit_label, 5, 1, 1, 1)
         self.iLimit = QtWidgets.QDoubleSpinBox(self.frame)
         self.iLimit.setDecimals(3)
         self.iLimit.setMaximum(500.0)
         self.iLimit.setSingleStep(0.001)
         self.iLimit.setProperty("value", 1.0)
         self.iLimit.setObjectName("iLimit")
-        self.gridLayout.addWidget(self.iLimit, 4, 2, 1, 1)
+        self.gridLayout.addWidget(self.iLimit, 5, 2, 1, 1)
+        self.vStart = QtWidgets.QDoubleSpinBox(self.frame)
+        self.vStart.setDecimals(3)
+        self.vStart.setMinimum(-50.0)
+        self.vStart.setMaximum(49.0)
+        self.vStart.setSingleStep(0.1)
+        self.vStart.setProperty("value", 0.0)
+        self.vStart.setObjectName("vStart")
+        self.gridLayout.addWidget(self.vStart, 3, 2, 1, 1)
         self.verticalLayout_2.addWidget(self.frame)
         self.gridLayout_2.addWidget(self.widget, 0, 0, 1, 1)
         self.widget1 = QtWidgets.QWidget(Forming)
@@ -138,20 +145,22 @@ class Ui_Forming(QtWidgets.QWidget):
 
     def retranslateUi(self, Forming):
         _translate = QtCore.QCoreApplication.translate
-        Forming.setWindowTitle(_translate("Forming", "Forming Program"))
+        Forming.setWindowTitle(_translate("Forming", "Form"))
         self.title_label.setText(_translate("Forming", "<html><head/><body><p align=\"center\"><span style=\" font-size:28pt; color:#0000ff;\">Forming</span></p></body></html>"))
         self.setting_label.setText(_translate("Forming", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt; font-weight:600; color:#aa0000;\">Settings</span></p></body></html>"))
-        self.iLimit_label.setText(_translate("Forming", "<html><head/><body><p><span style=\" font-size:10pt;\">Current Limit (mA)</span></p></body></html>"))
         self.source.setItemText(0, _translate("Forming", "Keithley 2450"))
-        self.file_name.setText(_translate("Forming", "sample.txt"))
+        self.source_label.setText(_translate("Forming", "<html><head/><body><p><span style=\" font-size:10pt;\">Voltage Source</span></p></body></html>"))
         self.temp_check.setToolTip(_translate("Forming", "<html><head/><body><p>Use temperature only if temperature controller is attached</p></body></html>"))
         self.temp_check.setText(_translate("Forming", "Temperature (K)"))
-        self.temperature.setToolTip(_translate("Forming", "<html><head/><body><p>Temperature range will depend on the type of heater</p></body></html>"))
-        self.vLimit.setToolTip(_translate("Forming", "<html><head/><body><p>Max -10 V</p></body></html>"))
-        self.source_label.setText(_translate("Forming", "<html><head/><body><p><span style=\" font-size:10pt;\">Voltage Source</span></p></body></html>"))
         self.fname_label.setText(_translate("Forming", "<html><head/><body><p><span style=\" font-size:10pt;\">File Name</span></p></body></html>"))
-        self.vLimit_label.setText(_translate("Forming", "<html><head/><body><p><span style=\" font-size:10pt;\">Voltage Limit (V)</span></p></body></html>"))
+        self.vEnd_label.setText(_translate("Forming", "<html><head/><body><p><span style=\" font-size:10pt;\">Voltage End (V)</span></p></body></html>"))
+        self.vStart_label.setText(_translate("Forming", "<html><head/><body><p><span style=\" font-size:10pt;\">Voltage Start (V)</span></p></body></html>"))
+        self.temperature.setToolTip(_translate("Forming", "<html><head/><body><p>Temperature range will depend on the type of heater</p></body></html>"))
+        self.file_name.setText(_translate("Forming", "sample.txt"))
+        self.vEnd.setToolTip(_translate("Forming", "<html><head/><body><p>Max -10 V</p></body></html>"))
+        self.iLimit_label.setText(_translate("Forming", "<html><head/><body><p><span style=\" font-size:10pt;\">Current Limit (mA)</span></p></body></html>"))
         self.iLimit.setToolTip(_translate("Forming", "<html><head/><body><p>The compliance current, which protects the sample from full breakdown</p></body></html>"))
+        self.vStart.setToolTip(_translate("Forming", "<html><head/><body><p>Max -10 V</p></body></html>"))
         self.start_Button.setToolTip(_translate("Forming", "<html><head/><body><p>Click to start the experiment</p></body></html>"))
         self.start_Button.setText(_translate("Forming", "Start"))
         self.abort_Button.setToolTip(_translate("Forming", "<html><head/><body><p>Click to abort the experiment</p></body></html>"))
@@ -178,7 +187,8 @@ class app_Forming(Ui_Forming):
         self.file_name.setText(self.filename)
         self.measurement_status = "Idle"
         self.params = {
-            "VLimit": 3,
+            "VStart": 0,
+            "VEnd": 3,
             "ILimit": 1/1000,
             "temperature": 300,
             "temp_check": 0}
@@ -186,10 +196,11 @@ class app_Forming(Ui_Forming):
     
     def load_parameters(self):
         try:
-            self.vLimit.setValue(self.parameters[0])
-            self.iLimit.setValue(self.parameters[1]*1000)
-            self.temperature.setValue(self.parameters[2])
-            self.temp_check.setChecked(self.parameters[3])
+            self.vStart.setValue(self.parameters[0])
+            self.vEnd.setValue(self.parameters[1])
+            self.iLimit.setValue(self.parameters[2]*1000)
+            self.temperature.setValue(self.parameters[3])
+            self.temp_check.setChecked(self.parameters[4])
         except Exception:
             pass
         
@@ -215,13 +226,15 @@ class app_Forming(Ui_Forming):
         self.data_line.setData(self.volts, self.currents)
     
     def disable_input(self):
-        self.vLimit.setEnabled(False)
+        self.vStart.setEnabled(False)
+        self.vEnd.setEnabled(False)
         self.iLimit.setEnabled(False)
         self.start_Button.setEnabled(False)
         self.abort_Button.setEnabled(True)
     
     def enable_input(self):
-        self.vLimit.setEnabled(True)
+        self.vStart.setEnabled(True)
+        self.vEnd.setEnabled(True)
         self.iLimit.setEnabled(True)
         self.start_Button.setEnabled(True)
         self.abort_Button.setEnabled(False)
@@ -240,7 +253,8 @@ class app_Forming(Ui_Forming):
         
     def start_Forming(self):
         self.params = {
-            "VLimit": self.vLimit.value(),
+            "VStart": self.vStart.value(),
+            "VEnd": self.vEnd.value(),
             "ILimit": self.iLimit.value()/1000,
             "temperature": self.temperature.value(),
             "temp_check": int(self.temp_check.isChecked())}
@@ -248,9 +262,13 @@ class app_Forming(Ui_Forming):
         self.parameters = list(self.params.values())
         self.disable_input()
         self.fullfilename = unique_filename('.',prefix=self.filename,ext='dat',datetimeformat="")
-        nPoints = int(abs(self.vLimit.value())) * 5 + 1
-        vPoints = linspace(0,self.vLimit.value(),nPoints)
-        nIpoints = int(abs(self.iLimit.value())) * 5 + 1
+        nPoints = int(abs(self.vEnd.value()-self.vStart.value())) * 10 + 1
+        if nPoints < 11:
+            nPoints = 11
+        vPoints = linspace(self.vStart.value(),self.vEnd.value(),nPoints)
+        nIpoints = int(abs(self.iLimit.value())) * 10 + 1
+        if nIpoints < 11:
+            nIpoints = 11
         iPoints = linspace(0,self.iLimit.value(),nIpoints)/1000
         pen1 = mkPen(color=(0, 0, 255), width=2)
         self.volts = [vPoints[0]]
