@@ -10,7 +10,6 @@ from winsound import MessageBeep
 from itertools import chain
 from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
 from time import sleep
-from functools import partial
 from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
@@ -358,12 +357,12 @@ class app_IVLoop(Ui_IVLoop):
         self.thread = QThread()
         self.worker = Worker(self.params,self.k2450,self.k2700,self.fullfilename)
         self.worker.moveToThread(self.thread)
-        self.thread.started.connect(partial(self.worker.start_IV))
+        self.thread.started.connect(self.worker.start_IV)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.data.connect(self.plot_IVloop)
-        self.thread.finished.connect(self.finishAction)   
+        self.thread.finished.connect(self.finishAction)
         self.thread.start()
 
     def finishAction(self):
