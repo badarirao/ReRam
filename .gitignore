@@ -116,7 +116,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# paths relevant to this computer
+# paths relevant to local computer
 address.txt
 SettingFile.dnd
 
