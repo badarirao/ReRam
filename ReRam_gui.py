@@ -4,7 +4,6 @@ Module to initialize the main menu.
 Works on Python 3.8.5, Windows 10
 Not tested for other Python versions or OS
 
-# TODO: Program to initiate forming process
 # TODO: Program to investigate switching speed
 # TODO: Allow for both SCPI and TSP commands (currently only SCPI works)
 # TODO: Not able to cleanly exit if no instrument is connected and TESTING = False.
