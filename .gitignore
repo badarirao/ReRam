@@ -122,3 +122,9 @@ SettingFile.dnd
 
 # ignore any data files created in the folder
 *.dat
+
+# ignore batch file
+ReRam.bat
+
+#ignore icon file
+ReRam.ico

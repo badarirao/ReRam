@@ -6,7 +6,6 @@ from pyvisa import ResourceManager, VisaIOError
 from os import makedirs
 from copy import copy
 from re import sub
-import sys
 from MyKeithley2450 import Keithley2450
 from MyKeithley2700 import Keithley2700
 from MyAFG1022 import AFG1022 

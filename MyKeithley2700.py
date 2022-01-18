@@ -137,6 +137,7 @@ class Keithley2700:
         :param channels: a list of channel numbers, or single channel number
         """
         clist = clist_validator(channels, self.CLIST_VALUES)
+        print(clist)
         state = self.ask("ROUTe:MULTiple:STATe? %s" % clist)
 
         return state
