@@ -102,7 +102,7 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.gridLayout.addWidget(self.setting_label, 0, 0, 1, 3)
         self.Ilimit = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.Ilimit.setDecimals(3)
-        self.Ilimit.setMaximum(1.0)
+        self.Ilimit.setMaximum(5)
         self.Ilimit.setSingleStep(0.001)
         self.Ilimit.setProperty("value", 1)
         self.Ilimit.setObjectName("Ilimit")
