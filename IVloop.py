@@ -327,7 +327,7 @@ class app_IVLoop(Ui_IVLoop):
         volts, currents = hsplit(data, 2)
         volts = volts.flatten()
         currents = abs(currents.flatten())
-        pen1 = mkPen(intColor(i), width=2)
+        pen1 = mkPen(intColor(3*i, values=3), width=2)
         if self.currentCycle == self.previousCycle:
             self.data_line.setData(self.points[0:len(volts)], currents)
         else:

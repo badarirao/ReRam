@@ -424,7 +424,7 @@ class app_RVLoop(Ui_RVLoop):
         """
         l1 = linspace(self.params["Vmax"], self.params["Vmin"], int(
             self.npoints/2), endpoint=False)
-        l2 = linspace(self.params["Vmax"], self.params["Vmin"], int(
+        l2 = linspace(self.params["Vmin"], self.params["Vmax"], int(
             self.npoints/2)+1, endpoint=True)
         self.points = around(concatenate((l1, l2)), 2)
         self.points[self.points == 0] = 0.0001

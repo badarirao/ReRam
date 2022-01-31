@@ -368,7 +368,7 @@ class Worker(QObject):
                         m=11
                 else:
                     m = m + 1
-                sleep(0.5)
+                sleep(0.1)
                 if m > 10:
                     values = self.k2450.ask(":read? 'defbuffer1', SOURce, READing").strip().split(',')
                     file.write(values[0]+'\t'+values[1]+'\n')
