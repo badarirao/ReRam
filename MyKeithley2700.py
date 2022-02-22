@@ -308,24 +308,7 @@ class Keithley2700:
         2700.
         """
 
-        # Get the closed channels and make a string of the list
-        channels = self.closed_channels
-        channel_string = " ".join([
-            str(channel % 100) for channel in channels
-        ])
-
-        # Prepend "Closed: " or "C: " to the string, depending on the length
-        str_length = 12
-        if len(channel_string) < str_length - 8:
-            channel_string = "Closed: " + channel_string
-        elif len(channel_string) < str_length - 3:
-            channel_string = "C: " + channel_string
-
-        # enable displaying text-messages
-        self.text_enabled = True
-
-        # write the string to the display
-        self.display_text = channel_string
+        return(self.ask("ROUTe:MULTiple:CLOSe?"))
     
     def close_Channels(self,channels):
         if channels:

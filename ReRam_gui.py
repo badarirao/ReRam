@@ -1,27 +1,35 @@
 """
 Module to initialize the main menu.
 
-Works on Python 3.8.5, Windows 10
-Not tested for other Python versions or OS
+Works on Python 3.8.5, Windows 10.
+Not tested for other Python versions or OS.
 
 # TODO: when mux is not connected, source meter is expected to be connected by default.
         hence, use of function generator must be disabled.
-# TODO: Program to investigate switching speed
-# TODO: Allow for both SCPI and TSP commands (currently only SCPI works)
+# TODO: Program to investigate switching speed.
+# TODO: Allow for both SCPI and TSP commands (currently only SCPI works).
 # TODO: Not able to cleanly exit if no instrument is connected and TESTING = False.
-# TODO: correct the tab order of all the windows
+# TODO: correct the tab order of all the windows.
 # TODO: Bug: minimizing the main window also minimized the child window, even if child.show() is given later.
 # TODO: clear the graphs in all apps when directory of filename is changed.
 # TODO: some VisaError occurs when open_resources finds an instrument over lan, and tries to connect to it.
 # TODO: Implement threading to plot data in a separate thread as a separate process.
 # TODO: Include date, start and end time of experiment in saved file.
-# BUG: If soucemeter is Idle for long time, it connects, but no command works, gives visaerror
+# BUG: If soucemeter is Idle for long time, it connects, but no command works, gives visaerror.
+# TODO: Correct the channel connections after Sample and instrument connections in MUX have been modified.
+# TODO: Enable 4 probe measurements.
+# TODO: Enable using cryochamber.
+# TODO: Connect chino temperature controller, and Linkam temperature controller.
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
 # 'TEKTRONIX,AFG1022,1643763,SCPI:99.0 FV:V1.2.3\n'
 #  except VisaIOError:
-    
+
+# 2700: when power on, by default all switches are opened
+# You can save the presently closed channels into instrument using: *SAV 1 (saves into 1st place, can be 2, 3 or 4)    
+# TO recall during startup, *RCL 1
+# To automatically recall during startup: SYST:POS SAV1 (This will directly keep closed channels in sav1 as closed.)
 import sys
 import os
 from PyQt5 import QtWidgets, QtCore
