@@ -16,30 +16,44 @@ from numpy import logspace, linspace, diff
 from time import sleep
 from PyQt5.QtWidgets import QMessageBox
 
-SMU = 111
-AFG = 112
-SAMPLE1 = 101
-SAMPLE2 = 102
-SAMPLE3 = 103
-SAMPLE4 = 104
-SAMPLE5 = 105
-SAMPLE6 = 106
-SAMPLE7 = 107
-SAMPLE8 = 108
-SAMPLE9 = 109
-SAMPLE10 = 110
+SMU = 101
+AFG = 102
+SMU4PROBE = 115
+SAMPLE1 = 106
+SAMPLE2 = 107
+SAMPLE3 = 108
+CRYOCHAMBER1 = 109
+CRYOCHAMBER2 = 110
+
+CONNECTION = 1
 
 sample_id = {
-                1 : SAMPLE1,
-                2 : SAMPLE2,
-                3 : SAMPLE3,
-                4 : SAMPLE4,
-                5 : SAMPLE5,
-                6 : SAMPLE6,
-                7 : SAMPLE7,
-                8 : SAMPLE8,
-                9 : SAMPLE9,
-                10 : SAMPLE10}
+                0 : SAMPLE1,
+                1 : SAMPLE2,
+                2 : SAMPLE3,
+                3 : CRYOCHAMBER1,
+                4 : CRYOCHAMBER2
+            }
+
+sample_key = {
+                106 : 0,
+                107 : 1,
+                108 : 2,
+                109 : 3,
+                110 : 4
+            }
+
+inst_id = {
+                0 : SMU,
+                1 : AFG,
+                4 : SMU4PROBE
+            }
+
+inst_key = {
+                101 : 0,
+                102 : 1,
+                115 : 4
+            }
 
 class MyTimeEdit(QTimeEdit):
     def stepBy(self,steps):
@@ -240,7 +254,7 @@ def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
                 return 0,0,0
     return k2450, k2700, afg
 
-def connect_sample_with_AFG(k2700,sample_no=1):
+def connect_sample_with_AFG(k2700,sample_no=0):
     """
     Connect the function generator with sample using multiplexer.
 
@@ -261,7 +275,14 @@ def connect_sample_with_AFG(k2700,sample_no=1):
             closed_channels = []
         else:
             closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
-        required_channels = [sample_id[sample_no],AFG]
+        if CONNECTION == 1: # SMU connected through connection 1 of MUX
+            closed_channels = [x for x in closed_channels if x <= 110]
+            required_channels = [sample_id[sample_no],AFG]
+            k2700.open_Channels([sample_id[sample_no]+10,AFG+10])
+        elif CONNECTION == 2:
+            closed_channels = [x for x in closed_channels if x > 110 and x <= 120]
+            required_channels = [sample_id[sample_no]+10,AFG+10]
+            k2700.open_Channels([sample_id[sample_no],AFG])
         channels_to_close = [x for x in required_channels if x not in closed_channels]
         channels_to_open = [x for x in closed_channels if x not in required_channels]
         k2700.close_Channels(channels_to_close)
@@ -269,7 +290,7 @@ def connect_sample_with_AFG(k2700,sample_no=1):
         sleep(0.2)
         #waitFor(20) # wait for 20msec to ensure switching is complete
 
-def connect_sample_with_SMU(k2700,sample_no=1):
+def connect_sample_with_SMU(k2700,sample_no=0):
     """
     Connect the function generator with sample using multiplexer.
 
@@ -290,7 +311,14 @@ def connect_sample_with_SMU(k2700,sample_no=1):
             closed_channels = []
         else:
             closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
-        required_channels = [sample_id[sample_no],SMU]
+        if CONNECTION == 1: # SMU connected through connection 1 of MUX
+            closed_channels = [x for x in closed_channels if x <= 110]
+            required_channels = [sample_id[sample_no],SMU]
+            k2700.open_Channels([sample_id[sample_no]+10,SMU+10])
+        elif CONNECTION == 2:
+            closed_channels = [x for x in closed_channels if x > 110 and x <= 120]
+            required_channels = [sample_id[sample_no]+10,SMU+10]
+            k2700.open_Channels([sample_id[sample_no],SMU])
         channels_to_close = [x for x in required_channels if x not in closed_channels]
         channels_to_open = [x for x in closed_channels if x not in required_channels]
         k2700.close_Channels(channels_to_close)
@@ -321,6 +349,11 @@ def getBinnedPoints(points,start=1):
     fpoints = [start]
     fpoints.extend(list(diff(points).astype(float)))
     return fpoints
+
+def check_mux(self):
+    # If mux is connected, get connection details directly from mux
+    # If mux is not accessible, get connection details from saved file
+    pass
     
     
         
