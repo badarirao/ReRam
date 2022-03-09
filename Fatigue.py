@@ -327,12 +327,14 @@ class Ui_Fatigue(QtWidgets.QWidget):
 class app_Fatigue(Ui_Fatigue):
     """The Switch app module."""
     
-    def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue.dat"):
+    def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue.dat",connection=1,currentSample=0):
         super(app_Fatigue, self).__init__(parent)
         self.parent = parent
         self.k2450 = k2450
         self.k2700 = k2700
         self.afg1022 = afg1022
+        self.connection = connection
+        self.currentSample = currentSample
         self.stopCall = False
         self.start_Button.clicked.connect(self.startFatigue)
         self.abort_Button.clicked.connect(self.abortFatigue)
@@ -519,7 +521,7 @@ class app_Fatigue(Ui_Fatigue):
         self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
         self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
         self.k2450.source_voltage = self.params["Rvoltage"]
-        connect_sample_with_AFG(self.k2700)
+        connect_sample_with_AFG(self.k2700, self.connection, self.currentSample)
 
     def pulseMeasure_AFG(self):
         """
@@ -564,7 +566,10 @@ class app_Fatigue(Ui_Fatigue):
             self.stop_program()
             return
         
-        self.k2700.close_Channels(AFG) # connect function generator for next set of cycles
+        if self.connection == 1:
+            self.k2700.close_Channels(AFG) # connect function generator for next set of cycles
+        elif self.connection == 2:
+            self.k2700.close_Channels(AFG+10)
         waitFor(20) # wait for 20msec to ensure switching is complete
         self.timer.singleShot(0, self.pulseMeasure_AFG)  # Measure next pulse    
 
@@ -639,25 +644,41 @@ class app_Fatigue(Ui_Fatigue):
         # Get LRS
         self.afg1022.setSinglePulse(self.params['Vset'],self.setTimestep)
         self.afg1022.trgNwait()
-        self.k2700.open_Channels(AFG) # disconnect function generator
-        self.k2700.close_Channels(SMU) # connect SMU
+        if self.connection == 1:
+            self.k2700.open_Channels(AFG) # disconnect function generator
+            self.k2700.close_Channels(SMU) # connect SMU
+        elif self.connection == 2:
+            self.k2700.open_Channels(AFG+10) # disconnect function generator
+            self.k2700.close_Channels(SMU+10) # connect SMU
         waitFor(20) # wait for 20msec to ensure switching is complete
         # Measure Read resistance using K2450
         LRScurrent = self.k2450.readReRAM()
         
         # Get HRS        
-        self.k2700.open_Channels(SMU) # disconnect SMU
-        self.k2700.close_Channels(AFG) # connect function generator
+        if self.connection == 1:
+            self.k2700.open_Channels(SMU) # disconnect SMU
+            self.k2700.close_Channels(AFG) # connect function generator
+        elif self.connection == 2:
+            self.k2700.open_Channels(SMU+10) # disconnect SMU
+            self.k2700.close_Channels(AFG+10) # connect function generator
         waitFor(20) # wait for 20msec to ensure switching is complete
         self.afg1022.setSinglePulse(self.params['Vreset'],self.resetTimestep)
         self.afg1022.trgNwait()
-        self.k2700.open_Channels(AFG) # disconnect function generator
-        self.k2700.close_Channels(SMU) # connect SMU
+        if self.connection == 1:
+            self.k2700.open_Channels(AFG) # disconnect function generator
+            self.k2700.close_Channels(SMU) # connect SMU
+        elif self.connection == 2:
+            self.k2700.open_Channels(AFG+10) # disconnect function generator
+            self.k2700.close_Channels(SMU+10) # connect SMU
         waitFor(20) # wait for 20msec to ensure switching is complete
         # Measure Read resistance using K2450
         HRScurrent = self.k2450.readReRAM()
-        self.k2700.open_Channels(SMU) # disconnect SMU
-        self.k2700.close_Channels(AFG) # connect function generator
+        if self.connection == 1:
+            self.k2700.open_Channels(SMU) # disconnect SMU
+            self.k2700.close_Channels(AFG) # connect function generator
+        elif self.connection == 2:
+            self.k2700.open_Channels(SMU+10) # disconnect SMU
+            self.k2700.close_Channels(AFG+10) # connect function generator
         waitFor(20) # wait for 20msec to ensure switching is complete
         return LRScurrent, HRScurrent
         

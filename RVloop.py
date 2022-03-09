@@ -281,12 +281,14 @@ class Ui_RVLoop(QtWidgets.QWidget):
 class app_RVLoop(Ui_RVLoop):
     """The RV-Loop app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_RV.csv"):
+    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_RV.csv", connection=1,currentSample=0):
         super(app_RVLoop, self).__init__(parent)
         self.parent = parent
         self.k2450 = k2450
         self.k2700 = k2700 
         self.afg1022 = afg1022
+        self.connection = connection
+        self.currentSample = currentSample
         self.stop_Button.setEnabled(False)
         self.stopCall = False
         self.start_Button.clicked.connect(self.start_rvloop)
@@ -472,7 +474,7 @@ class app_RVLoop(Ui_RVLoop):
         self.set_currents = []
         self.timer = QtCore.QTimer()
         if self.params["Vsource"] == 0:
-            connect_sample_with_SMU(self.k2700)
+            connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
             self.timer.singleShot(0, self.measure_RV_SMU)
         else:
             self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
@@ -531,14 +533,24 @@ class app_RVLoop(Ui_RVLoop):
         None.
 
         """
-        self.k2700.open_Channels(SMU) # Disconnect SMU
-        self.k2700.close_Channels(AFG) # connect AFG
+        if self.connection == 1:
+            self.k2700.open_Channels(SMU) # Disconnect SMU
+            self.k2700.open_Channels(AFG+10) # connect AFG
+            self.k2700.close_Channels(AFG) # connect AFG
+        elif self.connection == 2:
+            self.k2700.open_Channels(SMU+10) # Disconnect SMU
+            self.k2700.open_Channels(AFG) # connect AFG
+            self.k2700.close_Channels(AFG+100) # connect AFG
         waitFor(20) # wait for 20msec to ensure switching is complete
         self.afg1022.setSinglePulse(self.points[self.i],self.timestep)
         self.afg1022.trgNwait()
         #self.set_currents.append(c)
-        self.k2700.open_Channels(AFG) # disconnect function generator
-        self.k2700.close_Channels(SMU) # connect SMU
+        if self.connection == 1:
+            self.k2700.open_Channels(AFG) # disconnect function generator
+            self.k2700.close_Channels(SMU) # connect SMU
+        elif self.connection == 2:
+            self.k2700.open_Channels(AFG+10) # disconnect function generator
+            self.k2700.close_Channels(SMU+10) # connect SMU
         waitFor(20) # wait for 20msec to ensure switching is complete
         self.k2450.start_buffer()
         self.wait_till_done()

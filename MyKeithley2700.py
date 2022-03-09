@@ -106,7 +106,7 @@ class Keithley2700:
         keithley = Keithley2700("GPIB::1")
 
     """
-    CLIST_VALUES = list(range(101, 120))
+    CLIST_VALUES = list(range(101, 121))
     
     def __init__(self, adapter, **kwargs):
         if isinstance(adapter,str):
@@ -114,6 +114,7 @@ class Keithley2700:
             self.inst = rm.open_resource(adapter)
             self.address = adapter
             self.ID = 'K2700'
+            self.inst.query('*IDN?')
         else:
             raise VisaIOError(-1073807346)
         #self.check_errors()
@@ -314,8 +315,10 @@ class Keithley2700:
         if channels:
             clist = clist_validator(channels,self.CLIST_VALUES)
             self.write("ROUTe:MULTiple:CLOSE {}".format(clist))
+            print("Closed  {}".format(clist))
     
     def open_Channels(self,channels):
         if channels:
             clist = clist_validator(channels,self.CLIST_VALUES)
             self.write("ROUTe:MULTiple:OPEN {}".format(clist))
+            print("Opened  {}".format(clist))

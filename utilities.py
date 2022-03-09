@@ -55,6 +55,8 @@ inst_key = {
                 115 : 4
             }
 
+CURRENTSAMPLE = sample_key[SAMPLE1]
+
 class MyTimeEdit(QTimeEdit):
     def stepBy(self,steps):
         cur = self.time()
@@ -252,9 +254,12 @@ def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
             afg,_ = connectDevice(AFG1022,AFG1022Addr,test)
             if _ == 0 and test == False:
                 return 0,0,0
+    if k2700.ID != 'Fake':
+        k2700.write('DISPLAY:TEXT:STATE ON')
+        k2700.write('DISPLAY:TEXT:DATA "RERAM USE"')
     return k2450, k2700, afg
 
-def connect_sample_with_AFG(k2700,sample_no=0):
+def connect_sample_with_AFG(k2700,connection = 1, sample_no=0):
     """
     Connect the function generator with sample using multiplexer.
 
@@ -275,11 +280,11 @@ def connect_sample_with_AFG(k2700,sample_no=0):
             closed_channels = []
         else:
             closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
-        if CONNECTION == 1: # SMU connected through connection 1 of MUX
+        if connection == 1: # SMU connected through connection 1 of MUX
             closed_channels = [x for x in closed_channels if x <= 110]
             required_channels = [sample_id[sample_no],AFG]
             k2700.open_Channels([sample_id[sample_no]+10,AFG+10])
-        elif CONNECTION == 2:
+        elif connection == 2:
             closed_channels = [x for x in closed_channels if x > 110 and x <= 120]
             required_channels = [sample_id[sample_no]+10,AFG+10]
             k2700.open_Channels([sample_id[sample_no],AFG])
@@ -290,7 +295,7 @@ def connect_sample_with_AFG(k2700,sample_no=0):
         sleep(0.2)
         #waitFor(20) # wait for 20msec to ensure switching is complete
 
-def connect_sample_with_SMU(k2700,sample_no=0):
+def connect_sample_with_SMU(k2700,connection = 1, sample_no= 0):
     """
     Connect the function generator with sample using multiplexer.
 
@@ -311,11 +316,11 @@ def connect_sample_with_SMU(k2700,sample_no=0):
             closed_channels = []
         else:
             closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
-        if CONNECTION == 1: # SMU connected through connection 1 of MUX
+        if connection == 1: # SMU connected through connection 1 of MUX
             closed_channels = [x for x in closed_channels if x <= 110]
             required_channels = [sample_id[sample_no],SMU]
             k2700.open_Channels([sample_id[sample_no]+10,SMU+10])
-        elif CONNECTION == 2:
+        elif connection == 2:
             closed_channels = [x for x in closed_channels if x > 110 and x <= 120]
             required_channels = [sample_id[sample_no]+10,SMU+10]
             k2700.open_Channels([sample_id[sample_no],SMU])
@@ -350,12 +355,35 @@ def getBinnedPoints(points,start=1):
     fpoints.extend(list(diff(points).astype(float)))
     return fpoints
 
-def check_mux(self):
+def checkMUX_SMU(k2700):
     # If mux is connected, get connection details directly from mux
     # If mux is not accessible, get connection details from saved file
-    pass
-    
-    
-        
-        
-        
+    connection = 0
+    with open("C:/Python Projects/MUX-Switch/status.txt",'r') as f:
+        lines = f.readlines()
+        line1 = lines[0].split()
+        print(line1)
+        if line1[1] == 'True':
+            if int(line1[2]) == inst_key[SMU]:
+                CURRENTSAMPLE = int(line1[3])
+                connection = 1
+        line2 = lines[1].split()
+        if line2[1] == 'True':
+            if int(line2[2]) == inst_key[SMU]:
+                currentSAMPLE2 = int(line2[3])
+                if connection == 0:
+                    connection = 2
+                    CURRENTSAMPLE = currentSAMPLE2
+                else:
+                    connection = -1
+    if connection == 0:
+        # means SMU is not connected, so prompt to connect to SMU using MUX program
+        connection = 1
+        return 0, -1
+    elif connection == -1:
+        # means SMU is connected in 4-probe method. Currently ReRAM program is designed only for 2 probe method
+        # So prompt to connect to 2-probe SMU using MUX program
+        connection = 1
+        return -1, -1
+    else:
+        return connection, CURRENTSAMPLE

@@ -238,12 +238,14 @@ class Ui_IVLoop(QtWidgets.QWidget):
 class app_IVLoop(Ui_IVLoop):
     """The IV-Loop app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, sName="Sample_IV.txt"):
+    def __init__(self, parent=None, k2450=None, k2700 = None, sName="Sample_IV.txt",connection=1,currentSample=0):
         super(app_IVLoop, self).__init__(parent)
         self.parent = parent
         self.file_name.setReadOnly(True)
         self.k2450 = k2450
         self.k2700 = k2700
+        self.connection = connection
+        self.currentSample = currentSample
         self.k2450.reset()
         self.stop_Button.setEnabled(False)
         self.stop_flag = False
@@ -364,7 +366,7 @@ class app_IVLoop(Ui_IVLoop):
 
     def startThread(self):
         self.thread = QThread()
-        self.worker = Worker(self.params,self.k2450,self.k2700,self.fullfilename)
+        self.worker = Worker(self.params,self.k2450,self.k2700,self.fullfilename,self.connection, self.currentSample)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.start_IV)
         self.worker.finished.connect(self.thread.quit)
@@ -580,12 +582,14 @@ class Worker(QObject):
     stopcall = pyqtSignal()
     sendPoints = pyqtSignal(list)
     
-    def __init__(self, params, k2450=None, k2700=None, fullfilename="sample.dat"):
+    def __init__(self, params, k2450=None, k2700=None, fullfilename="sample.dat", connection = 1, currentSample = 0):
         super(Worker,self).__init__()
         self.stopCall = False
         self.params = params
         self.k2450 = k2450
         self.k2700 = k2700
+        self.connection = connection
+        self.currentSample = currentSample
         self.fullfilename = fullfilename
         self.stopcall.connect(self.stopcalled)
         self.npoints = 500
@@ -607,7 +611,7 @@ class Worker(QObject):
             self.k2700 = FakeAdapter()
         
         # if afg is connected, remove and connect the source meter
-        connect_sample_with_SMU(self.k2700)
+        connect_sample_with_SMU(self.k2700,self.connection,self.currentSample)
         self.k2450.write("SENS:FUNC 'CURR'")  # measure current
         self.k2450.write("SENS:CURR:RANG:AUTO ON")  # current autorange on
         #self.k2450.write("SENS:CURR:RANG:AUTO:REB ON")
