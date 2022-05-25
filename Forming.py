@@ -9,7 +9,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from pyqtgraph import PlotWidget, ViewBox, mkPen
 from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
-from utilities import unique_filename, checkInstrument
+from utilities import unique_filename, checkInstrument, connect_sample_with_SMU
 from PyQt5.QtWidgets import QMessageBox
 from numpy import linspace
 from time import sleep
@@ -169,12 +169,14 @@ class Ui_Forming(QtWidgets.QWidget):
 class app_Forming(Ui_Forming):
     """The IV-Loop app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, sName="Sample_IV.txt"):
+    def __init__(self, parent=None, k2450=None, k2700 = None, sName="Sample_IV.txt",connection=1,currentSample=0):
         super(app_Forming, self).__init__(parent)
         self.parent = parent
         self.file_name.setReadOnly(True)
         self.k2450 = k2450
         self.k2700 = k2700
+        self.connection = connection
+        self.currentSample = currentSample
         self.abort_Button.setEnabled(False)
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_Forming)
@@ -193,6 +195,7 @@ class app_Forming(Ui_Forming):
             "temperature": 300,
             "temp_check": 0}
         self.parameters = list(self.params.values())
+        connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
     
     def load_parameters(self):
         try:

@@ -20,6 +20,10 @@ Not tested for other Python versions or OS.
 # TODO: Enable 4 probe measurements.
 # TODO: Enable using cryochamber.
 # TODO: Connect chino temperature controller, and Linkam temperature controller.
+# TODO: If funcion geerator is not connected, disable endurance function, and setting function generator as source in other programs.
+# TODO: if function generator is not connected, disable usage of MUX also!
+# TODO: MUX related tasks:"
+  TODO: If function generator is connected with another sample, make sure this program will not use function generator
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
@@ -43,7 +47,7 @@ from Switch import app_Switch
 from Fatigue import app_Fatigue
 from Retention import app_Retention
 from Forming import app_Forming
-from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU
+from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU, checkMUX_SMU
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
 
@@ -68,6 +72,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         contents of address.txt:
             line 1: path where SettingFile.dnd is (or should be) stored
         """
+        self.abortMessage = False
         self.checkPaths()
         self.setupUi(self)
         self.filename.setText(self.sampleID)
@@ -97,6 +102,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.filename.editingFinished.connect(self.setFilename)
         self.setFilename(1)  # 1 indicates initial setting of filename
         self.abort = False
+        self.connection = 1
+        self.currentSample = 0
         self.check_instrument_connection()
     
     def checkPaths(self):
@@ -211,6 +218,30 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.afg1022 = instruments[2]
         
     def afterConnect(self):
+        self.connection, self.currentSample = checkMUX_SMU(self.k2700)
+        if self.connection == 0:
+            info = QMessageBox(self)
+            info.setWindowTitle("Multiplexer connection error")
+            info.setIcon(QMessageBox.Critical)
+            info.setText(
+                "Looks like Sourcemeter is not connected in multiplexer. Run the MUX program and fix the connection. Press cancel if using external connection, and you want to continue measurement.")
+            info.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            reply = info.exec()
+            if reply == QMessageBox.Ok:
+                self.abortMessage = True
+                self.close()
+        if self.connection == -1:
+            info = QMessageBox(self)
+            info.setWindowTitle("Multiplexer connection error")
+            info.setIcon(QMessageBox.Critical)
+            info.setText(
+                "Looks like Sourcemeter is connected for 4 probe measurement. This software currently only supports 2-probe measurement. Run the MUX program and fix the connection. Press cancel if using external connection, and you want to continue measurement.")
+            info.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            reply = info.exec()
+            if reply == QMessageBox.Ok:
+                self.abortMessage = True
+                self.close()
+        print("Closed channels = {}".format(self.k2700.display_closed_channels()))
         self.status = 0
         if self.k2450.ID == 'Fake':
             self.status = self.status + 1
@@ -245,17 +276,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.forming_button.setEnabled(True)
     
     def initialize_apps(self):
-        self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename)
+        self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename, self.connection, self.currentSample)
         self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rv = app_RVLoop(self, self.k2450, self.k2700, self.afg1022, self.RVfilename)
+        self.rv = app_RVLoop(self, self.k2450, self.k2700, self.afg1022, self.RVfilename, self.connection, self.currentSample)
         self.rv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.st = app_Switch(self, self.k2450, self.k2700, self.afg1022, self.Switchfilename)
+        self.st = app_Switch(self, self.k2450, self.k2700, self.afg1022, self.Switchfilename, self.connection, self.currentSample)
         self.st.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.ft = app_Fatigue(self, self.k2450, self.k2700, self.afg1022, self.Fatiguefilename)
+        self.ft = app_Fatigue(self, self.k2450, self.k2700, self.afg1022, self.Fatiguefilename, self.connection, self.currentSample)
         self.ft.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename)
+        self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename, self.connection, self.currentSample)
         self.rt.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.fr = app_Forming(self, self.k2450, self.k2700, self.Formingfilename)
+        self.fr = app_Forming(self, self.k2450, self.k2700, self.Formingfilename, self.connection, self.currentSample)
         self.fr.setWindowModality(QtCore.Qt.ApplicationModal)
         self.load_parameters()
     
@@ -453,13 +484,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         None.
 
         """
-        reply = QMessageBox.Yes
-        quit_msg = "Are you sure you want to exit?"
-        reply = QMessageBox.question(self, 'Confirm Exit',quit_msg, QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.No:
-            event.ignore()
-        else:
-            connect_sample_with_SMU(self.k2700)
+        def perform_preCloseOperations():
+            connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
             self.save_parameters()
             os.chdir(self.settingPath)
             with open('SettingFile.dnd', 'w') as f:
@@ -480,6 +506,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             self.k2700.write("DISPlay:ENABle ON")
             self.k2700.close()
             self.afg1022.close()
+            
+        reply = QMessageBox.Yes
+        if self.abortMessage == False:
+            quit_msg = "Are you sure you want to exit?"
+            reply = QMessageBox.question(self, 'Confirm Exit',quit_msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.No:
+                event.ignore()
+            else:
+                perform_preCloseOperations()
+                event.accept()
+        else:
             event.accept()
         
 if __name__ == '__main__':

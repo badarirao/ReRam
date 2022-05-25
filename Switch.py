@@ -352,7 +352,7 @@ class Ui_Switch(QtWidgets.QWidget):
 class app_Switch(Ui_Switch):
     """The Switch app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_Switch.csv"):
+    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_Switch.csv",connection=1,currentSample=0):
         super(app_Switch, self).__init__(parent)
         self.parent = parent
         self.new_flag = True
@@ -361,6 +361,8 @@ class app_Switch(Ui_Switch):
         self.k2450 = k2450
         self.k2700 = k2700
         self.afg1022 = afg1022
+        self.connection = connection
+        self.currentSample = currentSample
         self.save_Button.setEnabled(False)
         self.stop_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
@@ -612,13 +614,21 @@ class app_Switch(Ui_Switch):
         elif self.points[self.i] == 0:
             self.timestep = 0
         if self.timestep > 0 and self.points[self.i] != 0:
-            self.k2700.open_Channels(SMU) # Disconnect SMU
-            self.k2700.close_Channels(AFG) # connect AFG
+            if self.connection == 1:
+                self.k2700.open_Channels([SMU, AFG+10]) # Disconnect SMU
+                self.k2700.close_Channels(AFG) # connect AFG
+            elif self.connection == 2:
+                self.k2700.open_Channels([SMU+10, AFG]) # Disconnect SMU
+                self.k2700.close_Channels(AFG+10) # connect AFG
             waitFor(20) # wait for 20msec to ensure switching is complete
             self.afg1022.setSinglePulse(self.points[self.i],self.timestep)
             self.afg1022.trgNwait()
-            self.k2700.open_Channels(AFG) # disconnect function generator
-            self.k2700.close_Channels(SMU) # connect SMU
+            if self.connection == 1:
+                self.k2700.open_Channels(AFG) # disconnect function generator
+                self.k2700.close_Channels(SMU) # connect SMU
+            elif self.connection == 2:
+                self.k2700.open_Channels(AFG+10) # disconnect function generator
+                self.k2700.close_Channels(SMU+10) # connect SMU
             waitFor(20) # wait for 20msec to ensure switching is complete
         # Measure Read resistance using K2450
         self.k2450.start_buffer()
@@ -703,10 +713,10 @@ class app_Switch(Ui_Switch):
         self.savedFlag = False
         self.stopCall = False
         if self.params["Vsource"] == 0:
-            connect_sample_with_SMU(self.k2700)
+            connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
             self.timer.singleShot(0, self.pulseMeasure_SMU)
         elif self.params["Vsource"] == 1:
-            connect_sample_with_AFG(self.k2700)
+            connect_sample_with_AFG(self.k2700, self.connection, self.currentSample)
             self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
             self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
                                                      self.params["Average"]))

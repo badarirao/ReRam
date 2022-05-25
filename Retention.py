@@ -331,12 +331,14 @@ class Ui_Retention(QtWidgets.QWidget):
 class app_Retention(Ui_Retention):
     """The Switch app module."""
 
-    def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Retention.dat"):
+    def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Retention.dat",connection=1,currentSample=0):
         super(app_Retention, self).__init__(parent)
         self.parent = parent
         self.k2450 = k2450
         self.k2700 = k2700
         self.afg1022 = afg1022
+        self.currentSample = currentSample
+        self.connection = connection
         self.stopCall = False
         self.skip = False
         self.resistor.setToolTip("Connect a resistor of this value in series to input from function generator.")
@@ -534,10 +536,10 @@ class app_Retention(Ui_Retention):
 
         """
         if self.vsource.currentIndex() == 0:
-            connect_sample_with_SMU(self.k2700)
+            connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
             self.k2450.apply_switch_pulse(*self.pulses_to_apply[self.i])
         elif self.vsource.currentIndex() == 1:
-            connect_sample_with_AFG(self.k2700)
+            connect_sample_with_AFG(self.k2700, self.connection, self.curentSample)
             self.afg1022.setSinglePulse(*self.pulses_to_apply[self.i])
             self.afg1022.trgNwait()
             connect_sample_with_SMU(self.k2700)
@@ -674,30 +676,50 @@ class app_Retention(Ui_Retention):
         HRScurrent = 1e-12
         if self.setVcheck.isChecked():
             # Get LRS
-            self.k2700.open_Channels(SMU) # disconnect SMU
-            self.k2700.close_Channels(AFG) # connect function generator
+            if self.connection == 1:
+                self.k2700.open_Channels(SMU) # disconnect SMU
+                self.k2700.close_Channels(AFG) # connect function generator
+            elif self.connection == 2:
+                self.k2700.open_Channels(SMU+10) # disconnect SMU
+                self.k2700.close_Channels(AFG+10) # connect function generator
             waitFor(20) # wait for 20msec to ensure switching is complete
             self.afg1022.setSinglePulse(self.params['Vset'],self.setTimestep)
             self.afg1022.trgNwait()
-            self.k2700.open_Channels(AFG) # disconnect function generator
-            self.k2700.close_Channels(SMU) # connect SMU
+            if self.connection == 1:
+                self.k2700.open_Channels(AFG) # disconnect function generator
+                self.k2700.close_Channels(SMU) # connect SMU
+            elif self.connection == 2:
+                self.k2700.open_Channels(AFG+10) # disconnect function generator
+                self.k2700.close_Channels(SMU+10) # connect SMU
             waitFor(20) # wait for 20msec to ensure switching is complete
             # Measure Read resistance using K2450
             LRScurrent = self.k2450.readReRAM()
         if self.resetVcheck.isChecked():
-            # Get HRS        
-            self.k2700.open_Channels(SMU) # disconnect SMU
-            self.k2700.close_Channels(AFG) # connect function generator
+            # Get HRS
+            if self.connection == 1:
+                self.k2700.open_Channels(SMU) # disconnect SMU
+                self.k2700.close_Channels(AFG) # connect function generator
+            elif self.connection == 2:
+                self.k2700.open_Channels(SMU+10) # disconnect SMU
+                self.k2700.close_Channels(AFG+10) # connect function generator
             waitFor(20) # wait for 20msec to ensure switching is complete
             self.afg1022.setSinglePulse(self.params['Vreset'],self.resetTimestep)
             self.afg1022.trgNwait()
-            self.k2700.open_Channels(AFG) # disconnect function generator
-            self.k2700.close_Channels(SMU) # connect SMU
+            if self.connection == 1:
+                self.k2700.open_Channels(AFG) # disconnect function generator
+                self.k2700.close_Channels(SMU) # connect SMU
+            elif self.connection == 2:
+                self.k2700.open_Channels(AFG+10) # disconnect function generator
+                self.k2700.close_Channels(SMU+10) # connect SMU
             waitFor(20) # wait for 20msec to ensure switching is complete
             # Measure Read resistance using K2450
             HRScurrent = self.k2450.readReRAM()
-        self.k2700.open_Channels(SMU) # disconnect SMU
-        self.k2700.close_Channels(AFG) # connect function generator
+        if self.connection == 1:
+            self.k2700.open_Channels(SMU) # disconnect SMU
+            self.k2700.close_Channels(AFG) # connect function generator
+        elif self.connection == 2:
+            self.k2700.open_Channels(SMU+10) # disconnect SMU
+            self.k2700.close_Channels(AFG+10) # connect function generator
         waitFor(20) # wait for 20msec to ensure switching is complete
         return LRScurrent, HRScurrent
         

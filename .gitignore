@@ -128,3 +128,6 @@ ReRam.bat
 
 #ignore icon file
 ReRam.ico
+
+# ignore batch file
+*.bat
