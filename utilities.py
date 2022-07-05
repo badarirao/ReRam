@@ -336,6 +336,9 @@ def waitFor(wtime): # wtime is in msec
     QTimer.singleShot(wtime, loop.quit)
     loop.exec_()
     
+def linlinspace(totalTime):
+    return linspace(1,totalTime,totalTime)
+
 def linlogspace(counts,start=1,points_per_order=9):
     max_order = int(log10(counts))
     lin_ranges = logspace(start,max_order,(max_order-start)+1)

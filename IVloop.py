@@ -61,8 +61,8 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.gridLayout.addWidget(self.maxV_label, 4, 0, 1, 2)
         self.maxV = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.maxV.setDecimals(3)
-        self.maxV.setMinimum(-9.0)
-        self.maxV.setMaximum(10.0)
+        self.maxV.setMinimum(-199.0)
+        self.maxV.setMaximum(200.0)
         self.maxV.setSingleStep(0.001)
         self.maxV.setProperty("value", 3.0)
         self.maxV.setObjectName("maxV")
@@ -72,8 +72,8 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.gridLayout.addWidget(self.minV_label, 3, 0, 1, 2)
         self.minV = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.minV.setDecimals(3)
-        self.minV.setMinimum(-10.0)
-        self.minV.setMaximum(9.0)
+        self.minV.setMinimum(-200.0)
+        self.minV.setMaximum(199.0)
         self.minV.setSingleStep(0.001)
         self.minV.setProperty("value", -3.0)
         self.minV.setObjectName("minV")
@@ -635,7 +635,7 @@ class Worker(QObject):
         # set read time per point according to required speed
         self.k2450.write("SENS:NPLC {0}".format(self.k2450.nplc))
         self.k2450.write("sour:func volt")  # set source as voltage
-        self.k2450.write("sour:volt:rang 20")  # set voltage range to 20 V
+        self.k2450.write("sour:volt:RANG:AUTO ON")  # set voltage range to Auto
         # correct for zero only at the beginning
         self.k2450.write("Sense:AZero:ONCE")
         self.k2450.write("source:voltage:ilimit {0}".format(

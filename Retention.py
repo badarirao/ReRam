@@ -18,7 +18,7 @@ from pyqtgraph import PlotWidget, ViewBox, mkPen
 from os.path import exists as fileExists
 from winsound import MessageBeep
 from csv import writer
-from utilities import linlogspace, SMU, AFG, waitFor
+from utilities import linlogspace, SMU, AFG, waitFor, linlinspace
 from utilities import connect_sample_with_AFG, unique_filename, checkInstrument
 from utilities import MyTimeEdit, connect_sample_with_SMU, connect_sample_with_AFG, getBinnedPoints
 
@@ -501,7 +501,8 @@ class app_Retention(Ui_Retention):
             self.resetTimestep = self.params["resetPwidth"]*1e-3
         elif self.params["reset_timeUnit"] == 2:
             self.resetTimestep = self.params["resetPwidth"]
-        self.timePoints = linlogspace(self.time_sec.value(),start=0,points_per_order=18)
+        #self.timePoints = linlogspace(self.time_sec.value(),start=0,points_per_order=18)
+        self.timePoints = linlinspace(self.time_sec.value())
         self.binnedPoints = getBinnedPoints(self.timePoints,0.5)
         self.number_of_points = len(self.binnedPoints)
         
@@ -619,8 +620,10 @@ class app_Retention(Ui_Retention):
             title = "No resistance state selected"
             text = "Please check atleast one of the set/reset states to carry out retention measurement."
             self.status.setText("Select atleast 1 resistive state.")
+            self.stopCall = True
             QMessageBox.critical(self,title,text)
             self.measurement_status = "Idle"
+            self.stop_program()
             return
         if self.vsource.currentIndex() == 1:
             title = "Confirm resistance."
