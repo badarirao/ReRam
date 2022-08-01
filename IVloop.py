@@ -592,7 +592,7 @@ class Worker(QObject):
         self.currentSample = currentSample
         self.fullfilename = fullfilename
         self.stopcall.connect(self.stopcalled)
-        self.npoints = 500
+        self.npoints = 100
         self.k2450.nplc = 1
         self.status = 1
         

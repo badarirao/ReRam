@@ -21,6 +21,7 @@ from csv import writer
 from utilities import linlogspace, SMU, AFG, waitFor, linlinspace
 from utilities import connect_sample_with_AFG, unique_filename, checkInstrument
 from utilities import MyTimeEdit, connect_sample_with_SMU, connect_sample_with_AFG, getBinnedPoints
+from time import sleep
 
 class Ui_Retention(QtWidgets.QWidget):
     
@@ -87,6 +88,8 @@ class Ui_Retention(QtWidgets.QWidget):
         self.read_voltage = QtWidgets.QDoubleSpinBox(self.frame)
         self.read_voltage.setProperty("value", 0.1)
         self.read_voltage.setObjectName("read_voltage")
+        self.read_voltage.setMinimum(-10)
+        self.read_voltage.setMaximum(10)
         self.gridLayout.addWidget(self.read_voltage, 12, 1, 1, 1)
         self.temperature = QtWidgets.QDoubleSpinBox(self.frame)
         self.temperature.setEnabled(False)
@@ -488,7 +491,7 @@ class app_Retention(Ui_Retention):
             "temp_check": int(self.temp_check.isChecked())}
         self.parameters = list(self.params.values())
         self.k2450.avg = self.params["Average"]
-        self.readV = self.params["Rvoltage"]
+        self.k2450.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:
             self.setTimestep = self.params["setPwidth"]*1e-6
         elif self.params["set_timeUnit"] == 1:
@@ -501,8 +504,8 @@ class app_Retention(Ui_Retention):
             self.resetTimestep = self.params["resetPwidth"]*1e-3
         elif self.params["reset_timeUnit"] == 2:
             self.resetTimestep = self.params["resetPwidth"]
-        #self.timePoints = linlogspace(self.time_sec.value(),start=0,points_per_order=18)
-        self.timePoints = linlinspace(self.time_sec.value())
+        self.timePoints = linlogspace(self.time_sec.value(),start=0,points_per_order=18)
+        #self.timePoints = linlinspace(self.time_sec.value())
         self.binnedPoints = getBinnedPoints(self.timePoints,0.5)
         self.number_of_points = len(self.binnedPoints)
         
@@ -539,6 +542,7 @@ class app_Retention(Ui_Retention):
         if self.vsource.currentIndex() == 0:
             connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
             self.k2450.apply_switch_pulse(*self.pulses_to_apply[self.i])
+            print("Applied {}V".format(self.pulses_to_apply[self.i][0]))
         elif self.vsource.currentIndex() == 1:
             connect_sample_with_AFG(self.k2700, self.connection, self.curentSample)
             self.afg1022.setSinglePulse(*self.pulses_to_apply[self.i])
@@ -549,12 +553,18 @@ class app_Retention(Ui_Retention):
         self.k2450.source_voltage = self.k2450.readV
         
         if self.pulses_to_apply[self.i][0] == self.params["Vset"]:
-            self.ntimesSet = [0.001]
+            #self.ntimesSet = [0.09]
+            self.ntimesSet = []
+            self.LRScurrents = []
+            self.LRS = []
             self.startTime = time()
             self.j = 0
             self.read_LRS_dataPoints()
         elif self.pulses_to_apply[self.i][0] == self.params["Vreset"] and not self.stopCall:
-            self.ntimesReset = [0.001]
+            #self.ntimesReset = [0.09]
+            self.ntimesReset = []
+            self.HRScurrents = []
+            self.HRS = []
             self.startTime = time()
             self.j = 0
             self.read_HRS_dataPoints()
@@ -562,6 +572,11 @@ class app_Retention(Ui_Retention):
     def read_LRS_dataPoints(self):
         readCurrent = self.k2450.readReRAM()
         endTime = round((time() - self.startTime),3)
+        #if len(self.ntimesSet) == 1:
+        #    self.ntimesSet[0] = endTime
+        #    self.LRScurrents[0] = readCurrent
+        #    self.LRS[0] = abs(self.params["Rvoltage"]/readCurrent)
+        #else:
         self.ntimesSet.append(endTime)
         self.LRScurrents.append(readCurrent)
         self.LRS.append(abs(self.params["Rvoltage"]/readCurrent))
@@ -640,19 +655,33 @@ class app_Retention(Ui_Retention):
             if self.setVcheck.isChecked():
                 vset = self.params["Vset"]
                 setpulse = self.setTimestep
+                print("Vset = {0}, {1}ms".format(vset,setpulse))
+                self.k2450.apply_switch_pulse(vset,setpulse)
+                self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
+                self.k2450.source_voltage = self.k2450.readV
+                LRSCurrent = self.k2450.readReRAM()
+                print('LRS: {0},{1}'.format(self.k2450.readV,LRSCurrent))
+                self.k2450.wait_till_done()
             if self.resetVcheck.isChecked():
                 vreset = self.params["Vreset"]
                 resetpulse = self.resetTimestep
-            LRSCurrent, HRSCurrent = self.k2450.read_resistance_states([(vset,setpulse),(vreset,resetpulse)])
+                print("Vreset = {0}, {1}ms".format(vreset,resetpulse))
+                self.k2450.apply_switch_pulse(vreset,resetpulse)
+                self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
+                self.k2450.source_voltage = self.k2450.readV
+                HRSCurrent = self.k2450.readReRAM()
+                print('HRS: {0},{1}'.format(self.k2450.readV,HRSCurrent))
+                self.k2450.wait_till_done()
         self.stopCall = False
         self.skip = False
         self.status.setText("Program Running..")
         self.i = 0
         self.retentionPlot.clear()
-        ntimes = [0.001]
+        ntimes = [0.09]
         self.pulses_to_apply = []
         
         if self.setVcheck.isChecked():
+            self.ntimesSet = [0.09]
             self.LRScurrents = [LRSCurrent]
             self.LRS = [abs(self.params["Rvoltage"]/LRSCurrent)]
             pen1 = mkPen(color=(0, 0, 255), width=2)
@@ -661,6 +690,7 @@ class app_Retention(Ui_Retention):
             #del self.LRS[0]
             self.pulses_to_apply.append([self.params["Vset"],self.setTimestep])
         if self.resetVcheck.isChecked():
+            self.ntimesReset = [0.09]
             self.HRScurrents = [HRSCurrent]
             self.HRS = [abs(self.params["Rvoltage"]/HRSCurrent)]
             pen2 = mkPen(color=(255, 0, 0), width=2)
