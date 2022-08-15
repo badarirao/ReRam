@@ -616,6 +616,7 @@ class Worker(QObject):
         self.k2450.write("SENS:CURR:RANG:AUTO ON")  # current autorange on
         #self.k2450.write("SENS:CURR:RANG:AUTO:REB ON")
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
+        #self.k2450.write("SENS:curr:rsen ON")  # four wire configuration
         if self.params["Speed"] == 0:
             nplc = 5
             self.speed = "Very Slow"

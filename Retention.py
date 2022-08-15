@@ -504,8 +504,8 @@ class app_Retention(Ui_Retention):
             self.resetTimestep = self.params["resetPwidth"]*1e-3
         elif self.params["reset_timeUnit"] == 2:
             self.resetTimestep = self.params["resetPwidth"]
-        self.timePoints = linlogspace(self.time_sec.value(),start=0,points_per_order=18)
-        #self.timePoints = linlinspace(self.time_sec.value())
+        #self.timePoints = linlogspace(self.time_sec.value(),start=0,points_per_order=18)
+        self.timePoints = linlinspace(self.time_sec.value())
         self.binnedPoints = getBinnedPoints(self.timePoints,0.5)
         self.number_of_points = len(self.binnedPoints)
         
@@ -524,6 +524,7 @@ class app_Retention(Ui_Retention):
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
         self.k2450.measure_current(nplc=self.k2450.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
+        #self.k2450.write("SENS:curr:rsen ON")  # four wire configuration
         self.k2450.write(":DISPlay:LIGHT:STATe ON25")
         self.k2450.write("sour:volt:read:back 1")
         self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
