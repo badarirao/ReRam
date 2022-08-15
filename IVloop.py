@@ -592,7 +592,7 @@ class Worker(QObject):
         self.currentSample = currentSample
         self.fullfilename = fullfilename
         self.stopcall.connect(self.stopcalled)
-        self.npoints = 500
+        self.npoints = 100
         self.k2450.nplc = 1
         self.status = 1
         
@@ -616,6 +616,7 @@ class Worker(QObject):
         self.k2450.write("SENS:CURR:RANG:AUTO ON")  # current autorange on
         #self.k2450.write("SENS:CURR:RANG:AUTO:REB ON")
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
+        #self.k2450.write("SENS:curr:rsen ON")  # four wire configuration
         if self.params["Speed"] == 0:
             nplc = 5
             self.speed = "Very Slow"
@@ -635,7 +636,7 @@ class Worker(QObject):
         # set read time per point according to required speed
         self.k2450.write("SENS:NPLC {0}".format(self.k2450.nplc))
         self.k2450.write("sour:func volt")  # set source as voltage
-        self.k2450.write("sour:volt:rang 20")  # set voltage range to 20 V
+        self.k2450.write("sour:volt:RANG:AUTO ON")  # set voltage range to Auto
         # correct for zero only at the beginning
         self.k2450.write("Sense:AZero:ONCE")
         self.k2450.write("source:voltage:ilimit {0}".format(

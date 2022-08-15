@@ -545,6 +545,7 @@ class app_Switch(Ui_Switch):
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
         self.k2450.measure_current(nplc=self.k2450.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
+        #self.k2450.write("SENS:curr:rsen ON")  # four wire configuration
         self.k2450.write(":DISPlay:LIGHT:STATe ON25")
         self.k2450.write("sour:volt:read:back 1")
 

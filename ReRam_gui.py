@@ -436,12 +436,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             with open("parameter_file.prm",'r') as f:
                 self.filename.setText(f.readline().strip())
                 self.setFilename(1)
-                self.iv.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
-                self.rv.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
-                self.st.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
-                self.ft.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
-                self.rt.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
-                self.fr.parameters = [float(i) if '.' in i else int(i) for i in f.readline().strip().split()]
+                self.iv.parameters = [float(i) if '.' in i or 'e' in i else int(i) for i in f.readline().strip().split()]
+                self.rv.parameters = [float(i) if '.' in i or 'e' in i else int(i) for i in f.readline().strip().split()]
+                self.st.parameters = [float(i) if '.' in i or 'e' in i else int(i) for i in f.readline().strip().split()]
+                self.ft.parameters = [float(i) if '.' in i or 'e' in i else int(i) for i in f.readline().strip().split()]
+                self.rt.parameters = [float(i) if '.' in i or 'e' in i else int(i) for i in f.readline().strip().split()]
+                self.fr.parameters = [float(i) if '.' in i or 'e' in i else int(i) for i in f.readline().strip().split()]
                 self.iv.load_parameters()
                 self.rv.load_parameters()
                 self.st.load_parameters()

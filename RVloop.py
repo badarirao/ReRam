@@ -411,6 +411,7 @@ class app_RVLoop(Ui_RVLoop):
             self.k2450.nplc = 0.01
         self.k2450.measure_current(self.k2450.nplc)
         self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
+        #self.k2450.write("SENS:curr:rsen ON")  # four wire configuration
         self.k2450.write("Sense:curr:AZero ON")  # correct for zero
         self.k2450.write("sour:volt:read:back 1")
         self.k2450.write(":DISPlay:LIGHT:STATe OFF")
