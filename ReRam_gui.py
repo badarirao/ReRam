@@ -492,16 +492,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 f.write(self.currPath+'\n')
                 f.write(self.sampleID)
             os.chdir(self.initialPath)
-            if self.status == 0:
-                with open('address.txt','w') as f:
-                    self.k2450Addr = self.k2450.address
-                    self.k2700Addr = self.k2700.address
-                    self.AFG1022Addr = self.afg1022.address
-                    self.AFG1022Addr
-                    f.write(self.settingPath+'\n') # write path of SettingFile.dnd
-                    f.write(self.k2450Addr+' (Keithley 2450 Sourcemeter)'+'\n') # write address of K2450
-                    f.write(self.k2700Addr+' (Keithley 2700 Multiplexer)'+'\n') # write address of K700
-                    f.write(self.AFG1022Addr+' (Textronix 1022 Function Generator)') # write get address of AFG1022
+            try:
+                if self.status == 0:
+                    with open('address.txt','w') as f:
+                        self.k2450Addr = self.k2450.address
+                        self.k2700Addr = self.k2700.address
+                        self.AFG1022Addr = self.afg1022.address
+                        self.AFG1022Addr
+                        f.write(self.settingPath+'\n') # write path of SettingFile.dnd
+                        f.write(self.k2450Addr+' (Keithley 2450 Sourcemeter)'+'\n') # write address of K2450
+                        f.write(self.k2700Addr+' (Keithley 2700 Multiplexer)'+'\n') # write address of K700
+                        f.write(self.AFG1022Addr+' (Textronix 1022 Function Generator)') # write get address of AFG1022
+            except AttributeError:
+                pass
             self.k2450.close()
             self.k2700.write("DISPlay:ENABle ON")
             self.k2700.close()
