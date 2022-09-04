@@ -450,7 +450,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 self.rt.load_parameters()
                 self.fr.load_parameters()
         else:
-            self.filename.setText(self.currPath.split('/')[-1])
+            cp = os.path.normpath(self.currPath)
+            self.filename.setText(cp.split('\\')[-1])
             self.setFilename(1)
 
     def save_parameters(self):
