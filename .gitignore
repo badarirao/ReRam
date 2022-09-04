@@ -131,3 +131,9 @@ ReRam.ico
 
 # ignore batch file
 *.bat
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/ReRam.iml
+/.idea/vcs.xml

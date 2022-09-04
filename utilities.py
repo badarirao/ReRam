@@ -362,31 +362,35 @@ def checkMUX_SMU(k2700):
     # If mux is connected, get connection details directly from mux
     # If mux is not accessible, get connection details from saved file
     connection = 0
-    with open("C:/Python Projects/MUX-Switch/status.txt",'r') as f:
-        lines = f.readlines()
-        line1 = lines[0].split()
-        print(line1)
-        if line1[1] == 'True':
-            if int(line1[2]) == inst_key[SMU]:
-                CURRENTSAMPLE = int(line1[3])
-                connection = 1
-        line2 = lines[1].split()
-        if line2[1] == 'True':
-            if int(line2[2]) == inst_key[SMU]:
-                currentSAMPLE2 = int(line2[3])
-                if connection == 0:
-                    connection = 2
-                    CURRENTSAMPLE = currentSAMPLE2
-                else:
-                    connection = -1
+    CURRENTSAMPLE = -1
+    try:
+        with open("C:/Python Projects/MUX-Switch/status.txt",'r') as f:
+            lines = f.readlines()
+            line1 = lines[0].split()
+            print(line1)
+            if line1[1] == 'True':
+                if int(line1[2]) == inst_key[SMU]:
+                    CURRENTSAMPLE = int(line1[3])
+                    connection = 1
+            line2 = lines[1].split()
+            if line2[1] == 'True':
+                if int(line2[2]) == inst_key[SMU]:
+                    currentSAMPLE2 = int(line2[3])
+                    if connection == 0:
+                        connection = 2
+                        CURRENTSAMPLE = currentSAMPLE2
+                    else:
+                        connection = -1
+    except:
+        print("some error in accessing MUX info")
+        connection = 1
+        pass
     if connection == 0:
         # means SMU is not connected, so prompt to connect to SMU using MUX program
-        connection = 1
         return 0, -1
     elif connection == -1:
         # means SMU is connected in 4-probe method. Currently ReRAM program is designed only for 2 probe method
         # So prompt to connect to 2-probe SMU using MUX program
-        connection = 1
         return -1, -1
     else:
         return connection, CURRENTSAMPLE

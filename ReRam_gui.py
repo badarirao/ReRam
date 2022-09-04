@@ -23,7 +23,8 @@ Not tested for other Python versions or OS.
 # TODO: If funcion geerator is not connected, disable endurance function, and setting function generator as source in other programs.
 # TODO: if function generator is not connected, disable usage of MUX also!
 # TODO: MUX related tasks:"
-  TODO: If function generator is connected with another sample, make sure this program will not use function generator
+# TODO: If function generator is connected with another sample, make sure this program will not use function generator
+# TODO: Add Keysight B2902B sourcemeter
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
