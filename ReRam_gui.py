@@ -6,7 +6,7 @@ Not tested for other Python versions or OS.
 
 # TODO: when mux is not connected, source meter is expected to be connected by default.
         hence, use of function generator must be disabled.
-# TODO: Program to investigate switching speed.
+# TODO: Program to investigate switching speed, using Keysight SMU.
 # TODO: Allow for both SCPI and TSP commands (currently only SCPI works).
 # TODO: Not able to cleanly exit if no instrument is connected and TESTING = False.
 # TODO: correct the tab order of all the windows.
