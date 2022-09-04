@@ -347,9 +347,9 @@ class Worker(QObject):
         self.k2450.write("SOUR:VOLT:READ:BACK ON")
         self.k2450.enable_source()
         file = open(self.fullfilename,'w')
-        file.write("#Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
-        file.write("# Voltage Limit = {}\n".format(vPoints[-1]))
-        file.write("# Current Limit = {}\n".format(iPoints[-1]))
+        file.write("##Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
+        file.write("## Voltage Limit = {}\n".format(vPoints[-1]))
+        file.write("## Current Limit = {}\n".format(iPoints[-1]))
         file.write("# Applied Voltgage (V)\tCurrent(A)\n")
         iFlag = False
         self.k2450.write("SOUR:VOLT:ILIM {}".format(i))

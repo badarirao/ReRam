@@ -352,7 +352,7 @@ class Ui_Switch(QtWidgets.QWidget):
 class app_Switch(Ui_Switch):
     """The Switch app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_Switch.csv",connection=1,currentSample=0):
+    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_Switch.dat",connection=1,currentSample=0):
         super(app_Switch, self).__init__(parent)
         self.parent = parent
         self.new_flag = True
@@ -770,19 +770,19 @@ class app_Switch(Ui_Switch):
         with open(self.fullfilename, "a", newline='') as f:
             if self.params["Vsource"] == 0:
                 if not filePresent:
-                    f.write("#Pulse voltage source: Keithley 2450 source-measure unit.\n")
-                    f.write("#Resistance read using Keithley 2450 source-measure unit.\n")
-                    f.write("#Read voltage averaged over {0} readings\n".format(self.params["Average"]))
-                    f.write("Pulse Voltage (V), Pulse Current (A), Pulse Resistance (ohms), Read Voltage (V), Read Current (A), Read Resistance (ohm), Pulse Width (ms), Compliance current (A)\n")
+                    f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
+                    f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
+                    f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
+                    f.write("#Pulse Voltage (V)\tPulse Current (A)\tPulse Resistance (ohms)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
                 data = zip(self.volts, self.currents, self.resistances, self.readVolts, self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits)
             else:
                 if not filePresent:
-                    f.write("#Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
-                    f.write("#Resistance read using Keithley 2450 source-measure unit.\n")
-                    f.write("#Read voltage averaged over {0} readings\n".format(self.params["Average"]))
-                    f.write("Pulse Voltage (V), Read Voltage (V), Read Current (A), Read Resistance (ohm), Pulse Width (ms), Compliance current (A)\n")
+                    f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
+                    f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
+                    f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
+                    f.write("#Pulse Voltage (V)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
                 data = zip(self.volts, self.readVolts, self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits)
-            write_data = writer(f)
+            write_data = writer(f, delimiter = '\t')
             write_data.writerows(data)
         if self.i >= len(self.points):
             self.save_Button.setEnabled(False)

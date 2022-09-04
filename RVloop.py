@@ -281,7 +281,7 @@ class Ui_RVLoop(QtWidgets.QWidget):
 class app_RVLoop(Ui_RVLoop):
     """The RV-Loop app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_RV.csv", connection=1,currentSample=0):
+    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_RV.dat", connection=1,currentSample=0):
         super(app_RVLoop, self).__init__(parent)
         self.parent = parent
         self.k2450 = k2450
@@ -620,28 +620,28 @@ class app_RVLoop(Ui_RVLoop):
         if self.params["Vsource"] == 0:
             # For SMU
             with open(self.fullfilename, "w", newline='') as f:
-                f.write("#Pulse voltage source: Keithley 2450 source-measure unit.\n")
-                f.write("#Resistance read using Keithley 2450 source-measure unit.\n")  
-                f.write("#Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
-                f.write("#Pulse width = {0}s\n".format(self.timestep))
-                f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))
-                f.write("#Limiting current = {}mA\n".format(self.params["ILimit"]*1000))
-                f.write("Set Voltage(V),Actual Volts applied(V),Set Current(A),Read Current at {0}V,\
+                f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
+                f.write("##Resistance read using Keithley 2450 source-measure unit.\n")  
+                f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
+                f.write("##Pulse width = {0}s\n".format(self.timestep))
+                f.write("##Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))
+                f.write("##Limiting current = {}mA\n".format(self.params["ILimit"]*1000))
+                f.write("#Set Voltage(V)\tActual Volts applied(V)\tSet Current(A)\tRead Current at {0}V\t\
                         Read Resistance at {0}V (Ω)\n".format(self.params["Rvoltage"]))
-                write_data = writer(f)
+                write_data = writer(f,delimiter='\t')
                 write_data.writerows(zip(self.volts, self.actual_setVolts,self.set_currents, self.read_currents, self.resistances))
         else:    
             # For AGF
             with open(self.fullfilename, "w", newline='') as f:
-                f.write("#Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
-                f.write("#Resistance read using Keithley 2450 source-measure unit.\n")  
-                f.write("#Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
-                f.write("#Pulse width = {0}s\n".format(self.timestep))
-                f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))
-                f.write("#Limiting current = {}mA\n".format(self.params["Ilimit"]*1000))
-                f.write("Set Voltage(V),Read Current at {0}V,Read Resistance\
+                f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
+                f.write("##Resistance read using Keithley 2450 source-measure unit.\n")  
+                f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
+                f.write("##Pulse width = {0}s\n".format(self.timestep))
+                f.write("##Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))
+                f.write("##Limiting current = {}mA\n".format(self.params["Ilimit"]*1000))
+                f.write("#Set Voltage(V)\tRead Current at {0}V\tRead Resistance\
                         at {0}V (Ω)\n".format(self.params["Rvoltage"]))
-                write_data = writer(f)
+                write_data = writer(f,delimiter='\t')
                 write_data.writerows(zip(self.volts, self.read_currents, self.resistances))
                 
     def stop_rvLoop(self):

@@ -713,14 +713,14 @@ class app_Fatigue(Ui_Fatigue):
         """
         self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
         with open(self.fullfilename, "w", newline='') as f:
-            f.write("#Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
-            f.write("#Resistance read using Keithley 2450 source-measure unit.\n")
-            f.write("#Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
-            f.write("#Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
-            f.write("#Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
-            f.write("#Limiting current = {}mA\n".format(self.iLimit.value()))
-            f.write("NCycles, LRS current (A), HRS Current, LRS resistance (Ω), HRS resistance (Ω)\n")
-            write_data = writer(f)
+            f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
+            f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
+            f.write("##Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
+            f.write("##Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
+            f.write("##Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
+            f.write("##Limiting current = {}mA\n".format(self.iLimit.value()))
+            f.write("#NCycles\t LRS current (A)\t HRS Current\t LRS resistance (Ω)\t HRS resistance (Ω)\n")
+            write_data = writer(f, delimiter = '\t')
             write_data.writerows(zip(self.ncycles, self.LRScurrents, 
                                      self.HRScurrents,self.LRS,self.HRS))
             
