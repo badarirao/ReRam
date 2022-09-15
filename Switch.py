@@ -524,7 +524,7 @@ class app_Switch(Ui_Switch):
             if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
                 self.points.append(0)
         # set compliance current
-        self.k2450.write("source:voltage:ilimit {0}".format(self.params["ILimit"]))
+        self.k2450.set_compliance(self.params["ILimit"])
         # when function generator is used, limit number of pulses to 10
         # This is to avoid using the multiplexer too much, as it has finite lifetime
         if self.params["Vsource"] == 1:
@@ -544,10 +544,9 @@ class app_Switch(Ui_Switch):
             self.k2450 = FakeAdapter()
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
         self.k2450.measure_current(nplc=self.k2450.nplc)
-        self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
-        #self.k2450.write("SENS:curr:rsen ON")  # four wire configuration
-        self.k2450.write(":DISPlay:LIGHT:STATe ON25")
-        self.k2450.write("sour:volt:read:back 1")
+        self.k2450.set_wire_configuration(2) # two wire configuration
+        self.k2450.display_light('ON', 25)
+        self.k2450.set_read_back_on()
 
     def pulseMeasure_SMU(self):
         """
@@ -572,12 +571,12 @@ class app_Switch(Ui_Switch):
             v1 = 0
             c1 = -1
         # measure read resistance
-        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
-        self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
+        self.k2450.setNPLC()
+        self.k2450.set_simple_loop(count=self.params["Average"])
         self.k2450.source_voltage = self.params["Rvoltage"]
         self.k2450.start_buffer()
         self.k2450.wait_till_done()
-        c2 = float(self.k2450.ask("TRAC:stat:average?")[:-1])
+        c2 = self.k2450.get_average_trace_data()
         self.volts.append(v1)
         if self.pulsecount == []:
             self.pulsecount = [1]
@@ -634,7 +633,7 @@ class app_Switch(Ui_Switch):
         # Measure Read resistance using K2450
         self.k2450.start_buffer()
         self.k2450.wait_till_done()
-        c2 = float(self.k2450.ask("TRAC:stat:average?")[:-1])
+        c2 = self.k2450.get_average_trace_data()
         self.volts.append(self.points[self.i]) 
         self.currents.append(-1)    # Junk, just so that saving does not cause error
         self.resistances.append(-1) # Junk, just so that saving does not cause error
@@ -718,9 +717,8 @@ class app_Switch(Ui_Switch):
             self.timer.singleShot(0, self.pulseMeasure_SMU)
         elif self.params["Vsource"] == 1:
             connect_sample_with_AFG(self.k2700, self.connection, self.currentSample)
-            self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
-            self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
-                                                     self.params["Average"]))
+            self.k2450.setNPLC()
+            self.k2450.set_simple_loop(count = self.params["Average"])
             self.k2450.source_voltage = self.params["Rvoltage"]
             self.timer.singleShot(0, self.pulseMeasure_AFG)
 

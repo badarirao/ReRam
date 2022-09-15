@@ -343,8 +343,8 @@ class Worker(QObject):
         i = iPoints[l]
         self.k2450.measure_current(nplc=2)
         self.k2450.source_voltage = 0
-        self.k2450.write(":Sense:count 1")
-        self.k2450.write("SOUR:VOLT:READ:BACK ON")
+        self.k2450.set_measurement_count(1)
+        self.k2450.set_read_back_on()
         self.k2450.enable_source()
         file = open(self.fullfilename,'w')
         file.write("##Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
@@ -352,7 +352,7 @@ class Worker(QObject):
         file.write("## Current Limit = {}\n".format(iPoints[-1]))
         file.write("# Applied Voltgage (V)\tCurrent(A)\n")
         iFlag = False
-        self.k2450.write("SOUR:VOLT:ILIM {}".format(i))
+        self.k2450.set_compliance(i)
         for v in vPoints[1:]:
             self.k2450.source_voltage = v
             m = 0
@@ -360,11 +360,11 @@ class Worker(QObject):
                 if self.stopCall:
                     iFlag = True
                     break
-                if int(self.k2450.ask("SOUR:VOLT:ILIM:TRIP?").strip()):
+                if self.k2450.is_compliance_tripped():
                     if l < len(iPoints)-1:
                         l = l+1
                         i = iPoints[l]
-                        self.k2450.write("SOUR:VOLT:ILIM {}".format(i))
+                        self.k2450.set_compliance(i)
                         m = 0
                     else:
                         iFlag = True # if the user specified current limit is reached
@@ -373,7 +373,7 @@ class Worker(QObject):
                     m = m + 1
                 sleep(0.1)
                 if m > 10:
-                    values = self.k2450.ask(":read? 'defbuffer1', SOURce, READing").strip().split(',')
+                    values = self.k2450.get_all_buffer_data()
                     file.write(values[0]+'\t'+values[1]+'\n')
                     file.flush()
                     volt = float(values[0])

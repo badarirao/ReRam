@@ -33,14 +33,14 @@ from PyQt5.QtCore import QEventLoop, QTimer
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
-# k2450 = Keithley2450("USB0::0x05E6::0x2450::04488850::INSTR")
-class Keithley2450:
-    """ Represents the Keithely 2450 SourceMeter and provides a
+# kB2920B = KeysightB2902B("USB0::0x2A8D::0x9201::MY61390641::INSTR")
+class KeysightB2902B:
+    """ Represents the Keysight B2902B SourceMeter and provides a
     high-level interface for interacting with the instrument.
 
     """
 
-    def __init__(self,adapter,**kwargs):
+    def __init__(self,adapter,channel = 1, **kwargs):
         if isinstance(adapter,str):
             rm = ResourceManager()
             self.inst = rm.open_resource(adapter)
@@ -50,19 +50,30 @@ class Keithley2450:
             self.nplc = 1
             self.source_mode = 'voltage'
             self.sense_mode = 'current'
+            self.ch = channel # channel number
         else:
             raise VisaIOError(-1073807346)
-        self.name = "Keithley 2450 SMU"
+        self.name = "Keysight B2902B SMU"
 
     @property 
     def source_voltage(self):
-        self._source_voltage = float(self.ask(":SOUR:VOLT?"))
+        self._source_voltage = float(self.ask(f":SOUR{self.ch}:VOLT?"))
         return self._source_voltage
         
     @source_voltage.setter 
     def source_voltage(self,value):
         self._source_voltage = value
-        self.write(":SOUR:VOLT:LEV {}".format(value))
+        self.write(f":SOUR{self.ch}:VOLT {value}")
+    
+    @property 
+    def source_current(self):
+        self._source_current = float(self.ask(f":SOUR{self.ch}:CURR?"))
+        return self._source_current
+        
+    @source_current.setter 
+    def source_current(self,value):
+        self._source_current = value
+        self.write(f":SOUR{self.ch}:CURR {value}")
 
     def ask(self,cmd):
         return self.inst.query(cmd)
@@ -87,13 +98,13 @@ class Keithley2450:
     def enable_source(self):
         """ Enables the source of current or voltage depending on the
         configuration of the instrument. """
-        self.write("OUTPUT ON")
+        self.write(f"OUTPUT{self.ch} ON")
 
 
     def disable_source(self):
         """ Disables the source of current or voltage depending on the
         configuration of the instrument. """
-        self.write("OUTPUT OFF")
+        self.write(f"OUTPUT{self.ch} OFF")
 
 
     def measure_resistance(self, resistance=2.1e5, auto_range=True):
@@ -105,12 +116,14 @@ class Keithley2450:
         """
         self.sense_mode = 'resistance'
         log.info("%s is measuring resistance.", self.name)
-        self.write(":SENS:FUNC 'RES';"
-                   ":SENS:RES:NPLC %f;" % self.nplc)
+        self.write(f":SENS{self.ch}:RES"
+                   f":SENS{self.ch}:RES:NPLC {self.nplc};")
         if auto_range:
-            self.write(":SENS:RES:RANG:AUTO 1;")
+            self.write(f":SENS{self.ch}:RES:RANG:AUTO 1")
         else:
+            self.write(f":SENS{self.ch}:RES:RANG:AUTO 0")
             self.resistance_range = resistance
+
 
     def measure_voltage(self, voltage=21.0, auto_range=True):
         """ Configures the measurement of voltage.
@@ -121,11 +134,12 @@ class Keithley2450:
         """
         self.sense_mode = 'voltage'
         log.info("%s is measuring voltage.", self.name)
-        self.write(":SENS:FUNC 'VOLT';"
-                   ":SENS:VOLT:NPLC %f;" % self.nplc)
+        self.write(f":SENS{self.ch}:VOLT"
+                   f":SENS{self.ch}:VOLT:NPLC {self.nplc};")
         if auto_range:
-            self.write(":SENS:VOLT:RANG:AUTO 1;")
+            self.write(f":SENS{self.ch}:VOLT:RANG:AUTO 1")
         else:
+            self.write(f":SENS{self.ch}:VOLT:RANG:AUTO 0")
             self.voltage_range = voltage
 
 
@@ -138,10 +152,10 @@ class Keithley2450:
         """
         self.sense_mode = 'current'
         log.info("%s is measuring current.", self.name)
-        self.write(":SENS:FUNC 'CURR';"
-                   ":SENS:CURR:NPLC %f;" % self.nplc)
+        self.write(f":SENS{self.ch}:CURR"
+                   f":SENS{self.ch}:CURR:NPLC {self.nplc}")
         if auto_range:
-            self.write(":SENS:CURR:RANG:AUTO 1;")
+            self.write(f":SENS{self.ch}:CURR:RANG:AUTO 1")
         else:
             self.current_range = current
 
@@ -150,38 +164,38 @@ class Keithley2450:
         """ Configures the source to use an automatic range.
         """
         if self.source_mode == 'current':
-            self.write(":SOUR:CURR:RANG:AUTO 1")
+            self.write(f":SOUR{self.ch}:CURR:RANG:AUTO 1")
         else:
-            self.write(":SOUR:VOLT:RANG:AUTO 1")
+            self.write(f":SOUR{self.ch}:VOLT:RANG:AUTO 1")
 
     def auto_range_sense(self):
         """ Configures the sense to use an automatic range.
         """
         if self.source_mode == 'current':
-            self.write("SENS:CURR:RANG:AUTO ON")
+            self.write(f"SENS{self.ch}:CURR:RANG:AUTO ON")
         else:
-            self.write("SENS:VOLT:RANG:AUTO ON")
+            self.write(f"SENS{self.ch}:VOLT:RANG:AUTO ON")
     
     def set_wire_configuration(self, config = 2):
         config = int(float(config))
         if config == 2:
-            self.write("SENS:curr:rsen OFF") # Two wire configuration
+            self.write(f"SENS{self.ch}:curr:rsen OFF") # Two wire configuration
         elif config == 4:
-            self.write("SENS:curr:rsen ON") # Four wire configuration
+            self.write(f"SENS{self.ch}:curr:rsen ON") # Four wire configuration
         else:
             print("Wrong configuration command sent. Choose either 2 or 4 only.")
     
     def setNPLC(self, nplc = 'default'):
         if nplc == 'default':
-            self.write("SENS:NPLC {0}".format(self.nplc))
+            self.write(f"SENS{self.ch}:NPLC {self.nplc}")
         else:
-            self.write("SENS:NPLC {0}".format(nplc))
+            self.write(f"SENS{self.ch}:NPLC {nplc}")
     
     def set_current_nplc(self, nplc = 'default'):
         if nplc == 'default':
-            self.write("SENS:CURRent:NPLCycles {0}".format(self.nplc))
+            self.write(f"SENS{self.ch}:CURRent:NPLCycles {self.nplc}")
         else:
-            self.write("SENS:CURRent:NPLCycles {0}".format(nplc))
+            self.write(f"SENS{self.ch}:CURRent:NPLCycles {nplc}")
     
     def apply_current(self, current_range=None,compliance_voltage=0.1):
         """ Configures the instrument to apply a source current, and
@@ -194,7 +208,7 @@ class Keithley2450:
         """
         log.info("%s is sourcing current.", self.name)
         self.source_mode = 'current'
-        self.write("sour:func curr")  # set source as current
+        self.write(f"SOUR{self.ch}:FUNC:MODE CURR")
         if current_range is None:
             self.auto_range_source()
         else:
@@ -213,8 +227,8 @@ class Keithley2450:
         :param voltage_range: A :attr:`~.Keithley2450.voltage_range` value or None
         """
         log.info("%s is sourcing voltage.", self.name)
-        self.write("sour:func volt")  # set source as voltage
         self.source_mode = 'voltage'
+        self.write(f"SOUR{self.ch}:FUNC:MODE VOLT")
         if voltage_range is None:
             self.auto_range_source()
         else:
@@ -361,21 +375,18 @@ class Keithley2450:
     def use_rear_terminals(self):
         """ Enables the rear terminals for measurement, and
         disables the front terminals. """
-        self.write(":ROUT:TERM REAR")
+        pass
 
     def use_front_terminals(self):
         """ Enables the front terminals for measurement, and
         disables the rear terminals. """
-        self.write(":ROUT:TERM FRON")
+        pass
 
     def correct_zero_at_beginning_only(self):
-        self.write("Sense:AZero:ONCE")
+        pass
     
     def set_zero_correct_on(self):
-        if self.sense_mode == 'current':
-            self.write("Sense:curr:AZero ON")
-        elif self.sense_mode == 'voltage':
-            self.write("Sense:volt:AZero ON")
+        pass
 
     def set_source_compliance(self, limit):
         if self.source_mode == 'voltage':
@@ -385,32 +396,94 @@ class Keithley2450:
     
     def set_compliance(self, limit):
         if self.sense_mode == 'voltage':
-            self.write(f"sense:voltage:ilimit {limit}")
+            self.write(f"sense:voltage:prot {limit}")
         elif self.sense_mode == 'current':
-            self.write(f"sense:current:vlimit {limit}")
+            self.write(f"sense:current:prot {limit}")
+    
+    def set_positive_compliance(self, limit):
+        if self.sense_mode == 'voltage':
+            self.write(f"sense:voltage:prot:pos {limit}")
+        elif self.sense_mode == 'current':
+            self.write(f"sense:current:prot:pos {limit}")
+    
+    def set_negative_compliance(self, limit):
+        if self.sense_mode == 'voltage':
+            self.write(f"sense:voltage:prot:neg {limit}")
+        elif self.sense_mode == 'current':
+            self.write(f"sense:current:prot:neg {limit}")
     
     def set_read_back_on(self):
-        if self.source_mode == 'voltage':
-            self.write("SOUR:VOLT:READ:BACK ON")
-        elif self.source_mode == 'current':
-            self.write("SOUR:CURR:READ:BACK ON")
+        # This SMU always returns actual voltage applied, so this command does not make sense.
+        # If you want to know applied voltage, then you need to get it from your command.
+        pass
             
-    def display_light(self, state='ON', percent = 25):
-        if state == 'ON':
-            self.write(f":DISPlay:LIGHT:STATe ON{percent}")
-        elif state == 'OFF':
-            self.write(":DISPlay:LIGHT:STATe OFF")
+    def format_sense_data(self): # set to get specified data when asked
+        # get applied voltage, measured current, and state
+        # I think state will give 1 if output was ON, and 0 if output was OFF
+        self.write(":FORM:ELEM:SENS SOUR,CURR,STAT")
     
+    def display_light(self, state='ON', percent = 25):
+        # cannot set percent in this SMU. It has been kept to keep it similar to K2450
+        self.write(f":DISPlay:enable {state} ON{percent}")
+    
+    def set_source_mode(self, mode):
+        """
+        Mode can be:
+            FIX : fixed
+            List: user defined custom list sweep
+            Sweep: sweep
+
+        Parameters
+        ----------
+        mode : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        if self.source_mode == 'voltage':
+            self.write(f':SOUR{self.ch}:VOLT:MODE {mode}')
+        elif self.source_mode == 'current':
+            self.write(f':SOUR{self.ch}:CURR:MODE {mode}')
+        
     def set_voltage_points(self, points):
-        self.write(f"SOURce:LIST:VOLTage {points}")
+        self.write(f"SOUR{self.ch}:LIST:VOLTage {points}")
     
     def append_voltage_points(self, points):
-        self.write(f"SOURce:LIST:VOLTage:APPend {points}")
+        self.write(f"SOUR(self.ch):LIST:VOLTage:APPend {points}")
     
     def configure_sweep(self, delay = 0):
-        self.write(f"SOURce:SWEep:VOLTage:LIST 1, {delay}, 1, OFF")
+        """
+        Set start Index of list, delay, sweep counts, and failAbort
+        failAbort : OFF implies, if limiting current is reached, it will not stop.
+
+        Parameters
+        ----------
+        delay : TYPE, optional
+            DESCRIPTION. The default is 0.
+
+        Returns
+        -------
+        None.
+
+        """
+        # nPoints = len(list) # get number of points in sweep
+        self.write(f"SOUR{self.ch}:LIST:VOLT:STAR: 1") # start at index 1 of list
+        self.write(f"TRIG{self.ch}:ACQ:DEL {delay}") # set measurement delay between steps
+        # for number of sweep counts, I think you should change trigger count as below
+        # self.write(f"TRIG{self.ch}:ALL:Count {npoints}") # 1 sweep
+        # for n sweep, you should enter n*npoints
     
     def set_simple_loop(self, count=1, delayTime = 0):
+        if delayTime <= 0:
+            self.write(f"SOUR{self.ch}:WAIT:AUTO ON")
+            self.write(f"SOUR{self.ch}:WAIT OFF")
+        else:
+            self.write(f"SOUR{self.ch}:WAIT ON")
+            self.write(f"SOUR{self.ch}:WAIT:AUTO OFF")
+            self.write(f"SOUR{self.ch}:WAIT:OFFS {delayTime}")
         self.write(f"TRIG:LOAD 'SimpleLoop', {count}, {delayTime}")
     
     def is_compliance_tripped(self):
@@ -526,3 +599,4 @@ class Keithley2450:
                 c = 1e-12
             Currents.append(c)
         return Currents
+

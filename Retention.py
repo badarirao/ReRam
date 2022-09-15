@@ -522,13 +522,11 @@ class app_Retention(Ui_Retention):
 
         """
         self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
-        self.k2450.measure_current(nplc=self.k2450.nplc)
-        self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
-        #self.k2450.write("SENS:curr:rsen ON")  # four wire configuration
-        self.k2450.write(":DISPlay:LIGHT:STATe ON25")
-        self.k2450.write("sour:volt:read:back 1")
-        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
-        self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
+        self.k2450.measure_current()
+        self.k2450.set_wire_configuration(2) # two wire configuration
+        self.k2450.display_light('ON', 25)
+        self.k2450.set_read_back_on()
+        self.k2450.set_simple_loop(self.params["Average"])
         self.k2450.source_voltage = self.params["Rvoltage"]
 
     def do_one_retention(self):
@@ -549,8 +547,7 @@ class app_Retention(Ui_Retention):
             self.afg1022.setSinglePulse(*self.pulses_to_apply[self.i])
             self.afg1022.trgNwait()
             connect_sample_with_SMU(self.k2700)
-        
-        self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
+        self.k2450.set_simple_loop(self.params["Average"])
         self.k2450.source_voltage = self.k2450.readV
         
         if self.pulses_to_apply[self.i][0] == self.params["Vset"]:
@@ -658,7 +655,7 @@ class app_Retention(Ui_Retention):
                 setpulse = self.setTimestep
                 print("Vset = {0}, {1}ms".format(vset,setpulse))
                 self.k2450.apply_switch_pulse(vset,setpulse)
-                self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
+                self.k2450.set_simple_loop(self.params["Average"])
                 self.k2450.source_voltage = self.k2450.readV
                 LRSCurrent = self.k2450.readReRAM()
                 print('LRS: {0},{1}'.format(self.k2450.readV,LRSCurrent))
@@ -668,7 +665,7 @@ class app_Retention(Ui_Retention):
                 resetpulse = self.resetTimestep
                 print("Vreset = {0}, {1}ms".format(vreset,resetpulse))
                 self.k2450.apply_switch_pulse(vreset,resetpulse)
-                self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.params["Average"]))
+                self.k2450.set_simple_loop(self.params["Average"])
                 self.k2450.source_voltage = self.k2450.readV
                 HRSCurrent = self.k2450.readReRAM()
                 print('HRS: {0},{1}'.format(self.k2450.readV,HRSCurrent))

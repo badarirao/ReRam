@@ -409,12 +409,11 @@ class app_RVLoop(Ui_RVLoop):
             self.k2450.nplc = 0.1
         elif self.params["Speed"] == 4:
             self.k2450.nplc = 0.01
-        self.k2450.measure_current(self.k2450.nplc)
-        self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
-        #self.k2450.write("SENS:curr:rsen ON")  # four wire configuration
-        self.k2450.write("Sense:curr:AZero ON")  # correct for zero
-        self.k2450.write("sour:volt:read:back 1")
-        self.k2450.write(":DISPlay:LIGHT:STATe OFF")
+        self.k2450.measure_current()
+        self.k2450.set_wire_configuration(2) # two wire configuration
+        self.k2450.set_zero_correct_on()
+        self.k2450.set_read_back_on()
+        self.k2450.display_light('OFF')
 
     def configure_sweep(self):
         """
@@ -448,7 +447,7 @@ class app_RVLoop(Ui_RVLoop):
         while True:
             QtCore.QTimer.singleShot(wait_time, loop.quit)
             loop.exec_()
-            state = self.k2450.ask("Trigger:state?").split(';')[0]
+            state = self.k2450.get_trigger_state()
             if state == 'IDLE':
                 return 1
             elif state not in ('RUNNING', 'BUILDING'):
@@ -478,9 +477,8 @@ class app_RVLoop(Ui_RVLoop):
             connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
             self.timer.singleShot(0, self.measure_RV_SMU)
         else:
-            self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
-            self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
-                self.avg_over_n_readings))
+            self.k2450.setNPLC()
+            self.k2450.set_simple_loop(self.avg_over_n_readings)
             self.k2450.source_voltage = self.params["Rvoltage"]
             self.timer.singleShot(0, self.measure_RV_AFG)
 
@@ -493,25 +491,22 @@ class app_RVLoop(Ui_RVLoop):
         None.
 
         """
-        self.k2450.write("SENSe:CURRent:NPLCycles 0.01")
-        self.k2450.write(
-            "TRIG:LOAD 'SimpleLoop', 1, {0}".format(self.timestep))
+        self.k2450.setNPLC(0.01)
+        self.k2450.set_simple_loop(delayTime=self.timestep)
         self.k2450.source_voltage = self.points[self.i]
         self.k2450.start_buffer()
         self.wait_till_done(1)
-        setData = self.k2450.ask("TRAC:data? 1, 1, 'defbuffer1', sour, read")
+        setData = self.k2450.get_trace_data(1, 1)
         setData = array(setData.split(','), dtype=float)
         v, c = setData[0], setData[1]
         self.actual_setVolts.append(v)
         self.set_currents.append(c)
-        self.k2450.write("SENSe:CURRent:NPLCycles {0}".format(self.k2450.nplc))
-        self.k2450.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(
-            self.avg_over_n_readings))
+        self.k2450.setNPLC()
+        self.k2450.set_simple_loop(count=self.avg_over_n_readings)
         self.k2450.source_voltage = self.params["Rvoltage"]
         self.k2450.start_buffer()
         self.wait_till_done()
-        self.read_currents.append(
-            float(self.k2450.ask("TRAC:stat:average?")[:-1]))
+        self.read_currents.append(self.k2450.get_average_trace_data())
         if self.read_currents[self.i] == 0:
             self.read_currents[self.i] = 1e-20
         self.volts.append(self.points[self.i])
@@ -555,8 +550,7 @@ class app_RVLoop(Ui_RVLoop):
         waitFor(20) # wait for 20msec to ensure switching is complete
         self.k2450.start_buffer()
         self.wait_till_done()
-        self.read_currents.append(
-            float(self.k2450.ask("TRAC:stat:average?")[:-1]))
+        self.read_currents.append(self.k2450.get_average_trace_data())
         if self.read_currents[self.i] == 0:
             self.read_currents[self.i] = 1e-20
         self.volts.append(self.points[self.i])
@@ -657,7 +651,7 @@ class app_RVLoop(Ui_RVLoop):
 
         """
         if self.stopCall:
-            self.k2450.write("Abort")
+            self.k2450.abort()
             self.measurement_status = "Aborted"
             self.statusbar.setText("Measurement aborted.")
         else:
@@ -676,7 +670,7 @@ class app_RVLoop(Ui_RVLoop):
         self.read_voltage.setEnabled(True)
         self.k2450.source_voltage = 0
         self.k2450.disable_source()
-        self.k2450.write(":DISPlay:LIGHT:STATe ON25")
+        self.k2450.display_light('ON',25)
         self.save_data()
         MessageBeep()
             

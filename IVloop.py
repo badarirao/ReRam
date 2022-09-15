@@ -612,11 +612,9 @@ class Worker(QObject):
         
         # if afg is connected, remove and connect the source meter
         connect_sample_with_SMU(self.k2700,self.connection,self.currentSample)
-        self.k2450.write("SENS:FUNC 'CURR'")  # measure current
-        self.k2450.write("SENS:CURR:RANG:AUTO ON")  # current autorange on
-        #self.k2450.write("SENS:CURR:RANG:AUTO:REB ON")
-        self.k2450.write("SENS:curr:rsen OFF")  # two wire configuration
-        #self.k2450.write("SENS:curr:rsen ON")  # four wire configuration
+        self.k2450.measure_current()
+        self.k2450.auto_range_sense()
+        self.k2450.set_wire_configuration(2) # two wire configuration
         if self.params["Speed"] == 0:
             nplc = 5
             self.speed = "Very Slow"
@@ -633,16 +631,10 @@ class Worker(QObject):
             nplc = 0.01
             self.speed = "Very Fast"
         self.k2450.nplc = nplc
-        # set read time per point according to required speed
-        self.k2450.write("SENS:NPLC {0}".format(self.k2450.nplc))
-        self.k2450.write("sour:func volt")  # set source as voltage
-        self.k2450.write("sour:volt:RANG:AUTO ON")  # set voltage range to Auto
+        self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
         # correct for zero only at the beginning
-        self.k2450.write("Sense:AZero:ONCE")
-        self.k2450.write("source:voltage:ilimit {0}".format(
-            self.params["ILimit"]))  # set compliance current
-        self.k2450.write("SOUR:VOLT:READ:BACK ON")
-        #self.k2450.write(":DISPlay:LIGHT:STATe OFF")
+        self.k2450.correct_zero_at_beginning_only()
+        self.k2450.set_read_back_on()
 
     def configure_sweep(self):
         """
@@ -662,7 +654,7 @@ class Worker(QObject):
             
         if self.params["Vmax"] == self.params["Vmin"]:
             self.points = [self.params["Vmax"]]
-            self.k2450.write("SOURce:LIST:VOLTage {0}".format(self.points[0]))
+            self.k2450.set_voltage_points(self.points[0])
         elif self.params["Vmax"] >= 0 >= self.params["Vmin"]:
             nplus = int(
                 self.params["Vmax"]/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
@@ -677,11 +669,11 @@ class Worker(QObject):
             # split the points into 6 chunks of equal size
             self.chunks = array_split(self.points, 6)
             # write the first chunk into the list
-            self.k2450.write("SOURce:LIST:VOLTage {0}".format(str(list(self.chunks[0]))[1:-1]))
+            self.k2450.set_voltage_points(str(list(self.chunks[0]))[1:-1])
             # append the remaining chunks into the list
             if len(self.chunks) > 1:
                 for i in self.chunks[1:]:
-                    self.k2450.write("SOURce:LIST:VOLTage:APPend {0}".format(str(list(i))[1:-1]))
+                    self.k2450.append_voltage_points(str(list(i))[1:-1])
         else:
             l1 = linspace(self.params["Vmin"], self.params["Vmax"], int(
                 self.npoints/2), endpoint=False)
@@ -690,14 +682,13 @@ class Worker(QObject):
             self.points = around(concatenate((l1, l2)), 3)
             self.chunks = array_split(self.points, 5)
             # write the first chunk into the list
-            self.k2450.write("SOURce:LIST:VOLTage {0}".format(
-                str(list(self.chunks[0]))[1:-1]))
+            self.k2450.set_voltage_points(str(list(self.chunks[0]))[1:-1])
             # append the remaining chunks into the list
             if len(self.chunks) > 1:
                 for i in self.chunks[1:]:
-                    self.k2450.write("SOURce:LIST:VOLTage:APPend {0}".format(str(list(i))[1:-1]))
+                    self.k2450.append_voltage_points(str(list(i))[1:-1])
         # set the sweep function with the above list
-        self.k2450.write("SOURce:SWEep:VOLTage:LIST 1, {0}, 1, OFF".format(self.params["Delay"]))
+        self.k2450.configure_sweep(self.params["Delay"])
         self.sendPoints.emit([self.points])
     
     def start_IV(self):
@@ -710,14 +701,14 @@ class Worker(QObject):
             while self.stopCall == False:
                 #self.k2450.wait_till_done(1000)
                 sleep(1)
-                start_point = int(self.k2450.ask("trace:actual:start?")[:-1])
+                start_point = self.k2450.get_start_point()
                 if start_point == 0:
                     continue
-                end_point = int(self.k2450.ask("trace:actual:end?")[:-1])
-                data = self.k2450.ask("TRAC:data? {0}, {1}, 'defbuffer1', sour, read".format(start_point, end_point))
+                end_point = self.k2450.get_end_point()
+                data = self.k2450.get_trace_data(start_point, end_point)
                 data = reshape(array(data.split(','), dtype=float), (-1, 2))
                 self.data.emit([data,i+1])
-                state = self.k2450.ask("Trigger:state?").split(';')[0]
+                state = self.k2450.get_trigger_state()
                 if state != 'RUNNING':
                     if state != 'IDLE':
                         self.status = 0
@@ -729,7 +720,7 @@ class Worker(QObject):
                 f.write("\n\n")
             i = i + 1
         if self.stopCall:
-            self.k2450.write("Abort")
+            self.k2450.abort()
         self.k2450.source_voltage = 0
         self.k2450.disable_source()
         MessageBeep()
