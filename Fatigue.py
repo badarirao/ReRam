@@ -1,25 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'fatigue.ui'
+# Form implementation generated from reading ui file 'Fatigue.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
-# TODO: Add tooltips
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtCore import QTime, QTimer, Qt
 from pyqtgraph import PlotWidget, ViewBox, mkPen
-from os.path import exists as fileExists
 from time import time
 from datetime import timedelta
 from winsound import MessageBeep
 from csv import writer
 from utilities import linlogspace, getBinnedPoints, SMU, AFG, waitFor, connectedSpinBox
 from utilities import connect_sample_with_AFG, unique_filename, checkInstrument
-
 
 class Ui_Fatigue(QtWidgets.QWidget):
     
@@ -29,24 +25,25 @@ class Ui_Fatigue(QtWidgets.QWidget):
     
     def setupUi(self, Fatigue):
         Fatigue.setObjectName("Fatigue")
-        Fatigue.resize(1050, 620)
-        Fatigue.setMinimumSize(QtCore.QSize(1050, 580))
+        Fatigue.resize(1077, 739)
+        Fatigue.setMinimumSize(QtCore.QSize(1050, 650))
+        Fatigue.setMaximumSize(QtCore.QSize(16777215, 100000))
         self.gridLayout_2 = QtWidgets.QGridLayout(Fatigue)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.widget = QtWidgets.QWidget(Fatigue)
-        self.widget.setMinimumSize(QtCore.QSize(350, 0))
+        self.widget.setMinimumSize(QtCore.QSize(350, 449))
         self.widget.setMaximumSize(QtCore.QSize(350, 16777215))
         self.widget.setObjectName("widget")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.widget)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.title_label = QtWidgets.QLabel(self.widget)
         self.title_label.setMinimumSize(QtCore.QSize(0, 24))
-        self.title_label.setMaximumSize(QtCore.QSize(16777215, 100))
+        self.title_label.setMaximumSize(QtCore.QSize(16777215, 24))
         self.title_label.setObjectName("title_label")
         self.verticalLayout_2.addWidget(self.title_label)
         self.setting_label = QtWidgets.QLabel(self.widget)
         self.setting_label.setMinimumSize(QtCore.QSize(0, 24))
-        self.setting_label.setMaximumSize(QtCore.QSize(16777215, 100))
+        self.setting_label.setMaximumSize(QtCore.QSize(16777215, 24))
         self.setting_label.setObjectName("setting_label")
         self.verticalLayout_2.addWidget(self.setting_label)
         self.frame = QtWidgets.QFrame(self.widget)
@@ -103,8 +100,8 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.resetV.setDecimals(3)
         self.resetV.setMinimum(-5.0)
         self.resetV.setMaximum(5.0)
-        self.resetV.setSingleStep(0.1)
-        self.resetV.setProperty("value", -3.0)
+        self.resetV.setSingleStep(0.001)
+        self.resetV.setProperty("value", 3.0)
         self.resetV.setObjectName("resetV")
         self.horizontalLayout_3.addWidget(self.resetV)
         self.gridLayout.addLayout(self.horizontalLayout_3, 5, 2, 1, 1)
@@ -113,7 +110,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.reset_pulseWidth = QtWidgets.QDoubleSpinBox(self.frame)
         self.reset_pulseWidth.setDecimals(1)
         self.reset_pulseWidth.setMaximum(1000.0)
-        self.reset_pulseWidth.setProperty("value", 10.0)
+        self.reset_pulseWidth.setProperty("value", 50.0)
         self.reset_pulseWidth.setObjectName("reset_pulseWidth")
         self.horizontalLayout.addWidget(self.reset_pulseWidth)
         self.reset_timeUnit = QtWidgets.QComboBox(self.frame)
@@ -150,6 +147,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.source.setAcceptDrops(False)
         self.source.setObjectName("source")
         self.source.addItem("")
+        self.source.addItem("")
         self.gridLayout.addWidget(self.source, 2, 2, 1, 1)
         self.Ilimit_label = QtWidgets.QLabel(self.frame)
         self.Ilimit_label.setObjectName("Ilimit_label")
@@ -173,7 +171,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.setV.setMinimum(-5.0)
         self.setV.setMaximum(5.0)
         self.setV.setSingleStep(0.1)
-        self.setV.setProperty("value", 3.0)
+        self.setV.setProperty("value", -3.0)
         self.setV.setObjectName("setV")
         self.horizontalLayout_2.addWidget(self.setV)
         self.gridLayout.addLayout(self.horizontalLayout_2, 3, 2, 1, 1)
@@ -202,10 +200,10 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
         self.iLimit = QtWidgets.QDoubleSpinBox(self.frame)
         self.iLimit.setDecimals(3)
-        self.iLimit.setMinimum(0.001)
-        self.iLimit.setMaximum(500)
-        self.iLimit.setSingleStep(0.1)
-        self.iLimit.setProperty("value", 1)
+        self.iLimit.setMinimum(-5.0)
+        self.iLimit.setMaximum(5.0)
+        self.iLimit.setSingleStep(0.001)
+        self.iLimit.setProperty("value", 3.0)
         self.iLimit.setObjectName("iLimit")
         self.horizontalLayout_7.addWidget(self.iLimit)
         self.resistor = QtWidgets.QLabel(self.frame)
@@ -221,10 +219,17 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.gridLayout_2.addWidget(self.fatiguePlot, 0, 1, 2, 1)
         self.widget1 = QtWidgets.QWidget(Fatigue)
         self.widget1.setMinimumSize(QtCore.QSize(350, 151))
-        self.widget1.setMaximumSize(QtCore.QSize(350, 154))
+        self.widget1.setMaximumSize(QtCore.QSize(350, 10000))
         self.widget1.setObjectName("widget1")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.widget1)
         self.verticalLayout.setObjectName("verticalLayout")
+        self.comment_checkBox = QtWidgets.QCheckBox(self.widget1)
+        self.comment_checkBox.setObjectName("comment_checkBox")
+        self.verticalLayout.addWidget(self.comment_checkBox)
+        self.commentBox = QtWidgets.QTextEdit(self.widget1)
+        self.commentBox.setEnabled(False)
+        self.commentBox.setObjectName("commentBox")
+        self.verticalLayout.addWidget(self.commentBox)
         self.timeTaken = QtWidgets.QLineEdit(self.widget1)
         self.timeTaken.setEnabled(False)
         palette = QtGui.QPalette()
@@ -270,10 +275,30 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.gridLayout_2.addWidget(self.widget1, 1, 0, 1, 1)
 
         self.retranslateUi(Fatigue)
-        self.set_timeUnit.setCurrentIndex(1)
-        self.reset_timeUnit.setCurrentIndex(1)
+        self.set_timeUnit.setCurrentIndex(0)
+        self.reset_timeUnit.setCurrentIndex(0)
         self.nPulse_unit.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(Fatigue)
+        Fatigue.setTabOrder(self.file_name, self.source)
+        Fatigue.setTabOrder(self.source, self.setV)
+        Fatigue.setTabOrder(self.setV, self.set_pulseWidth)
+        Fatigue.setTabOrder(self.set_pulseWidth, self.set_timeUnit)
+        Fatigue.setTabOrder(self.set_timeUnit, self.resetV)
+        Fatigue.setTabOrder(self.resetV, self.reset_pulseWidth)
+        Fatigue.setTabOrder(self.reset_pulseWidth, self.reset_timeUnit)
+        Fatigue.setTabOrder(self.reset_timeUnit, self.read_voltage)
+        Fatigue.setTabOrder(self.read_voltage, self.avg)
+        Fatigue.setTabOrder(self.avg, self.nPulses)
+        Fatigue.setTabOrder(self.nPulses, self.nPulse_unit)
+        Fatigue.setTabOrder(self.nPulse_unit, self.iLimit)
+        Fatigue.setTabOrder(self.iLimit, self.temp_check)
+        Fatigue.setTabOrder(self.temp_check, self.temperature)
+        Fatigue.setTabOrder(self.temperature, self.comment_checkBox)
+        Fatigue.setTabOrder(self.comment_checkBox, self.commentBox)
+        Fatigue.setTabOrder(self.commentBox, self.timeTaken)
+        Fatigue.setTabOrder(self.timeTaken, self.start_Button)
+        Fatigue.setTabOrder(self.start_Button, self.abort_Button)
+        Fatigue.setTabOrder(self.abort_Button, self.status)
 
     def retranslateUi(self, Fatigue):
         _translate = QtCore.QCoreApplication.translate
@@ -299,8 +324,9 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.setV_label.setToolTip(_translate("Fatigue", "<html><head/><body><p>Voltage for low resistance state</p></body></html>"))
         self.setV_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Set Voltage (V)</span></p></body></html>"))
         self.avgread_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Readings</span></p></body></html>"))
-        self.file_name.setText(_translate("Fatigue", "sample.txt"))
-        self.source.setItemText(0, _translate("Fatigue", "Tektronix AFG1022"))
+        self.file_name.setText(_translate("Fatigue", "Sample_Fatigue"))
+        self.source.setItemText(0, _translate("Fatigue", "Keysight B2902B"))
+        self.source.setItemText(1, _translate("Fatigue", "Tektronix AFG1022"))
         self.Ilimit_label.setText(_translate("Fatigue", "<html><head/><body><p><span style=\" font-size:10pt;\">Current Limit (mA)</span></p></body></html>"))
         self.temp_check.setToolTip(_translate("Fatigue", "<html><head/><body><p>Use temperature only if temperature controller is attached</p></body></html>"))
         self.temp_check.setText(_translate("Fatigue", "Temperature (K)"))
@@ -319,6 +345,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
         self.nPulse_unit.setItemText(8, _translate("Fatigue", "x10^10"))
         self.iLimit.setToolTip(_translate("Fatigue", "<html><head/><body><p>HRS</p></body></html>"))
         self.resistor.setText(_translate("Fatigue", "~ 1 kΩ"))
+        self.comment_checkBox.setText(_translate("Fatigue", "Add Comments"))
         self.start_Button.setToolTip(_translate("Fatigue", "<html><head/><body><p>Click to start the experiment</p></body></html>"))
         self.start_Button.setText(_translate("Fatigue", "Start Measurement"))
         self.abort_Button.setToolTip(_translate("Fatigue", "<html><head/><body><p>Click to abort the experiment</p></body></html>"))
@@ -327,7 +354,7 @@ class Ui_Fatigue(QtWidgets.QWidget):
 class app_Fatigue(Ui_Fatigue):
     """The Switch app module."""
     
-    def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue.dat",connection=1,currentSample=0):
+    def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue",connection=1,currentSample=0):
         super(app_Fatigue, self).__init__(parent)
         self.parent = parent
         self.k2450 = k2450
@@ -379,6 +406,13 @@ class app_Fatigue(Ui_Fatigue):
             "temperature": 300,
             "temp_check": 0}
         self.parameters = list(self.params.values())
+        self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
+    
+    def updateCommentBox(self):
+        if self.comment_checkBox.isChecked():
+            self.commentBox.setEnabled(True)
+        else:
+            self.commentBox.setEnabled(False)
     
     def update_resistor(self):
         limiting_current = self.iLimit.value()
