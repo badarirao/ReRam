@@ -526,6 +526,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
+    screen_resolution = app.desktop().screenGeometry()
+    width, height = screen_resolution.width(), screen_resolution.height()
     main = MainWindow()
     main.show()
     app.exec_()
