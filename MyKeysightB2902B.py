@@ -261,8 +261,8 @@ class KeysightB2902B:
     def error(self):
         """ Returns a tuple of an error code and message from a
         single error. """
-        err = self.ask(":system:error?")
-        if len(err) < 2:
+        err = self.ask(":system:error?").strip().split(',')
+        if len(err) != 2:
             err = self.read() # Try reading again
         code = err[0]
         message = err[1].replace('"', '')
@@ -472,6 +472,7 @@ class KeysightB2902B:
         # nPoints = len(list) # get number of points in sweep
         self.write(f"SOUR{self.ch}:LIST:VOLT:STAR: 1") # start at index 1 of list
         self.write(f"TRIG{self.ch}:ACQ:DEL {delay}") # set measurement delay between steps
+        #points = int(float(self.ask(f"SOUR{self.ch}:LIST:VOLT:POINts?").strip()))
         # for number of sweep counts, I think you should change trigger count as below
         # self.write(f"TRIG{self.ch}:ALL:Count {npoints}") # 1 sweep
         # for n sweep, you should enter n*npoints
@@ -487,37 +488,41 @@ class KeysightB2902B:
         self.write(f"TRIG:LOAD 'SimpleLoop', {count}, {delayTime}")
     
     def is_compliance_tripped(self):
-        if self.source_mode == 'voltage':
-            return int(self.k2450.ask("SOUR:VOLT:ILIM:TRIP?").strip())
-        elif self.source_mode == 'current':
-            return int(self.k2450.ask("SOUR:CURR:VLIM:TRIP?").strip())
+        if self.sense_mode == 'voltage':
+            return int(float(self.ask(f"SENS{self.ch}:VOLT:PROT:TRIP?").strip()))
+        elif self.sense_mode == 'current':
+            return int(float(self.ask(f"SENS{self.ch}:CURR:PROT:TRIP?").strip()))
         else:
-            print("Some error occurred in 'k2450 -  is_compliance_tripped' command")
+            print("Some error occurred in 'Keysight 2902B -  is_compliance_tripped' command")
             return True
     
     def get_start_point(self):
-        return int(self.ask("trace:actual:start?")[:-1])
+        # you can set trace:data to measure from current data position directly
+        return 'CURR'
     
     def set_measurement_count(self, count=1):
-        self.write(f":Sense:count {count}")
+        self.write(f"TRACe{self.ch}:POINts {count}")
     
     def get_end_point(self):
-        return int(self.ask("trace:actual:end?")[:-1])
+        # You can specify size of data to be received in trace:data. If not specified, all available is returned
+        pass
+        return 1
     
-    def get_trace_data(self, start, end):
-        return self.ask(f"TRAC:data? {start}, {end}, 'defbuffer1', sour, read")
+    def get_trace_data(self, offset='CURR', size=1):
+        return self.ask(f"TRACe{self.ch}:data? {offset}").strip().split(',')
     
     def get_average_trace_data(self):
-        return float(self.ask("TRAC:stat:average?")[:-1])
+        self.write(f"TRACe{self.ch}:STAT:FORM MEAN")
+        return float(self.ask(f"TRAC{self.ch}:stat:data?").strip())
     
     def get_all_buffer_data(self):
-        return self.ask(":read? 'defbuffer1', SOURce, READing").strip().split(',')
+        return self.ask("FETCh:ARRay?").strip().split(',')
         
     def get_trigger_state(self):
-        return self.ask("Trigger:state?").split(';')[0]
+        return self.ask(f"TRIG{self.ch}:ACQ:state?").strip()
     
     def abort(self):
-        self.write("Abort")
+        self.write(f"Abort (@{self.ch})")
     
     def shutdown(self):
         """ Ensures that the current or voltage is turned to zero
@@ -527,7 +532,8 @@ class KeysightB2902B:
             self.ramp_to_current(0.0)
         else:
             self.ramp_to_voltage(0.0)
-        self.stop_buffer()
+        #self.stop_buffer()
+        self.reset_buffer()
         self.disable_source()
     
 # User designed functions follows
@@ -548,7 +554,7 @@ class KeysightB2902B:
         while True:
             QTimer.singleShot(wait_time, loop.quit)
             loop.exec_()
-            state = self.ask("Trigger:state?").split(';')[0]
+            state = self.get_trigger_state()
             if state == 'IDLE':
                 return 1
             elif state != 'RUNNING':
@@ -569,17 +575,17 @@ class KeysightB2902B:
         list of voltage and current
 
         """
-        self.write("SENSe:CURRent:NPLCycles 0.01")
-        self.write("TRIG:LOAD 'SimpleLoop', 1, {0}".format(pulse_width))
+        self.setNPLC(0.01)
+        self.set_simple_loop(1,pulse_width)
         self.source_voltage = voltage
         self.start_buffer()
         self.wait_till_done(1)
-        return map(float, self.ask("TRAC:data? 1, 1, 'defbuffer1', sour, read")[:-1].split(','))
+        return map(float, self.get_trace_data())
     
     def readReRAM(self):
         self.start_buffer()
         self.wait_till_done()
-        return float(self.ask("TRAC:stat:average?")[:-1])
+        return float(self.get_average_trace_data())
     
     def read_resistance_states(self,voltagePulses): #list of (voltage,pulse_width) tuples
         # Assuming function generator is connected and SMU is disconnected
@@ -587,16 +593,15 @@ class KeysightB2902B:
         for vp in voltagePulses:
             if vp[0] != 0:
                 self.apply_switch_pulse(*vp)
-                self.write("SENSe:CURRent:NPLCycles {0}".format(self.nplc))
-                self.write("TRIG:LOAD 'SimpleLoop', {0}, 0".format(self.avg))
+                self.setNPLC()
+                self.set_simple_loop(self.avg,0)
                 self.source_voltage = self.readV
                 self.start_buffer()
                 self.wait_till_done()
-                c = abs(float(self.ask("TRAC:stat:average?")[:-1]))
+                c = self.get_average_trace_data()
                 if c == 0:
                     c = 1e-12
             else:
                 c = 1e-12
             Currents.append(c)
         return Currents
-
