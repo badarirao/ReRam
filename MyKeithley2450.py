@@ -415,9 +415,9 @@ class Keithley2450:
     
     def is_compliance_tripped(self):
         if self.source_mode == 'voltage':
-            return int(self.k2450.ask("SOUR:VOLT:ILIM:TRIP?").strip())
+            return int(self.ask("SOUR:VOLT:ILIM:TRIP?").strip())
         elif self.source_mode == 'current':
-            return int(self.k2450.ask("SOUR:CURR:VLIM:TRIP?").strip())
+            return int(self.ask("SOUR:CURR:VLIM:TRIP?").strip())
         else:
             print("Some error occurred in 'k2450 -  is_compliance_tripped' command")
             return True
@@ -454,7 +454,8 @@ class Keithley2450:
             self.ramp_to_current(0.0)
         else:
             self.ramp_to_voltage(0.0)
-        self.stop_buffer()
+        #self.stop_buffer() # not defined?
+        self.reset_buffer()
         self.disable_source()
     
 # User designed functions follows
@@ -501,7 +502,7 @@ class Keithley2450:
         self.source_voltage = voltage
         self.start_buffer()
         self.wait_till_done(1)
-        return map(float, self.ask("TRAC:data? 1, 1, 'defbuffer1', sour, read")[:-1].split(','))
+        return map(float, self.ask("TRAC:data? 1, 1, 'defbuffer1', sour, read").strip().split(','))
     
     def readReRAM(self):
         self.start_buffer()
