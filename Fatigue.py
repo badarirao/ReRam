@@ -14,8 +14,7 @@ from time import time
 from datetime import timedelta
 from winsound import MessageBeep
 from csv import writer
-from utilities import linlogspace, getBinnedPoints, SMU, AFG, waitFor, connectedSpinBox
-from utilities import connect_sample_with_AFG, unique_filename, checkInstrument
+from utilities import *
 
 class Ui_Fatigue(QtWidgets.QWidget):
     
@@ -404,7 +403,8 @@ class app_Fatigue(Ui_Fatigue):
             "pulseUnit": 3,
             "ILimit": 1/1000,
             "temperature": 300,
-            "temp_check": 0}
+            "temp_check": 0,
+            "comments" : ""}
         self.parameters = list(self.params.values())
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
     
@@ -483,6 +483,11 @@ class app_Fatigue(Ui_Fatigue):
         None.
 
         """
+        maincomment = self.parent.commentBox.toPlainText()
+        wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
+        formattedComment = ""
+        for t in wholeComment.split('\n'):
+            formattedComment += '##' + t + '\n'
         self.params = {
             "Vset": self.setV.value(),
             "setPwidth": self.set_pulseWidth.value(),
@@ -496,7 +501,8 @@ class app_Fatigue(Ui_Fatigue):
             "pulseUnit": self.nPulse_unit.currentIndex(),
             "ILimit": self.iLimit.value()/1000,
             "temperature": self.temperature.value(),
-            "temp_check": int(self.temp_check.isChecked())}
+            "temp_check": int(self.temp_check.isChecked()),
+            "comments" : formattedComment}
         self.parameters = list(self.params.values())
         self.k2450.avg = self.params["Average"]
         self.k2450.readV = self.params["Rvoltage"]
@@ -747,10 +753,12 @@ class app_Fatigue(Ui_Fatigue):
         with open(self.fullfilename, "w", newline='') as f:
             f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
             f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
+            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
             f.write("##Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))
             f.write("##Set pulse width = {0}s, Reset pulse width = {1}s\n".format(self.setTimestep,self.resetTimestep))
             f.write("##Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.params["Average"]))
             f.write("##Limiting current = {}mA\n".format(self.iLimit.value()))
+            f.write(self.params["comments"])
             f.write("#NCycles\t LRS current (A)\t HRS Current\t LRS resistance (Ω)\t HRS resistance (Ω)\n")
             write_data = writer(f, delimiter = '\t')
             write_data.writerows(zip(self.ncycles, self.LRScurrents, 

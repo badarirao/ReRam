@@ -97,6 +97,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.forming_button.clicked.connect(self.open_forming)
         self.speed_button.setEnabled(False)
         self.aging_button.setEnabled(False)
+        self.neuromorphic_Button.setEnabled(False)
         self.memristor_button.setEnabled(False)
         self.temperature_button.setEnabled(False)
         self.batch_button.setEnabled(False)
@@ -106,6 +107,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.connection = 1
         self.currentSample = 0
         self.check_instrument_connection()
+        self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
+    
+    def updateCommentBox(self):
+        if self.comment_checkBox.isChecked():
+            self.commentBox.setEnabled(True)
+            self.commentBox.blockSignals(False)
+        else:
+            self.commentBox.setEnabled(False)
+            self.commentBox.blockSignals(True)
     
     def checkPaths(self):
         """
@@ -342,6 +352,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             self.Retentionfilename = self.sampleID+'_Retention'
             self.Formingfilename = self.sampleID+'_Forming'
 
+    def combine_comments(self):
+        newtext = self.commentBox.toPlainText()
+        self.iv_text = newtext + '\n' + self.iv.commentBox.toPlainText()
+        self.rv_text = newtext + '\n' +self.rv.commentBox.toPlainText()
+        self.switch_text = newtext + '\n' +self.st.commentBox.toPlainText()
+        self.fatigue_text = newtext + '\n' +self.ft.commentBox.toPlainText()
+        self.retention_text = newtext + '\n' +self.rt.commentBox.toPlainText()
+        self.forming_text = newtext + '\n' +self.fr.commentBox.toPlainText()
+
     def open_ivloop(self):
         """
         Load the IV-Loop module.
@@ -500,7 +519,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                         self.k2450Addr = self.k2450.address
                         self.k2700Addr = self.k2700.address
                         self.AFG1022Addr = self.afg1022.address
-                        self.AFG1022Addr
                         f.write(self.settingPath+'\n') # write path of SettingFile.dnd
                         f.write(self.k2450Addr+' (Keithley 2450 Sourcemeter)'+'\n') # write address of K2450
                         f.write(self.k2700Addr+' (Keithley 2700 Multiplexer)'+'\n') # write address of K700
