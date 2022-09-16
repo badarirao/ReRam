@@ -382,7 +382,7 @@ class app_Switch(Ui_Switch):
             "temperature": 300,
             "temp_check": 0,
             "comments" :""}
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
     
     def updateCommentBox(self):
@@ -492,7 +492,7 @@ class app_Switch(Ui_Switch):
             "temperature": self.temperature.value(),
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         self.k2450.readV = self.params["Rvoltage"]
         self.k2450.avg = self.params["Average"]
         if self.params["set_timeUnit"] == 0:
@@ -570,6 +570,7 @@ class app_Switch(Ui_Switch):
         self.k2450.wait_till_done()
         c2 = self.k2450.get_average_trace_data()
         self.volts.append(v1)
+        self.setvolts.append(self.points[self.i])
         if self.pulsecount == []:
             self.pulsecount = [1]
         else:
@@ -677,6 +678,7 @@ class app_Switch(Ui_Switch):
         if self.new_flag:
             self.pulsecount = [0]
             self.volts = [0]
+            self.setvolts = []
             self.currents = []
             self.resistances = []
             self.readVolts = []
@@ -766,7 +768,7 @@ class app_Switch(Ui_Switch):
                     f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
                     f.write(self.params["comments"])
                     f.write("#Pulse Voltage (V)\tPulse Current (A)\tPulse Resistance (ohms)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
-                data = zip(self.volts, self.currents, self.resistances, self.readVolts, self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits)
+                data = zip(self.setvolts,self.volts, self.currents, self.resistances, self.readVolts, self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits)
             else:
                 if not filePresent:
                     f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")

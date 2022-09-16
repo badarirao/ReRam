@@ -8,6 +8,7 @@ from copy import copy
 from re import sub
 from MyKeithley2450 import Keithley2450
 from MyKeithley2700 import Keithley2700
+from MyKeysightB2902B import KeysightB2902B
 from MyAFG1022 import AFG1022 
 from PyQt5.QtCore import QObject, QTimer, QEventLoop, pyqtSignal
 from PyQt5.QtWidgets import QTimeEdit, QSpinBox
@@ -202,6 +203,39 @@ def connectDevice(inst,addr,test = False):
             msg.exec()
             return 0,0
         
+def connect_known_instruments(k2450Addr = None, k2700Addr = None, AFG1022Addr = None, 
+                    b2902bAddr = None, test = False):
+    deviceAddr = [k2450Addr,k2700Addr,AFG1022Addr,b2902bAddr]
+    print(deviceAddr)
+    k2450 = k2700 = AFG = B2902b = None
+    rm = ResourceManager()
+    available_instruments = rm.list_resources()
+    for inst in available_instruments:
+        if inst in deviceAddr:
+            i = deviceAddr.index(inst)
+            if i == 0 and k2450 == None:
+                k2450 = Keithley2450(k2450Addr)
+            elif i == 1 and k2700 == None:
+                k2700 = Keithley2700(k2700Addr)
+            elif i == 2 and AFG == None:
+                AFG = AFG1022(AFG1022Addr)
+            elif i == 3 and B2902b == None:
+                B2902b = KeysightB2902B(b2902bAddr)
+    if k2450 == None:
+        k2450 = FakeAdapter()
+    if k2700 == None:
+        k2700 = FakeAdapter()
+    if AFG == None:
+        AFG = FakeAdapter()
+    if B2902b == None:
+        B2902b = FakeAdapter()
+    if k2450.ID != 'Fake' and B2902b.ID == 'Fake':
+        SMU = k2450
+    else:
+        SMU = B2902b
+    
+    return SMU,k2700,AFG
+
 def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None, 
                     test = False):
     """

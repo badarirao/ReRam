@@ -312,7 +312,7 @@ class app_RVLoop(Ui_RVLoop):
             "temperature": 300,
             "temp_check": 0,
             "comments" : ""}
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
     
     def updateCommentBox(self):
@@ -379,7 +379,7 @@ class app_RVLoop(Ui_RVLoop):
             "temperature": self.temperature.value(),
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         self.k2450.readV = self.params["Rvoltage"]
         self.npoints = int(
             (self.params["Vmax"] - self.params["Vmin"])/(self.params["Vstep"]))*2+1

@@ -216,7 +216,7 @@ class app_Forming(Ui_Forming):
             "temperature": 300,
             "temp_check": 0,
             "comments" : ""}
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
     
@@ -297,7 +297,7 @@ class app_Forming(Ui_Forming):
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
         self.measurement_status = "Running"
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         self.disable_input()
         self.fullfilename = unique_filename('.',prefix=self.filename,ext='dat',datetimeformat="")
         nPoints = int(abs(self.vEnd.value()-self.vStart.value())) * 10 + 1

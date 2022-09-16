@@ -25,6 +25,8 @@ Not tested for other Python versions or OS.
 # TODO: MUX related tasks:"
 # TODO: If function generator is connected with another sample, make sure this program will not use function generator
 # TODO: Add Keysight B2902B sourcemeter
+# TODO: combine all common import modules and put it in utilities, and import from 
+# TODO: checkinstrument - scan only for the instruments saved in the address file, and connect ones that are successful. This may be faster.
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
@@ -48,7 +50,7 @@ from Switch import app_Switch
 from Fatigue import app_Fatigue
 from Retention import app_Retention
 from Forming import app_Forming
-from utilities import get_valid_filename, checkInstrument, connect_sample_with_SMU, checkMUX_SMU
+from utilities import get_valid_filename, connect_known_instruments, connect_sample_with_SMU, checkMUX_SMU
 
 TESTING = True  #if True, will use a Fakeadapter when no instrument connected
 
@@ -60,7 +62,7 @@ class Worker(QObject):
         super(Worker,self).__init__()
         
     def connect_instrument(self,a1,a2,a3,test):
-        instruments = list(checkInstrument(a1,a2,a3,test))
+        instruments = list(connect_known_instruments(a1,a2,a3,test))
         self.adapters.emit(instruments)
         self.finished.emit()
 
@@ -142,32 +144,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.settingPath = ""
         self.sampleID = ''
         self.initialPath = os.getcwd()
+        self.k2450Addr = self.k2700Addr = self.AFG1022Addr = self.B2902bAddr = ''
         try:
             with open('address.txt') as f:
                 self.settingPath = f.readline().strip()# get path of SettingFile.dnd
-                self.k2450Addr = f.readline().strip().split() # get address of K2450 if present
-                if self.k2450Addr:
-                    self.k2450Addr = self.k2450Addr[0]
-                else:
-                    self.k2450Addr = ''
-                self.k2700Addr = f.readline().strip().split() # get address of K700 if present
-                if self.k2700Addr:
-                    self.k2700Addr = self.k2700Addr[0]
-                else:
-                    self.k2700Addr = ''
-                self.AFG1022Addr = f.readline().strip().split() # get address of AFG1022 if present
-                if self.AFG1022Addr:
-                    self.AFG1022Addr = self.AFG1022Addr[0]
-                else:
-                    self.AFG1022Addr = ''
+                lines = f.readlines()
+                for line in lines:
+                    l = line.split()
+                    detail = " ".join(l[1:])
+                    if '2450' in detail:
+                        self.k2450Addr = l[0]
+                    elif '2700' in detail:
+                        self.k2700Addr = l[0]
+                    elif '1022' in detail:
+                        self.AFG1022Addr = l[0]
+                    elif '2902b' in detail.lower():
+                        self.B2902bAddr = l[0]
                 os.chdir(self.settingPath)
         except FileNotFoundError:
             with open('address.txt','w') as f:
                 f.write(self.initialPath)
             self.settingPath = self.initialPath
-            self.k2450Addr = ''
-            self.k2700Addr = ''
-            self.AFG1022Addr = ''
             
         # set default path to store measured data as desktop
         self.defaultPath = os.path.join(
@@ -192,7 +189,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
     def check_instrument_connection(self):
         global TESTING
         try:
-            self.k2450.close()
+            self.SMU.close()
             self.k2700.close()
             self.afg1022.close()
         except:
@@ -452,6 +449,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
     
     def load_parameters(self):
         os.chdir(self.currPath)
+        print(self.currPath)
         if os.path.isfile("parameter_file.prm"):
             with open("parameter_file.prm",'r') as f:
                 self.filename.setText(f.readline().strip())

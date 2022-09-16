@@ -420,7 +420,7 @@ class app_Retention(Ui_Retention):
             "temperature": 300,
             "temp_check": 0,
             "comments" : ""}
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
     
     def updateCommentBox(self):
@@ -530,7 +530,7 @@ class app_Retention(Ui_Retention):
             "temperature": self.temperature.value(),
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         self.k2450.avg = self.params["Average"]
         self.k2450.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:

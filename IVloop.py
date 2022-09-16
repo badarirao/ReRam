@@ -270,7 +270,7 @@ class app_IVLoop(Ui_IVLoop):
             "temperature": 300,
             "temp_check": 0,
             "comments": ""}
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
     
     def updateCommentBox(self):
@@ -316,7 +316,7 @@ class app_IVLoop(Ui_IVLoop):
             "temperature": self.temperature.value(),
             "temp_check": int(self.temp_check.isChecked()),
             "comments": formattedComment}
-        self.parameters = list(self.params.values())
+        self.parameters = list(self.params.values())[:-1]
         if self.params["Vmax"] < self.params["Vmin"]:
             t = self.params["Vmax"]
             self.params["Vmax"] = self.params["Vmin"]
