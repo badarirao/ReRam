@@ -190,11 +190,11 @@ class Ui_Forming(QtWidgets.QWidget):
 class app_Forming(Ui_Forming):
     """The IV-Loop app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, sName="Sample_IV.txt",connection=1,currentSample=0):
+    def __init__(self, parent=None, smu=None, k2700 = None, sName="Sample_IV.txt", connection=1, currentSample=0):
         super(app_Forming, self).__init__(parent)
         self.parent = parent
         self.file_name.setReadOnly(True)
-        self.k2450 = k2450
+        self.smu = smu
         self.k2700 = k2700
         self.connection = connection
         self.currentSample = currentSample
@@ -205,7 +205,7 @@ class app_Forming(Ui_Forming):
         self.start_Button.setShortcut('Ctrl+Return')
         self.abort_Button.setShortcut('Ctrl+q')
         self.initialize_plot()
-        self.k2450.nplc = 1
+        self.smu.nplc = 1
         self.filename = sName
         self.file_name.setText(self.filename)
         self.measurement_status = "Idle"
@@ -273,7 +273,7 @@ class app_Forming(Ui_Forming):
         
     def startThread(self):
         self.thread = QThread()
-        self.worker = Worker(self.k2450,self.fullfilename)
+        self.worker = Worker(self.smu, self.fullfilename)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(partial(self.worker.start_forming,self.vPoints,self.iPoints))
         self.worker.finished.connect(self.thread.quit)
@@ -363,10 +363,10 @@ class Worker(QObject):
     data = pyqtSignal(list)
     stopcall = pyqtSignal()
     
-    def __init__(self, k2450=None, fullfilename="sample.dat"):
+    def __init__(self, smu=None, fullfilename="sample.dat"):
         super(Worker,self).__init__()
         self.stopCall = False
-        self.k2450 = k2450
+        self.smu = smu
         self.fullfilename = fullfilename
         self.stopcall.connect(self.stopcalled)
      
@@ -376,11 +376,11 @@ class Worker(QObject):
     def start_forming(self, vPoints, iPoints):
         l = 1
         i = iPoints[l]
-        self.k2450.measure_current(nplc=2)
-        self.k2450.source_voltage = 0
-        self.k2450.set_measurement_count(1)
-        self.k2450.set_read_back_on()
-        self.k2450.enable_source()
+        self.smu.measure_current(nplc=2)
+        self.smu.source_voltage = 0
+        self.smu.set_measurement_count(1)
+        self.smu.set_read_back_on()
+        self.smu.enable_source()
         file = open(self.fullfilename,'w')
         file.write("##Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
         file.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
@@ -389,19 +389,19 @@ class Worker(QObject):
         file.write("## Current Limit = {}\n".format(iPoints[-1]))
         file.write("# Applied Voltgage (V)\tCurrent(A)\n")
         iFlag = False
-        self.k2450.set_compliance(i)
+        self.smu.set_compliance(i)
         for v in vPoints[1:]:
-            self.k2450.source_voltage = v
+            self.smu.source_voltage = v
             m = 0
             while True:
                 if self.stopCall:
                     iFlag = True
                     break
-                if self.k2450.is_compliance_tripped():
+                if self.smu.is_compliance_tripped():
                     if l < len(iPoints)-1:
                         l = l+1
                         i = iPoints[l]
-                        self.k2450.set_compliance(i)
+                        self.smu.set_compliance(i)
                         m = 0
                     else:
                         iFlag = True # if the user specified current limit is reached
@@ -410,7 +410,7 @@ class Worker(QObject):
                     m = m + 1
                 sleep(0.1)
                 if m > 10:
-                    values = self.k2450.get_all_buffer_data()
+                    values = self.smu.get_all_buffer_data()
                     file.write(values[0]+'\t'+values[1]+'\n')
                     file.flush()
                     volt = float(values[0])
@@ -420,16 +420,16 @@ class Worker(QObject):
             if iFlag:
                 break
         file.close()
-        self.k2450.source_voltage = 0
-        self.k2450.disable_source()
+        self.smu.source_voltage = 0
+        self.smu.disable_source()
         self.finished.emit()
         
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     Forming = QtWidgets.QWidget()
-    k2450, k2700, _ = checkInstrument(test = True)
-    ui = app_Forming(Forming,k2450,k2700)
+    smu, k2700, _ = checkInstrument(test = True)
+    ui = app_Forming(Forming, smu, k2700)
     ui.show()
     app.exec_()
     app.quit()

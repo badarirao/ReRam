@@ -241,15 +241,15 @@ class Ui_IVLoop(QtWidgets.QWidget):
 class app_IVLoop(Ui_IVLoop):
     """The IV-Loop app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, sName="Sample_IV.txt",connection=1,currentSample=0):
+    def __init__(self, parent=None, smu=None, k2700 = None, sName="Sample_IV.txt",connection=1,currentSample=0):
         super(app_IVLoop, self).__init__(parent)
         self.parent = parent
         self.file_name.setReadOnly(True)
-        self.k2450 = k2450
+        self.smu = smu
         self.k2700 = k2700
         self.connection = connection
         self.currentSample = currentSample
-        self.k2450.reset()
+        self.smu.reset()
         self.stop_Button.setEnabled(False)
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_ivloop)
@@ -383,7 +383,7 @@ class app_IVLoop(Ui_IVLoop):
 
     def startThread(self):
         self.thread = QThread()
-        self.worker = Worker(self.params,self.k2450,self.k2700,self.fullfilename,self.connection, self.currentSample)
+        self.worker = Worker(self.params, self.smu, self.k2700, self.fullfilename, self.connection, self.currentSample)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.start_IV)
         self.worker.finished.connect(self.thread.quit)
@@ -411,7 +411,7 @@ class app_IVLoop(Ui_IVLoop):
         self.ncycles.setEnabled(True)
         self.temp_check.setEnabled(True)
         self.start_Button.setEnabled(True)
-        self.k2450.source_voltage = 0
+        self.smu.source_voltage = 0
         self.stop_Button.setEnabled(False)
         app_IVLoop.formatIV_Excel(self.fullfilename)
     
@@ -599,18 +599,18 @@ class Worker(QObject):
     stopcall = pyqtSignal()
     sendPoints = pyqtSignal(list)
     
-    def __init__(self, params, k2450=None, k2700=None, fullfilename="sample.dat", connection = 1, currentSample = 0):
+    def __init__(self, params, smu=None, k2700=None, fullfilename="sample.dat", connection = 1, currentSample = 0):
         super(Worker,self).__init__()
         self.stopCall = False
         self.params = params
-        self.k2450 = k2450
+        self.smu = smu
         self.k2700 = k2700
         self.connection = connection
         self.currentSample = currentSample
         self.fullfilename = fullfilename
         self.stopcall.connect(self.stopcalled)
         self.npoints = 100
-        self.k2450.nplc = 1
+        self.smu.nplc = 1
         self.status = 1
         
     def initialize_SMU(self):
@@ -622,16 +622,16 @@ class Worker(QObject):
         None.
 
         """
-        if self.k2450 is None:
-            self.k2450 = FakeAdapter()
+        if self.smu is None:
+            self.smu = FakeAdapter()
         if self.k2700 is None:
             self.k2700 = FakeAdapter()
         
         # if afg is connected, remove and connect the source meter
         connect_sample_with_SMU(self.k2700,self.connection,self.currentSample)
-        self.k2450.measure_current()
-        self.k2450.auto_range_sense()
-        self.k2450.set_wire_configuration(2) # two wire configuration
+        self.smu.measure_current()
+        self.smu.auto_range_sense()
+        self.smu.set_wire_configuration(2) # two wire configuration
         if self.params["Speed"] == 0:
             nplc = 5
             self.speed = "Very Slow"
@@ -647,11 +647,11 @@ class Worker(QObject):
         elif self.params["Speed"] == 4:
             nplc = 0.01
             self.speed = "Very Fast"
-        self.k2450.nplc = nplc
-        self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
+        self.smu.nplc = nplc
+        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
         # correct for zero only at the beginning
-        self.k2450.correct_zero_at_beginning_only()
-        self.k2450.set_read_back_on()
+        self.smu.correct_zero_at_beginning_only()
+        self.smu.set_read_back_on()
 
     def configure_sweep(self):
         """
@@ -673,7 +673,7 @@ class Worker(QObject):
             
         if self.params["Vmax"] == self.params["Vmin"]:
             self.points = [self.params["Vmax"]]
-            self.k2450.set_voltage_points(self.points[0])
+            self.smu.set_voltage_points(self.points[0])
         elif self.params["Vmax"] >= 0 >= self.params["Vmin"]:
             nplus = int(
                 self.params["Vmax"]/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
@@ -688,11 +688,11 @@ class Worker(QObject):
             # split the points into 6 chunks of equal size
             self.chunks = array_split(self.points, 6)
             # write the first chunk into the list
-            self.k2450.set_voltage_points(str(list(self.chunks[0]))[1:-1])
+            self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
             # append the remaining chunks into the list
             if len(self.chunks) > 1:
                 for i in self.chunks[1:]:
-                    self.k2450.append_voltage_points(str(list(i))[1:-1])
+                    self.smu.append_voltage_points(str(list(i))[1:-1])
         else:
             l1 = linspace(self.params["Vmin"], self.params["Vmax"], int(
                 self.npoints/2), endpoint=False)
@@ -701,13 +701,13 @@ class Worker(QObject):
             self.points = around(concatenate((l1, l2)), 3)
             self.chunks = array_split(self.points, 5)
             # write the first chunk into the list
-            self.k2450.set_voltage_points(str(list(self.chunks[0]))[1:-1])
+            self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
             # append the remaining chunks into the list
             if len(self.chunks) > 1:
                 for i in self.chunks[1:]:
-                    self.k2450.append_voltage_points(str(list(i))[1:-1])
+                    self.smu.append_voltage_points(str(list(i))[1:-1])
         # set the sweep function with the above list
-        self.k2450.configure_sweep(self.params["Delay"])
+        self.smu.configure_sweep(self.params["Delay"])
         self.sendPoints.emit([self.points])
     
     def start_IV(self):
@@ -715,19 +715,19 @@ class Worker(QObject):
         self.configure_sweep()
         i = 0
         while i<self.params["ncycles"] and not self.stopCall:
-            self.k2450.start_buffer()  # start the measurement
+            self.smu.start_buffer()  # start the measurement
             # TODO: get buffered data every n seconds
             while self.stopCall == False:
-                #self.k2450.wait_till_done(1000)
+                #self.smu.wait_till_done(1000)
                 sleep(1)
-                start_point = self.k2450.get_start_point()
+                start_point = self.smu.get_start_point()
                 if start_point == 0:
                     continue
-                end_point = self.k2450.get_end_point()
-                data = self.k2450.get_trace_data(start_point, end_point)
+                end_point = self.smu.get_end_point()
+                data = self.smu.get_trace_data(start_point, end_point)
                 data = reshape(array(data.split(','), dtype=float), (-1, 2))
                 self.data.emit([data,i+1])
-                state = self.k2450.get_trigger_state()
+                state = self.smu.get_trigger_state()
                 if state != 'RUNNING':
                     if state != 'IDLE':
                         self.status = 0
@@ -739,9 +739,9 @@ class Worker(QObject):
                 f.write("\n\n")
             i = i + 1
         if self.stopCall:
-            self.k2450.abort()
-        self.k2450.source_voltage = 0
-        self.k2450.disable_source()
+            self.smu.abort()
+        self.smu.source_voltage = 0
+        self.smu.disable_source()
         MessageBeep()
         self.finished.emit()
     
@@ -752,8 +752,8 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     IVLoop = QtWidgets.QWidget()
-    k2450, k2700, _ = checkInstrument(test = True)
-    ui = app_IVLoop(IVLoop,k2450,k2700)
+    smu, k2700, _ = checkInstrument(test = True)
+    ui = app_IVLoop(IVLoop,smu,k2700)
     ui.show()
     app.exec_()
     app.quit()

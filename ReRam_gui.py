@@ -61,8 +61,8 @@ class Worker(QObject):
     def __init__(self):
         super(Worker,self).__init__()
         
-    def connect_instrument(self,a1,a2,a3,test):
-        instruments = list(connect_known_instruments(a1,a2,a3,test))
+    def connect_instrument(self,a1,a2,a3,a4,test):
+        instruments = list(connect_known_instruments(a1,a2,a3,a4,test))
         self.adapters.emit(instruments)
         self.finished.emit()
 
@@ -189,7 +189,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
     def check_instrument_connection(self):
         global TESTING
         try:
-            self.SMU.close()
+            self.smu.close()
             self.k2700.close()
             self.afg1022.close()
         except:
@@ -211,7 +211,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         a1 = self.k2450Addr
         a2 = self.k2700Addr
         a3 = self.AFG1022Addr
-        self.thread.started.connect(partial(self.worker.connect_instrument,a1,a2,a3,TESTING))
+        a4 = self.B2902bAddr
+        self.thread.started.connect(partial(self.worker.connect_instrument,a1,a2,a3,a4,TESTING))
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -221,7 +222,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.thread.start()
     
     def getInstruments(self,instruments):
-        self.k2450 = instruments[0]
+        self.smu = instruments[0]
         self.k2700 = instruments[1]
         self.afg1022 = instruments[2]
         
@@ -251,7 +252,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 self.close()
         print("Closed channels = {}".format(self.k2700.display_closed_channels()))
         self.status = 0
-        if self.k2450.ID == 'Fake':
+        if self.smu.ID == 'Fake':
             self.status = self.status + 1
         if self.k2700.ID == 'Fake':
             self.status = self.status + 2
@@ -262,15 +263,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         elif self.status == 1:
             self.statusBar.showMessage('Sourcemeter not connected.')
         elif self.status == 2:
-            self.statusBar.showMessage('Multiplexer not connected.')
+            self.statusBar.showMessage('Sourcemeter, function generator connected')
         elif self.status == 3:
-            self.statusBar.showMessage('Sourcemeter, Multiplexer not connected.')
+            self.statusBar.showMessage('Sourcemeter not connected. Function generator connected')
         elif self.status == 4:
-            self.statusBar.showMessage('Function generator not connected.')
+            self.statusBar.showMessage('Sourcemeter, multiplexer connected.')
         elif self.status == 5:
-            self.statusBar.showMessage('Sourcemeter, Function generator not connected.')
+            self.statusBar.showMessage('Sourcemeter not connected. Multiplexer connected')
         elif self.status == 6:
-            self.statusBar.showMessage('Multiplexer, Function generator not connected.')
+            self.statusBar.showMessage('Sourcemeter connected.')
         elif self.status == 7:
             self.statusBar.showMessage('No instruments connected.')
         self.inst_button.setEnabled(True)
@@ -284,17 +285,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.forming_button.setEnabled(True)
     
     def initialize_apps(self):
-        self.iv = app_IVLoop(self, self.k2450, self.k2700, self.IVfilename, self.connection, self.currentSample)
+        self.iv = app_IVLoop(self, self.smu, self.k2700, self.IVfilename, self.connection, self.currentSample)
         self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rv = app_RVLoop(self, self.k2450, self.k2700, self.afg1022, self.RVfilename, self.connection, self.currentSample)
+        self.rv = app_RVLoop(self, self.smu, self.k2700, self.afg1022, self.RVfilename, self.connection, self.currentSample)
         self.rv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.st = app_Switch(self, self.k2450, self.k2700, self.afg1022, self.Switchfilename, self.connection, self.currentSample)
+        self.st = app_Switch(self, self.smu, self.k2700, self.afg1022, self.Switchfilename, self.connection, self.currentSample)
         self.st.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.ft = app_Fatigue(self, self.k2450, self.k2700, self.afg1022, self.Fatiguefilename, self.connection, self.currentSample)
+        self.ft = app_Fatigue(self, self.smu, self.k2700, self.afg1022, self.Fatiguefilename, self.connection, self.currentSample)
         self.ft.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rt = app_Retention(self, self.k2450, self.k2700, self.afg1022, self.Retentionfilename, self.connection, self.currentSample)
+        self.rt = app_Retention(self, self.smu, self.k2700, self.afg1022, self.Retentionfilename, self.connection, self.currentSample)
         self.rt.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.fr = app_Forming(self, self.k2450, self.k2700, self.Formingfilename, self.connection, self.currentSample)
+        self.fr = app_Forming(self, self.smu, self.k2700, self.Formingfilename, self.connection, self.currentSample)
         self.fr.setWindowModality(QtCore.Qt.ApplicationModal)
         self.load_parameters()
     
@@ -512,18 +513,38 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 f.write(self.sampleID)
             os.chdir(self.initialPath)
             try:
-                if self.status == 0:
+                if self.status == 0: # if all instruments are connected
                     with open('address.txt','w') as f:
-                        self.k2450Addr = self.k2450.address
-                        self.k2700Addr = self.k2700.address
-                        self.AFG1022Addr = self.afg1022.address
+                        lines = f.readlines()
+                        lines = lines[1:]
+                        keeplines = []
+                        for line in lines:
+                            if 'k2450' in line.lower() or 'b2902' in line.lower():
+                                keeplines.append(line)
+                    with open('address.txt','w') as f:
+                        self.smuAddr = self.smu.address + ' ' + self.smu.name
+                        if len(keeplines) in (1,2): # check if address of unconnected smu needs to be stored
+                            if 'b2902' in self.smu.name.lower():
+                                if 'b2902' in keeplines[0].lower():
+                                    keeplines.pop(0)
+                                elif 'b2902' in keeplines[1].lower():
+                                    keeplines.pop(1)
+                            elif 'k2450' in self.smu.name.lower():
+                                if 'k2450' in keeplines[0].lower():
+                                    keeplines.pop(0)
+                                elif 'k2450' in keeplines[1].lower():
+                                    keeplines.pop(1)
+                        if len(keeplines) == 1:
+                            self.smuAddr += '\n' + keeplines[0]
+                        self.k2700Addr = self.k2700.address + ' ' + self.k2700.name
+                        self.AFG1022Addr = self.afg1022.address + ' ' + self.afg1022.name
                         f.write(self.settingPath+'\n') # write path of SettingFile.dnd
-                        f.write(self.k2450Addr+' (Keithley 2450 Sourcemeter)'+'\n') # write address of K2450
-                        f.write(self.k2700Addr+' (Keithley 2700 Multiplexer)'+'\n') # write address of K700
-                        f.write(self.AFG1022Addr+' (Textronix 1022 Function Generator)') # write get address of AFG1022
+                        f.write(self.smuAddr + '\n') # write address of active smu
+                        f.write(self.k2700Addr + '\n') # write address of K700
+                        f.write(self.AFG1022Addr) # write address of AFG1022
             except AttributeError:
                 pass
-            self.k2450.close()
+            self.smu.close()
             self.k2700.write("DISPlay:ENABle ON")
             self.k2700.close()
             self.afg1022.close()

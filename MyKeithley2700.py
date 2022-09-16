@@ -115,6 +115,7 @@ class Keithley2700:
             self.address = adapter
             self.ID = 'K2700'
             self.inst.query('*IDN?')
+            self.name = 'Keithley 2700 multiplexer'
         else:
             raise VisaIOError(-1073807346)
         #self.check_errors()

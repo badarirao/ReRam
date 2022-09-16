@@ -273,10 +273,10 @@ class Ui_RVLoop(QtWidgets.QWidget):
 class app_RVLoop(Ui_RVLoop):
     """The RV-Loop app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_RV.dat", connection=1,currentSample=0):
+    def __init__(self, parent=None, smu=None, k2700 = None, afg1022 = None, sName="Sample_RV.dat", connection=1, currentSample=0):
         super(app_RVLoop, self).__init__(parent)
         self.parent = parent
-        self.k2450 = k2450
+        self.smu = smu
         self.k2700 = k2700 
         self.afg1022 = afg1022
         self.connection = connection
@@ -289,10 +289,10 @@ class app_RVLoop(Ui_RVLoop):
         self.stop_Button.setShortcut('ctrl+q')
         self.initialize_plot()
         self.update_limits()
-        self.k2450.nplc = 0.01
-        self.k2450.readV = 0.1
+        self.smu.nplc = 0.01
+        self.smu.readV = 0.1
         self.avg_over_n_readings = 10
-        self.k2450.avg = self.avg_over_n_readings
+        self.smu.avg = self.avg_over_n_readings
         self.filename = sName
         self.file_name.setReadOnly(True)
         self.file_name.setText(self.filename)
@@ -380,7 +380,7 @@ class app_RVLoop(Ui_RVLoop):
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
         self.parameters = list(self.params.values())[:-1]
-        self.k2450.readV = self.params["Rvoltage"]
+        self.smu.readV = self.params["Rvoltage"]
         self.npoints = int(
             (self.params["Vmax"] - self.params["Vmin"])/(self.params["Vstep"]))*2+1
         if self.params["VPwidth"] == 0:
@@ -402,24 +402,24 @@ class app_RVLoop(Ui_RVLoop):
         None.
 
         """
-        if self.k2450 is None:
-            self.k2450 = FakeAdapter()
-        self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
+        if self.smu is None:
+            self.smu = FakeAdapter()
+        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
         if self.params["Speed"] == 0:
-            self.k2450.nplc = 5
+            self.smu.nplc = 5
         elif self.params["Speed"] == 1:
-            self.k2450.nplc = 2
+            self.smu.nplc = 2
         elif self.params["Speed"] == 2:
-            self.k2450.nplc = 1
+            self.smu.nplc = 1
         elif self.params["Speed"] == 3:
-            self.k2450.nplc = 0.1
+            self.smu.nplc = 0.1
         elif self.params["Speed"] == 4:
-            self.k2450.nplc = 0.01
-        self.k2450.measure_current()
-        self.k2450.set_wire_configuration(2) # two wire configuration
-        self.k2450.set_zero_correct_on()
-        self.k2450.set_read_back_on()
-        self.k2450.display_light('OFF')
+            self.smu.nplc = 0.01
+        self.smu.measure_current()
+        self.smu.set_wire_configuration(2) # two wire configuration
+        self.smu.set_zero_correct_on()
+        self.smu.set_read_back_on()
+        self.smu.display_light('OFF')
 
     def configure_sweep(self):
         """
@@ -453,7 +453,7 @@ class app_RVLoop(Ui_RVLoop):
         while True:
             QtCore.QTimer.singleShot(wait_time, loop.quit)
             loop.exec_()
-            state = self.k2450.get_trigger_state()
+            state = self.smu.get_trigger_state()
             if state == 'IDLE':
                 return 1
             elif state not in ('RUNNING', 'BUILDING'):
@@ -483,9 +483,9 @@ class app_RVLoop(Ui_RVLoop):
             connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
             self.timer.singleShot(0, self.measure_RV_SMU)
         else:
-            self.k2450.setNPLC()
-            self.k2450.set_simple_loop(self.avg_over_n_readings)
-            self.k2450.source_voltage = self.params["Rvoltage"]
+            self.smu.setNPLC()
+            self.smu.set_simple_loop(self.avg_over_n_readings)
+            self.smu.source_voltage = self.params["Rvoltage"]
             self.timer.singleShot(0, self.measure_RV_AFG)
 
     def measure_RV_SMU(self):
@@ -497,22 +497,22 @@ class app_RVLoop(Ui_RVLoop):
         None.
 
         """
-        self.k2450.setNPLC(0.01)
-        self.k2450.set_simple_loop(delayTime=self.timestep)
-        self.k2450.source_voltage = self.points[self.i]
-        self.k2450.start_buffer()
+        self.smu.setNPLC(0.01)
+        self.smu.set_simple_loop(delayTime=self.timestep)
+        self.smu.source_voltage = self.points[self.i]
+        self.smu.start_buffer()
         self.wait_till_done(1)
-        setData = self.k2450.get_trace_data(1, 1)
+        setData = self.smu.get_trace_data(1, 1)
         setData = array(setData.split(','), dtype=float)
         v, c = setData[0], setData[1]
         self.actual_setVolts.append(v)
         self.set_currents.append(c)
-        self.k2450.setNPLC()
-        self.k2450.set_simple_loop(count=self.avg_over_n_readings)
-        self.k2450.source_voltage = self.params["Rvoltage"]
-        self.k2450.start_buffer()
+        self.smu.setNPLC()
+        self.smu.set_simple_loop(count=self.avg_over_n_readings)
+        self.smu.source_voltage = self.params["Rvoltage"]
+        self.smu.start_buffer()
         self.wait_till_done()
-        self.read_currents.append(self.k2450.get_average_trace_data())
+        self.read_currents.append(self.smu.get_average_trace_data())
         if self.read_currents[self.i] == 0:
             self.read_currents[self.i] = 1e-20
         self.volts.append(self.points[self.i])
@@ -554,9 +554,9 @@ class app_RVLoop(Ui_RVLoop):
             self.k2700.open_Channels(AFG+10) # disconnect function generator
             self.k2700.close_Channels(SMU+10) # connect SMU
         waitFor(20) # wait for 20msec to ensure switching is complete
-        self.k2450.start_buffer()
+        self.smu.start_buffer()
         self.wait_till_done()
-        self.read_currents.append(self.k2450.get_average_trace_data())
+        self.read_currents.append(self.smu.get_average_trace_data())
         if self.read_currents[self.i] == 0:
             self.read_currents[self.i] = 1e-20
         self.volts.append(self.points[self.i])
@@ -598,7 +598,7 @@ class app_RVLoop(Ui_RVLoop):
         self.update_params()
         self.initialize_SMU()
         self.configure_sweep()
-        self.k2450.enable_source()
+        self.smu.enable_source()
         self.plot_realtime_data()
 
     def initialize_plot(self):
@@ -661,7 +661,7 @@ class app_RVLoop(Ui_RVLoop):
 
         """
         if self.stopCall:
-            self.k2450.abort()
+            self.smu.abort()
             self.measurement_status = "Aborted"
             self.statusbar.setText("Measurement aborted.")
         else:
@@ -678,9 +678,9 @@ class app_RVLoop(Ui_RVLoop):
         self.scan_speed.setEnabled(True)
         self.Ilimit.setEnabled(True)
         self.read_voltage.setEnabled(True)
-        self.k2450.source_voltage = 0
-        self.k2450.disable_source()
-        self.k2450.display_light('ON',25)
+        self.smu.source_voltage = 0
+        self.smu.disable_source()
+        self.smu.display_light('ON', 25)
         self.save_data()
         MessageBeep()
             
@@ -723,8 +723,8 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     RVLoop = QtWidgets.QWidget()
-    k2450, k2700, afg1022 = checkInstrument(test = True)
-    ui = app_RVLoop(RVLoop, k2450, k2700, afg1022)
+    smu, k2700, afg1022 = checkInstrument(test = True)
+    ui = app_RVLoop(RVLoop, smu, k2700, afg1022)
     ui.show()
     app.exec_()
     app.quit()

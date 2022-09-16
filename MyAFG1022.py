@@ -39,6 +39,7 @@ class AFG1022:
             self._max_waveform_memory_user_locations = 255
             self.output(1)
             self.ID = 'AFG1022'
+            self.name = 'Tektronix AFG1022 Function generator'
         else:
             raise VisaIOError(-1073807346)
         

@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Memory(object):
     def setupUi(self, Memory):
         Memory.setObjectName("Memory")
-        Memory.resize(560, 475)
+        Memory.resize(800, 650)
         Memory.setMinimumSize(QtCore.QSize(0, 0))
         Memory.setMaximumSize(QtCore.QSize(15000, 15000))
         self.centralwidget = QtWidgets.QWidget(Memory)

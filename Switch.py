@@ -330,13 +330,13 @@ class Ui_Switch(QtWidgets.QWidget):
 class app_Switch(Ui_Switch):
     """The Switch app module."""
 
-    def __init__(self, parent=None, k2450=None, k2700 = None, afg1022 = None, sName="Sample_Switch.dat",connection=1,currentSample=0):
+    def __init__(self, parent=None, smu=None, k2700 = None, afg1022 = None, sName="Sample_Switch.dat", connection=1, currentSample=0):
         super(app_Switch, self).__init__(parent)
         self.parent = parent
         self.new_flag = True
         self.savedFlag = True
         self.initial_source = 0 # 0 = SMU, 1 = AFG
-        self.k2450 = k2450
+        self.smu = smu
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.connection = connection
@@ -359,9 +359,9 @@ class app_Switch(Ui_Switch):
         self.update_limits()
         self.stopCall = False
         self.measurement_status = "Idle"
-        self.k2450.nplc = 1
-        self.k2450.avg = 5
-        self.k2450.readV = 0.1
+        self.smu.nplc = 1
+        self.smu.avg = 5
+        self.smu.readV = 0.1
         self.filename = self.fullfilename = sName
         self.file_name.setText(self.filename)
         self.file_name.setReadOnly(True)
@@ -493,8 +493,8 @@ class app_Switch(Ui_Switch):
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
         self.parameters = list(self.params.values())[:-1]
-        self.k2450.readV = self.params["Rvoltage"]
-        self.k2450.avg = self.params["Average"]
+        self.smu.readV = self.params["Rvoltage"]
+        self.smu.avg = self.params["Average"]
         if self.params["set_timeUnit"] == 0:
             self.setTimestep = self.params["setPwidth"]*1e-6
         elif self.params["set_timeUnit"] == 1:
@@ -516,7 +516,7 @@ class app_Switch(Ui_Switch):
             if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
                 self.points.append(0)
         # set compliance current
-        self.k2450.set_compliance(self.params["ILimit"])
+        self.smu.set_compliance(self.params["ILimit"])
         # when function generator is used, limit number of pulses to 10
         # This is to avoid using the multiplexer too much, as it has finite lifetime
         if self.params["Vsource"] == 1:
@@ -532,13 +532,13 @@ class app_Switch(Ui_Switch):
         None.
 
         """
-        if self.k2450 is None:
-            self.k2450 = FakeAdapter()
-        self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
-        self.k2450.measure_current(nplc=self.k2450.nplc)
-        self.k2450.set_wire_configuration(2) # two wire configuration
-        self.k2450.display_light('ON', 25)
-        self.k2450.set_read_back_on()
+        if self.smu is None:
+            self.smu = FakeAdapter()
+        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
+        self.smu.measure_current(nplc=self.smu.nplc)
+        self.smu.set_wire_configuration(2) # two wire configuration
+        self.smu.display_light('ON', 25)
+        self.smu.set_read_back_on()
 
     def pulseMeasure_SMU(self):
         """
@@ -557,18 +557,18 @@ class app_Switch(Ui_Switch):
             self.timestep = self.setTimestep+self.resetTimestep
         # apply pulse and measure pulse resistance
         if self.timestep > 0 and self.points[self.i] != 0:
-            v1, c1 = self.k2450.apply_switch_pulse(self.points[self.i],self.timestep)
+            v1, c1 = self.smu.apply_switch_pulse(self.points[self.i], self.timestep)
         else:
             waitFor(self.timestep*1000)
             v1 = 0
             c1 = -1
         # measure read resistance
-        self.k2450.setNPLC()
-        self.k2450.set_simple_loop(count=self.params["Average"])
-        self.k2450.source_voltage = self.params["Rvoltage"]
-        self.k2450.start_buffer()
-        self.k2450.wait_till_done()
-        c2 = self.k2450.get_average_trace_data()
+        self.smu.setNPLC()
+        self.smu.set_simple_loop(count=self.params["Average"])
+        self.smu.source_voltage = self.params["Rvoltage"]
+        self.smu.start_buffer()
+        self.smu.wait_till_done()
+        c2 = self.smu.get_average_trace_data()
         self.volts.append(v1)
         self.setvolts.append(self.points[self.i])
         if self.pulsecount == []:
@@ -623,10 +623,10 @@ class app_Switch(Ui_Switch):
                 self.k2700.open_Channels(AFG+10) # disconnect function generator
                 self.k2700.close_Channels(SMU+10) # connect SMU
             waitFor(20) # wait for 20msec to ensure switching is complete
-        # Measure Read resistance using K2450
-        self.k2450.start_buffer()
-        self.k2450.wait_till_done()
-        c2 = self.k2450.get_average_trace_data()
+        # Measure Read resistance using smu
+        self.smu.start_buffer()
+        self.smu.wait_till_done()
+        c2 = self.smu.get_average_trace_data()
         self.volts.append(self.points[self.i]) 
         self.currents.append(-1)    # Junk, just so that saving does not cause error
         self.resistances.append(-1) # Junk, just so that saving does not cause error
@@ -703,7 +703,7 @@ class app_Switch(Ui_Switch):
         self.clearGraph_Button.setEnabled(False)
         self.save_Button.setEnabled(True)
         self.stop_Button.setEnabled(True)
-        self.k2450.enable_source()
+        self.smu.enable_source()
         self.savedFlag = False
         self.stopCall = False
         if self.params["Vsource"] == 0:
@@ -711,9 +711,9 @@ class app_Switch(Ui_Switch):
             self.timer.singleShot(0, self.pulseMeasure_SMU)
         elif self.params["Vsource"] == 1:
             connect_sample_with_AFG(self.k2700, self.connection, self.currentSample)
-            self.k2450.setNPLC()
-            self.k2450.set_simple_loop(count = self.params["Average"])
-            self.k2450.source_voltage = self.params["Rvoltage"]
+            self.smu.setNPLC()
+            self.smu.set_simple_loop(count = self.params["Average"])
+            self.smu.source_voltage = self.params["Rvoltage"]
             self.timer.singleShot(0, self.pulseMeasure_AFG)
 
     def stopSwitch(self):
@@ -743,8 +743,8 @@ class app_Switch(Ui_Switch):
             self.measurement_status = "Idle"
         self.applyPulse_Button.setEnabled(True)
         self.clearGraph_Button.setEnabled(True)
-        self.k2450.source_voltage = 0
-        self.k2450.disable_source()
+        self.smu.source_voltage = 0
+        self.smu.disable_source()
         MessageBeep()
 
     def saveData(self):
@@ -844,8 +844,8 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     Switch = QtWidgets.QWidget()
-    k2450, k2700, afg1022 = checkInstrument(test = True)
-    ui = app_Switch(Switch, k2450, k2700, afg1022)
+    smu, k2700, afg1022 = checkInstrument(test = True)
+    ui = app_Switch(Switch, smu, k2700, afg1022)
     ui.show()
     app.exec_()
     app.quit()

@@ -353,10 +353,10 @@ class Ui_Fatigue(QtWidgets.QWidget):
 class app_Fatigue(Ui_Fatigue):
     """The Switch app module."""
     
-    def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue",connection=1,currentSample=0):
+    def __init__(self, parent=None, smu = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue", connection=1, currentSample=0):
         super(app_Fatigue, self).__init__(parent)
         self.parent = parent
-        self.k2450 = k2450
+        self.smu = smu
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.connection = connection
@@ -369,9 +369,9 @@ class app_Fatigue(Ui_Fatigue):
         self.set_pulseWidth.setMinimum(0.1)
         self.reset_pulseWidth.setMinimum(0.1)
         self.initialize_plot()
-        self.k2450.nplc = 1
-        self.k2450.avg = 5
-        self.k2450.readV = 0.1
+        self.smu.nplc = 1
+        self.smu.avg = 5
+        self.smu.readV = 0.1
         self.filename = sName
         self.file_name.setText(self.filename)
         self.measurement_status = "Idle"
@@ -504,8 +504,8 @@ class app_Fatigue(Ui_Fatigue):
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
         self.parameters = list(self.params.values())[:-1]
-        self.k2450.avg = self.params["Average"]
-        self.k2450.readV = self.params["Rvoltage"]
+        self.smu.avg = self.params["Average"]
+        self.smu.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:
             self.setTimestep = self.params["setPwidth"]*1e-6
         elif self.params["set_timeUnit"] == 1:
@@ -553,13 +553,13 @@ class app_Fatigue(Ui_Fatigue):
             x = int(8000*self.setTimestep/(self.setTimestep+self.resetTimestep))
             self.afg1022.configure_user7(x)
             waitFor(2000) # wait for 2 seconds for new pulse to be written
-        self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
-        self.k2450.set_wire_configuration(2) # two wire configuration
-        self.k2450.display_light(state = 'ON', percent = 25)
-        self.k2450.set_read_back_on()
-        self.k2450.measure_current()
-        self.k2450.set_simple_loop(self.params["Average"])
-        self.k2450.source_voltage = self.params["Rvoltage"]
+        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
+        self.smu.set_wire_configuration(2) # two wire configuration
+        self.smu.display_light(state ='ON', percent = 25)
+        self.smu.set_read_back_on()
+        self.smu.measure_current()
+        self.smu.set_simple_loop(self.params["Average"])
+        self.smu.source_voltage = self.params["Rvoltage"]
         connect_sample_with_AFG(self.k2700, self.connection, self.currentSample)
 
     def pulseMeasure_AFG(self):
@@ -632,7 +632,7 @@ class app_Fatigue(Ui_Fatigue):
         self.i = 0
         self.configurePulse()
         self.initialize_SMU_and_AFG()
-        self.k2450.enable_source()
+        self.smu.enable_source()
         startTime = time()
         LRScurrent,HRScurrent = self.read_LRS_HRS_states()
         endTime = time()
@@ -690,8 +690,8 @@ class app_Fatigue(Ui_Fatigue):
             self.k2700.open_Channels(AFG+10) # disconnect function generator
             self.k2700.close_Channels(SMU+10) # connect SMU
         waitFor(20) # wait for 20msec to ensure switching is complete
-        # Measure Read resistance using K2450
-        LRScurrent = self.k2450.readReRAM()
+        # Measure Read resistance using smu
+        LRScurrent = self.smu.readReRAM()
         
         # Get HRS        
         if self.connection == 1:
@@ -710,8 +710,8 @@ class app_Fatigue(Ui_Fatigue):
             self.k2700.open_Channels(AFG+10) # disconnect function generator
             self.k2700.close_Channels(SMU+10) # connect SMU
         waitFor(20) # wait for 20msec to ensure switching is complete
-        # Measure Read resistance using K2450
-        HRScurrent = self.k2450.readReRAM()
+        # Measure Read resistance using smu
+        HRScurrent = self.smu.readReRAM()
         if self.connection == 1:
             self.k2700.open_Channels(SMU) # disconnect SMU
             self.k2700.close_Channels(AFG) # connect function generator
@@ -731,8 +731,8 @@ class app_Fatigue(Ui_Fatigue):
             self.status.setText("Measurement Finished. Data saved.")
         self.start_Button.setEnabled(True)
         self.abort_Button.setEnabled(False)
-        self.k2450.source_voltage = 0
-        self.k2450.disable_source()
+        self.smu.source_voltage = 0
+        self.smu.disable_source()
         MessageBeep()
     
     def abortFatigue(self):
@@ -818,8 +818,8 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     Fatigue = QtWidgets.QWidget()
-    k2450, k2700, afg1022 = checkInstrument(test = True)
-    ui = app_Fatigue(Fatigue, k2450, k2700, afg1022)
+    smu, k2700, afg1022 = checkInstrument(test = True)
+    ui = app_Fatigue(Fatigue, smu, k2700, afg1022)
     ui.show()
     app.exec_()
     app.quit()

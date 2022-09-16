@@ -44,8 +44,9 @@ class KeysightB2902B:
         if isinstance(adapter,str):
             rm = ResourceManager()
             self.inst = rm.open_resource(adapter)
+            self.name = 'Keysight B2902B SMU'
             self.address = adapter
-            self.ID = 'K2450'
+            self.ID = 'B2902B'
             self._source_voltage = 0
             self.nplc = 1
             self.source_mode = 'voltage'

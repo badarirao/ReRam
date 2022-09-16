@@ -361,10 +361,10 @@ class Ui_Retention(QtWidgets.QWidget):
 class app_Retention(Ui_Retention):
     """The Switch app module."""
 
-    def __init__(self, parent=None, k2450 = None, k2700 = None, afg1022 = None, sName="Sample_Retention.dat",connection=1,currentSample=0):
+    def __init__(self, parent=None, smu = None, k2700 = None, afg1022 = None, sName="Sample_Retention.dat", connection=1, currentSample=0):
         super(app_Retention, self).__init__(parent)
         self.parent = parent
-        self.k2450 = k2450
+        self.smu = smu
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.currentSample = currentSample
@@ -395,9 +395,9 @@ class app_Retention(Ui_Retention):
         self.update_resistor()
         self.initialize_plot()
         self.update_limits()
-        self.k2450.nplc = 1
-        self.k2450.avg = 5
-        self.k2450.readV = 0.1
+        self.smu.nplc = 1
+        self.smu.avg = 5
+        self.smu.readV = 0.1
         self.measurement_status = "Idle"
         self.filename = sName
         self.file_name.setText(self.filename)
@@ -531,8 +531,8 @@ class app_Retention(Ui_Retention):
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
         self.parameters = list(self.params.values())[:-1]
-        self.k2450.avg = self.params["Average"]
-        self.k2450.readV = self.params["Rvoltage"]
+        self.smu.avg = self.params["Average"]
+        self.smu.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:
             self.setTimestep = self.params["setPwidth"]*1e-6
         elif self.params["set_timeUnit"] == 1:
@@ -562,13 +562,13 @@ class app_Retention(Ui_Retention):
         None.
 
         """
-        self.k2450.apply_voltage(compliance_current=self.params["ILimit"])
-        self.k2450.measure_current()
-        self.k2450.set_wire_configuration(2) # two wire configuration
-        self.k2450.display_light('ON', 25)
-        self.k2450.set_read_back_on()
-        self.k2450.set_simple_loop(self.params["Average"])
-        self.k2450.source_voltage = self.params["Rvoltage"]
+        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
+        self.smu.measure_current()
+        self.smu.set_wire_configuration(2) # two wire configuration
+        self.smu.display_light('ON', 25)
+        self.smu.set_read_back_on()
+        self.smu.set_simple_loop(self.params["Average"])
+        self.smu.source_voltage = self.params["Rvoltage"]
 
     def do_one_retention(self):
         """
@@ -581,15 +581,15 @@ class app_Retention(Ui_Retention):
         """
         if self.vsource.currentIndex() == 0:
             connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
-            self.k2450.apply_switch_pulse(*self.pulses_to_apply[self.i])
+            self.smu.apply_switch_pulse(*self.pulses_to_apply[self.i])
             print("Applied {}V".format(self.pulses_to_apply[self.i][0]))
         elif self.vsource.currentIndex() == 1:
             connect_sample_with_AFG(self.k2700, self.connection, self.curentSample)
             self.afg1022.setSinglePulse(*self.pulses_to_apply[self.i])
             self.afg1022.trgNwait()
             connect_sample_with_SMU(self.k2700)
-        self.k2450.set_simple_loop(self.params["Average"])
-        self.k2450.source_voltage = self.k2450.readV
+        self.smu.set_simple_loop(self.params["Average"])
+        self.smu.source_voltage = self.smu.readV
         
         if self.pulses_to_apply[self.i][0] == self.params["Vset"]:
             #self.ntimesSet = [0.09]
@@ -609,7 +609,7 @@ class app_Retention(Ui_Retention):
             self.read_HRS_dataPoints()
 
     def read_LRS_dataPoints(self):
-        readCurrent = self.k2450.readReRAM()
+        readCurrent = self.smu.readReRAM()
         endTime = round((time() - self.startTime),3)
         #if len(self.ntimesSet) == 1:
         #    self.ntimesSet[0] = endTime
@@ -634,7 +634,7 @@ class app_Retention(Ui_Retention):
         self.timer.singleShot(pauseTime, QtCore.Qt.PreciseTimer, self.read_LRS_dataPoints)
         
     def read_HRS_dataPoints(self):
-        readCurrent = self.k2450.readReRAM()
+        readCurrent = self.smu.readReRAM()
         endTime = time() - self.startTime
         self.ntimesReset.append(round(endTime,3))
         self.HRScurrents.append(readCurrent)
@@ -695,22 +695,22 @@ class app_Retention(Ui_Retention):
                 vset = self.params["Vset"]
                 setpulse = self.setTimestep
                 print("Vset = {0}, {1}ms".format(vset,setpulse))
-                self.k2450.apply_switch_pulse(vset,setpulse)
-                self.k2450.set_simple_loop(self.params["Average"])
-                self.k2450.source_voltage = self.k2450.readV
-                LRSCurrent = self.k2450.readReRAM()
-                print('LRS: {0},{1}'.format(self.k2450.readV,LRSCurrent))
-                self.k2450.wait_till_done()
+                self.smu.apply_switch_pulse(vset, setpulse)
+                self.smu.set_simple_loop(self.params["Average"])
+                self.smu.source_voltage = self.smu.readV
+                LRSCurrent = self.smu.readReRAM()
+                print('LRS: {0},{1}'.format(self.smu.readV, LRSCurrent))
+                self.smu.wait_till_done()
             if self.resetVcheck.isChecked():
                 vreset = self.params["Vreset"]
                 resetpulse = self.resetTimestep
                 print("Vreset = {0}, {1}ms".format(vreset,resetpulse))
-                self.k2450.apply_switch_pulse(vreset,resetpulse)
-                self.k2450.set_simple_loop(self.params["Average"])
-                self.k2450.source_voltage = self.k2450.readV
-                HRSCurrent = self.k2450.readReRAM()
-                print('HRS: {0},{1}'.format(self.k2450.readV,HRSCurrent))
-                self.k2450.wait_till_done()
+                self.smu.apply_switch_pulse(vreset, resetpulse)
+                self.smu.set_simple_loop(self.params["Average"])
+                self.smu.source_voltage = self.smu.readV
+                HRSCurrent = self.smu.readReRAM()
+                print('HRS: {0},{1}'.format(self.smu.readV, HRSCurrent))
+                self.smu.wait_till_done()
         self.stopCall = False
         self.skip = False
         self.status.setText("Program Running..")
@@ -738,7 +738,7 @@ class app_Retention(Ui_Retention):
             #del self.HRS[0]
             self.pulses_to_apply.append([self.params["Vreset"],self.resetTimestep])
         del ntimes[0]
-        self.k2450.enable_source()
+        self.smu.enable_source()
         self.timer = QTimer()
         self.timer.singleShot(0, self.do_one_retention)
 
@@ -764,8 +764,8 @@ class app_Retention(Ui_Retention):
                 self.k2700.open_Channels(AFG+10) # disconnect function generator
                 self.k2700.close_Channels(SMU+10) # connect SMU
             waitFor(20) # wait for 20msec to ensure switching is complete
-            # Measure Read resistance using K2450
-            LRScurrent = self.k2450.readReRAM()
+            # Measure Read resistance using smu
+            LRScurrent = self.smu.readReRAM()
         if self.resetVcheck.isChecked():
             # Get HRS
             if self.connection == 1:
@@ -784,8 +784,8 @@ class app_Retention(Ui_Retention):
                 self.k2700.open_Channels(AFG+10) # disconnect function generator
                 self.k2700.close_Channels(SMU+10) # connect SMU
             waitFor(20) # wait for 20msec to ensure switching is complete
-            # Measure Read resistance using K2450
-            HRScurrent = self.k2450.readReRAM()
+            # Measure Read resistance using smu
+            HRScurrent = self.smu.readReRAM()
         if self.connection == 1:
             self.k2700.open_Channels(SMU) # disconnect SMU
             self.k2700.close_Channels(AFG) # connect function generator
@@ -804,8 +804,8 @@ class app_Retention(Ui_Retention):
             self.status.setText("Measurement Finished.")
         self.start_Button.setEnabled(True)
         self.abort_Button.setEnabled(False)
-        self.k2450.source_voltage = 0
-        self.k2450.disable_source()
+        self.smu.source_voltage = 0
+        self.smu.disable_source()
         MessageBeep()
     
     def abortRetention(self):
@@ -907,8 +907,8 @@ if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
     Retention = QtWidgets.QWidget()
-    k2450, k2700, afg1022 = checkInstrument(test = True)
-    ui = app_Retention(Retention, k2450, k2700, afg1022)
+    smu, k2700, afg1022 = checkInstrument(test = True)
+    ui = app_Retention(Retention, smu, k2700, afg1022)
     ui.show()
     app.exec_()
     app.quit()

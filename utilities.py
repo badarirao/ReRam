@@ -206,7 +206,6 @@ def connectDevice(inst,addr,test = False):
 def connect_known_instruments(k2450Addr = None, k2700Addr = None, AFG1022Addr = None, 
                     b2902bAddr = None, test = False):
     deviceAddr = [k2450Addr,k2700Addr,AFG1022Addr,b2902bAddr]
-    print(deviceAddr)
     k2450 = k2700 = AFG = B2902b = None
     rm = ResourceManager()
     available_instruments = rm.list_resources()
@@ -233,11 +232,11 @@ def connect_known_instruments(k2450Addr = None, k2700Addr = None, AFG1022Addr = 
         SMU = k2450
     else:
         SMU = B2902b
-    
+
     return SMU,k2700,AFG
 
 def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None, 
-                    test = False):
+                    b2902bAddr = None, test = False):
     """
     Obtain instrument address of K2450, K2700 and function generator.
 
@@ -248,17 +247,19 @@ def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
         return FakeAdapter if any instrument is not found
     else exit program
     """
-    deviceAddr = [k2450Addr,k2700Addr,AFG1022Addr]
+    deviceAddr = [k2450Addr,k2700Addr,AFG1022Addr,b2902bAddr]
     rm = ResourceManager()
-    k2450Status = k2700Status = afgStatus = 0
+    k2450Status = k2700Status = afgStatus = b2902bStatus = 0
     if k2450Addr:
         k2450, k2450Status = connectDevice(Keithley2450,k2450Addr,test=True)
     if k2700Addr:
         k2700, k2700Status = connectDevice(Keithley2700,k2700Addr,test=True)
     if AFG1022Addr:
         afg, afgStatus = connectDevice(AFG1022,AFG1022Addr,test=True)
-    status = [k2450Status,k2700Status,afgStatus]
-    deviceInfo = [['KEITHLEY','2450'],['KEITHLEY','2700'],['TEKTRONIX','AFG1022']]
+    if b2902bAddr:
+        B2902b, b2902bStatus = connectDevice(KeysightB2902B,b2902bAddr, test=True)
+    status = [k2450Status,k2700Status,afgStatus,b2902bStatus]
+    deviceInfo = [['KEITHLEY','2450'],['KEITHLEY','2700'],['TEKTRONIX','AFG1022'],['KEYSIGHT','b2902b']]
     notConnected = [x for x,y in enumerate(status) if y == 0]
     if notConnected:
         instList = rm.list_resources()
@@ -276,6 +277,7 @@ def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
         k2450Addr = deviceAddr[0]
         k2700Addr = deviceAddr[1]
         AFG1022Addr = deviceAddr[2]
+        b2902bAddr = deviceAddr[3]
         if k2450Status == 0:
             k2450,_ = connectDevice(Keithley2450,k2450Addr,test)
             if _ == 0 and test == False:
@@ -288,10 +290,18 @@ def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
             afg,_ = connectDevice(AFG1022,AFG1022Addr,test)
             if _ == 0 and test == False:
                 return 0,0,0
+        if b2902bStatus == 0:
+            B2902b, _ = connectDevice(KeysightB2902B, b2902bAddr, test)
+            if _ == 0 and test == False:
+                return 0, 0, 0
     if k2700.ID != 'Fake':
         k2700.write('DISPLAY:TEXT:STATE ON')
         k2700.write('DISPLAY:TEXT:DATA "RERAM USE"')
-    return k2450, k2700, afg
+    if k2450.ID != 'Fake' and B2902b.ID == 'Fake':
+        SMU = k2450
+    else:
+        SMU = B2902b
+    return SMU, k2700, afg
 
 def connect_sample_with_AFG(k2700,connection = 1, sample_no=0):
     """
@@ -308,6 +318,8 @@ def connect_sample_with_AFG(k2700,connection = 1, sample_no=0):
     None.
 
     """
+    if k2700.ID == 'Fake':
+        return
     closed_CHs = k2700.ask("ROUTe:MULTiple:CLOSe?")
     if closed_CHs is not None:
         if closed_CHs == '(@)\n':
@@ -344,6 +356,8 @@ def connect_sample_with_SMU(k2700,connection = 1, sample_no= 0):
     None.
 
     """
+    if k2700.ID == 'Fake':
+        return
     closed_CHs = k2700.ask("ROUTe:MULTiple:CLOSe?")
     if closed_CHs is not None:
         if closed_CHs == '(@)\n':
@@ -395,6 +409,8 @@ def getBinnedPoints(points,start=1):
 def checkMUX_SMU(k2700):
     # If mux is connected, get connection details directly from mux
     # If mux is not accessible, get connection details from saved file
+    if k2700.ID == 'Fake': # temp code. May need to change later
+        return -2, SAMPLE1
     connection = 0
     CURRENTSAMPLE = -1
     try:
@@ -420,7 +436,7 @@ def checkMUX_SMU(k2700):
         connection = 1
         pass
     if connection == 0:
-        # means SMU is not connected, so prompt to connect to SMU using MUX program
+        # means SMU is not connected through MUX, so prompt to connect to SMU using MUX program
         return 0, -1
     elif connection == -1:
         # means SMU is connected in 4-probe method. Currently ReRAM program is designed only for 2 probe method
