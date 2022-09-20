@@ -210,7 +210,7 @@ class Ui_Switch(QtWidgets.QWidget):
         self.Vplot = self.graphWidget.addPlot(
             row=1, col=0, viewBox=ViewBox(border=mkPen(color='k', width=2)))
         self.graphWidget.setMinimumSize(QtCore.QSize(411, 379))
-        self.graphWidget.setObjectName("graphWidget")        
+        self.graphWidget.setObjectName("graphWidget")
         self.gridLayout_2.addWidget(self.graphWidget, 0, 1, 2, 1)
         ###
         self.widget1 = QtWidgets.QWidget(Switch)
@@ -384,13 +384,13 @@ class app_Switch(Ui_Switch):
             "comments" :""}
         self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
-    
+
     def updateCommentBox(self):
         if self.comment_checkBox.isChecked():
             self.commentBox.setEnabled(True)
         else:
             self.commentBox.setEnabled(False)
-    
+
     def update_limits(self):
         if self.source.currentIndex() == 0:
             self.setV.setMaximum(190)
@@ -412,7 +412,7 @@ class app_Switch(Ui_Switch):
             self.set_timeUnit.model().item(0).setEnabled(True)
             self.reset_timeUnit.model().item(0).setEnabled(True)
             self.nPulses.setMaximum(20)
-            
+
     def change_setV(self):
         """
         Enable or disable 'set' pulse based on user preference.
@@ -440,7 +440,7 @@ class app_Switch(Ui_Switch):
             self.resetV.setEnabled(True)
         else:
             self.resetV.setEnabled(False)
-    
+
     def load_parameters(self):
         try:
             self.source.setCurrentIndex(self.parameters[0])
@@ -455,12 +455,12 @@ class app_Switch(Ui_Switch):
             self.read_voltage.setValue(self.parameters[9]),
             self.avg.setValue(self.parameters[10]),
             self.nPulses.setValue(self.parameters[11]),
-            self.Ilimit.setValue(self.parameters[12]*1000),
+            self.Ilimit.setValue(self.parameters[12] * 1000),
             self.temperature.setValue(self.parameters[13]),
             self.temp_check.setChecked(self.parameters[14])
         except Exception:
             pass
-    
+
     def configurePulse(self):
         """
         Configure the pulse parameters.
@@ -488,23 +488,23 @@ class app_Switch(Ui_Switch):
             "Rvoltage": self.read_voltage.value(),
             "Average": self.avg.value(),
             "nPulses": self.nPulses.value(),
-            "ILimit": self.Ilimit.value()/1000,
+            "ILimit": self.Ilimit.value() / 1000,
             "temperature": self.temperature.value(),
             "temp_check": int(self.temp_check.isChecked()),
-            "comments" : formattedComment}
+            "comments": formattedComment}
         self.parameters = list(self.params.values())[:-1]
         self.smu.readV = self.params["Rvoltage"]
         self.smu.avg = self.params["Average"]
         if self.params["set_timeUnit"] == 0:
-            self.setTimestep = self.params["setPwidth"]*1e-6
+            self.setTimestep = self.params["setPwidth"] * 1e-6
         elif self.params["set_timeUnit"] == 1:
-            self.setTimestep = self.params["setPwidth"]*1e-3
+            self.setTimestep = self.params["setPwidth"] * 1e-3
         elif self.params["set_timeUnit"] == 2:
             self.setTimestep = self.params["setPwidth"]
         if self.params["reset_timeUnit"] == 0:
-            self.resetTimestep = self.params["resetPwidth"]*1e-6
+            self.resetTimestep = self.params["resetPwidth"] * 1e-6
         elif self.params["reset_timeUnit"] == 1:
-            self.resetTimestep = self.params["resetPwidth"]*1e-3
+            self.resetTimestep = self.params["resetPwidth"] * 1e-3
         elif self.params["reset_timeUnit"] == 2:
             self.resetTimestep = self.params["resetPwidth"]
         self.points = []
@@ -536,7 +536,7 @@ class app_Switch(Ui_Switch):
             self.smu = FakeAdapter()
         self.smu.apply_voltage(compliance_current=self.params["ILimit"])
         self.smu.measure_current(nplc=self.smu.nplc)
-        self.smu.set_wire_configuration(2) # two wire configuration
+        self.smu.set_wire_configuration(2)  # two wire configuration
         self.smu.display_light('ON', 25)
         self.smu.set_read_back_on()
 
@@ -554,12 +554,12 @@ class app_Switch(Ui_Switch):
         elif self.points[self.i] == self.params["Vreset"]:
             self.timestep = self.resetTimestep
         elif self.points[self.i] == 0:
-            self.timestep = self.setTimestep+self.resetTimestep
+            self.timestep = self.setTimestep + self.resetTimestep
         # apply pulse and measure pulse resistance
         if self.timestep > 0 and self.points[self.i] != 0:
             v1, c1 = self.smu.apply_switch_pulse(self.points[self.i], self.timestep)
         else:
-            waitFor(self.timestep*1000)
+            waitFor(self.timestep * 1000)
             v1 = 0
             c1 = -1
         # measure read resistance
@@ -574,13 +574,13 @@ class app_Switch(Ui_Switch):
         if self.pulsecount == []:
             self.pulsecount = [1]
         else:
-            self.pulsecount.append(self.pulsecount[-1]+1)
+            self.pulsecount.append(self.pulsecount[-1] + 1)
         self.currents.append(c1)
-        self.resistances.append(v1/c1)
+        self.resistances.append(v1 / c1)
         self.readVolts.append(self.params["Rvoltage"])
         self.readCurrents.append(c2)
-        self.readResistances.append(self.params["Rvoltage"]/c2)
-        self.pulseWidths.append(self.timestep*1000)
+        self.readResistances.append(self.params["Rvoltage"] / c2)
+        self.pulseWidths.append(self.timestep * 1000)
         self.ilimits.append(self.params["ILimit"])
         # make sure that the program waits until the current measurement is taken
         self.data_lineR.setData(self.pulsecount, self.readResistances)
@@ -590,7 +590,7 @@ class app_Switch(Ui_Switch):
             self.stop_program()
             return
         self.timer.singleShot(0, self.pulseMeasure_SMU)  # Measure next pulse
-    
+
     def pulseMeasure_AFG(self):
         """
         Apply and measure one pulse.
@@ -608,36 +608,36 @@ class app_Switch(Ui_Switch):
             self.timestep = 0
         if self.timestep > 0 and self.points[self.i] != 0:
             if self.connection == 1:
-                self.k2700.open_Channels([SMU, AFG+10]) # Disconnect SMU
-                self.k2700.close_Channels(AFG) # connect AFG
+                self.k2700.open_Channels([SMU, AFG + 10])  # Disconnect SMU
+                self.k2700.close_Channels(AFG)  # connect AFG
             elif self.connection == 2:
-                self.k2700.open_Channels([SMU+10, AFG]) # Disconnect SMU
-                self.k2700.close_Channels(AFG+10) # connect AFG
-            waitFor(20) # wait for 20msec to ensure switching is complete
-            self.afg1022.setSinglePulse(self.points[self.i],self.timestep)
+                self.k2700.open_Channels([SMU + 10, AFG])  # Disconnect SMU
+                self.k2700.close_Channels(AFG + 10)  # connect AFG
+            waitFor(20)  # wait for 20msec to ensure switching is complete
+            self.afg1022.setSinglePulse(self.points[self.i], self.timestep)
             self.afg1022.trgNwait()
             if self.connection == 1:
-                self.k2700.open_Channels(AFG) # disconnect function generator
-                self.k2700.close_Channels(SMU) # connect SMU
+                self.k2700.open_Channels(AFG)  # disconnect function generator
+                self.k2700.close_Channels(SMU)  # connect SMU
             elif self.connection == 2:
-                self.k2700.open_Channels(AFG+10) # disconnect function generator
-                self.k2700.close_Channels(SMU+10) # connect SMU
-            waitFor(20) # wait for 20msec to ensure switching is complete
+                self.k2700.open_Channels(AFG + 10)  # disconnect function generator
+                self.k2700.close_Channels(SMU + 10)  # connect SMU
+            waitFor(20)  # wait for 20msec to ensure switching is complete
         # Measure Read resistance using smu
         self.smu.start_buffer()
         self.smu.wait_till_done()
         c2 = self.smu.get_average_trace_data()
-        self.volts.append(self.points[self.i]) 
-        self.currents.append(-1)    # Junk, just so that saving does not cause error
-        self.resistances.append(-1) # Junk, just so that saving does not cause error
+        self.volts.append(self.points[self.i])
+        self.currents.append(-1)  # Junk, just so that saving does not cause error
+        self.resistances.append(-1)  # Junk, just so that saving does not cause error
         if self.pulsecount == []:
             self.pulsecount = [1]
         else:
-            self.pulsecount.append(self.pulsecount[-1]+1)
+            self.pulsecount.append(self.pulsecount[-1] + 1)
         self.readVolts.append(self.params["Rvoltage"])
         self.readCurrents.append(c2)
-        self.readResistances.append(self.params["Rvoltage"]/c2)
-        self.pulseWidths.append(self.timestep*1000)
+        self.readResistances.append(self.params["Rvoltage"] / c2)
+        self.pulseWidths.append(self.timestep * 1000)
         self.ilimits.append(self.params["ILimit"])
         # make sure that the program waits until the current measurement is taken
         self.data_lineR.setData(self.pulsecount, self.readResistances)
@@ -646,7 +646,7 @@ class app_Switch(Ui_Switch):
         if self.i >= len(self.points) or self.stopCall:
             self.stop_program()
             return
-        self.timer.singleShot(0, self.pulseMeasure_AFG)  # Measure next pulse    
+        self.timer.singleShot(0, self.pulseMeasure_AFG)  # Measure next pulse
 
     def applyPulse(self):
         """
@@ -661,11 +661,11 @@ class app_Switch(Ui_Switch):
         self.configurePulse()
         if self.params['Vsource'] == 1:
             limiting_current = self.Ilimit.value()
-            max_applied_voltage = max(abs(self.setV.value()),abs(self.resetV.value()))
-            resistance = round(max_applied_voltage/limiting_current,2)    
+            max_applied_voltage = max(abs(self.setV.value()), abs(self.resetV.value()))
+            resistance = round(max_applied_voltage / limiting_current, 2)
             title = "Confirm resistance."
             text = "Is resistor of {} kΩ connected?".format(resistance)
-            reply = QMessageBox.question(self, title,text,QMessageBox.Yes,QMessageBox.No)
+            reply = QMessageBox.question(self, title, text, QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.No:
                 return
         self.statusbar.setText("Measurement Running..")
@@ -706,19 +706,38 @@ class app_Switch(Ui_Switch):
         self.smu.enable_source()
         self.savedFlag = False
         self.stopCall = False
-        if self.params["Vsource"] == 0:
-            connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
-            self.timer.singleShot(0, self.pulseMeasure_SMU)
-        elif self.params["Vsource"] == 1:
-            connect_sample_with_AFG(self.k2700, self.connection, self.currentSample)
-            self.smu.setNPLC()
-            self.smu.set_simple_loop(count = self.params["Average"])
-            self.smu.source_voltage = self.params["Rvoltage"]
-            self.timer.singleShot(0, self.pulseMeasure_AFG)
+        self.startThread()
+
+    def startThread(self):
+        self.thread = QThread()
+        self.worker = Worker(self.params, self.smu, self.k2700, self.fullfilename, self.connection, self.currentSample)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.start_IV)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.data.connect(self.plotSwitch)
+        self.thread.finished.connect(self.finishAction)
+        self.worker.sendPoints.connect(self.getPoints)
+        self.thread.finished.connect(self.finishAction)
+        self.thread.start()
+
+    def plotSwitch(self,data):
+        # data should have pulseCount, applied voltage, actual voltage, pulse current, read volts, read current
+        if self.pulsecount == []:
+            self.pulsecount = [1]
+        else:
+            self.pulsecount.append(data[0])
+        self.resistances.append(data[2] / data[3])
+        self.readVolts.append(data[4])
+        self.readCurrents.append(data[5])
+        self.currents.append(data[3])
+        self.data_lineR.setData(self.pulsecount, self.readResistances)
+        self.data_lineV.setData(self.pulsecount, self.volts)
 
     def stopSwitch(self):
         self.stopCall = True
-    
+
     def clearGraph(self):
         """
         Save the current plot, and clears the graph.
@@ -736,7 +755,7 @@ class app_Switch(Ui_Switch):
 
     def stop_program(self):
         if self.stopCall:
-            self.statusbar.setText("Measurement Aborted.")    
+            self.statusbar.setText("Measurement Aborted.")
             self.measurement_status = "Aborted"
         else:
             self.statusbar.setText("Measurement Finished.")
@@ -767,8 +786,10 @@ class app_Switch(Ui_Switch):
                     f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
                     f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
                     f.write(self.params["comments"])
-                    f.write("#Pulse Voltage (V)\tPulse Current (A)\tPulse Resistance (ohms)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
-                data = zip(self.setvolts,self.volts, self.currents, self.resistances, self.readVolts, self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits)
+                    f.write(
+                        "#Pulse Voltage (V)\tPulse Current (A)\tPulse Resistance (ohms)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
+                data = zip(self.setvolts, self.volts, self.currents, self.resistances, self.readVolts,
+                           self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits)
             else:
                 if not filePresent:
                     f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
@@ -776,9 +797,11 @@ class app_Switch(Ui_Switch):
                     f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
                     f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
                     f.write(self.params["comments"])
-                    f.write("#Pulse Voltage (V)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
-                data = zip(self.volts, self.readVolts, self.readCurrents, self.readResistances, self.pulseWidths, self.ilimits)
-            write_data = writer(f, delimiter = '\t')
+                    f.write(
+                        "#Pulse Voltage (V)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
+                data = zip(self.volts, self.readVolts, self.readCurrents, self.readResistances, self.pulseWidths,
+                           self.ilimits)
+            write_data = writer(f, delimiter='\t')
             write_data.writerows(data)
         if self.i >= len(self.points):
             self.save_Button.setEnabled(False)
@@ -802,7 +825,7 @@ class app_Switch(Ui_Switch):
         self.Rplot.setLabel('left', 'Read Resistance (Ohms)', **styles)
         self.Vplot.setLabel('left', 'Pulse Voltage (V)', **styles)
         self.Vplot.setLabel('bottom', 'Pulse count', **styles)
-    
+
     def keyPressEvent(self, event):
         """Close application from escape key.
 
@@ -810,7 +833,7 @@ class app_Switch(Ui_Switch):
         """
         if event.key() == Qt.Key_Escape:
             self.close()
-    
+
     def closeEvent(self, event):
         """
         Perform necessary operations just before exiting the program.
@@ -838,167 +861,3 @@ class app_Switch(Ui_Switch):
             event.accept()
         else:
             event.ignore()
-
-class Worker(QObject):
-    finished = pyqtSignal()
-    data = pyqtSignal(list)
-    stopcall = pyqtSignal()
-    sendPoints = pyqtSignal(list)
-
-    def __init__(self, params, smu=None, k2700=None, fullfilename="sample.dat", connection=1, currentSample=0):
-        super(Worker, self).__init__()
-        self.stopCall = False
-        self.params = params
-        self.smu = smu
-        self.k2700 = k2700
-        self.connection = connection
-        self.currentSample = currentSample
-        self.fullfilename = fullfilename
-        self.stopcall.connect(self.stopcalled)
-        self.smu.nplc = 1
-        self.status = 1
-
-    def initialize_SMU(self):
-        """
-        Initialize the SMU.
-
-        Returns
-        -------
-        None.
-
-        """
-        if self.smu is None:
-            self.smu = FakeAdapter()
-        if self.k2700 is None:
-            self.k2700 = FakeAdapter()
-
-        # if afg is connected, remove and connect the source meter
-        connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
-        self.smu.measure_current()
-        self.smu.auto_range_sense()
-        self.smu.set_wire_configuration(2)  # two wire configuration
-        if self.params["Speed"] == 0:
-            nplc = 5
-            self.speed = "Very Slow"
-        elif self.params["Speed"] == 1:
-            nplc = 2
-            self.speed = "Slow"
-        elif self.params["Speed"] == 2:
-            nplc = 1
-            self.speed = "Normal"
-        elif self.params["Speed"] == 3:
-            nplc = 0.1
-            self.speed = "Fast"
-        elif self.params["Speed"] == 4:
-            nplc = 0.01
-            self.speed = "Very Fast"
-        self.smu.nplc = nplc
-        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
-        # correct for zero only at the beginning
-        self.smu.correct_zero_at_beginning_only()
-        self.smu.set_read_back_on()
-
-    def configure_sweep(self):
-        """
-        Configure the sweep conditions based on given parameters.
-
-        Returns
-        -------
-        None.
-
-        """
-        with open(self.fullfilename, 'w') as f:
-            f.write("## IV loop measurement using Keithley 2450 source measure unit.\n")
-            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
-            f.write("## Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"], self.params["Vmax"]))
-            f.write('## Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"] * 1000,
-                                                                                     self.params["Delay"]))
-            f.write(
-                '## Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed, self.params["ncycles"]))
-            f.write(self.params["comments"])
-            f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
-
-        if self.params["Vmax"] == self.params["Vmin"]:
-            self.points = [self.params["Vmax"]]
-            self.smu.set_voltage_points(self.points[0])
-        elif self.params["Vmax"] >= 0 >= self.params["Vmin"]:
-            nplus = int(
-                self.params["Vmax"] / (self.params["Vmax"] - self.params["Vmin"]) * self.npoints * 0.5)
-            nminus = int(abs(
-                self.params["Vmin"]) / (self.params["Vmax"] - self.params["Vmin"]) * self.npoints * 0.5)
-            l1 = linspace(0, self.params["Vmax"], nplus, endpoint=False)
-            l2 = linspace(
-                self.params["Vmax"], self.params["Vmin"], nplus + nminus, endpoint=False)
-            l3 = linspace(self.params["Vmin"], 0, nminus + 1, endpoint=True)
-            self.points = around(concatenate((l1, l2, l3)), 3)
-            self.points[self.points == 0] = 0.0001
-            # split the points into 6 chunks of equal size
-            self.chunks = array_split(self.points, 6)
-            # write the first chunk into the list
-            self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
-            # append the remaining chunks into the list
-            if len(self.chunks) > 1:
-                for i in self.chunks[1:]:
-                    self.smu.append_voltage_points(str(list(i))[1:-1])
-        else:
-            l1 = linspace(self.params["Vmin"], self.params["Vmax"], int(
-                self.npoints / 2), endpoint=False)
-            l2 = linspace(self.params["Vmax"], self.params["Vmin"], int(
-                self.npoints / 2) + 1, endpoint=True)
-            self.points = around(concatenate((l1, l2)), 3)
-            self.chunks = array_split(self.points, 5)
-            # write the first chunk into the list
-            self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
-            # append the remaining chunks into the list
-            if len(self.chunks) > 1:
-                for i in self.chunks[1:]:
-                    self.smu.append_voltage_points(str(list(i))[1:-1])
-        # set the sweep function with the above list
-        self.smu.configure_sweep(self.params["Delay"])
-        self.sendPoints.emit([self.points])
-
-    def start_IV(self):
-        self.initialize_SMU()
-        self.configure_sweep()
-        i = 0
-        while i < self.params["ncycles"] and not self.stopCall:
-            self.smu.start_buffer()  # start the measurement
-            # TODO: get buffered data every n seconds
-            while self.stopCall == False:
-                # self.smu.wait_till_done(1000)
-                sleep(1)
-                start_point = self.smu.get_start_point()
-                if start_point == 0:
-                    continue
-                end_point = self.smu.get_end_point()
-                data = self.smu.get_trace_data(start_point, end_point)
-                data = reshape(array(data.split(','), dtype=float), (-1, 2))
-                self.data.emit([data, i + 1])
-                state = self.smu.get_trigger_state()
-                if state != 'RUNNING':
-                    if state != 'IDLE':
-                        self.status = 0
-                    break
-            with open(self.fullfilename, "a") as f:
-                f.write("#Cycle {0}\n".format(i + 1))
-                data = insert(data, 0, self.points[0:len(data)], axis=1)
-                savetxt(f, data, delimiter='\t')
-                f.write("\n\n")
-            i = i + 1
-        if self.stopCall:
-            self.smu.abort()
-        self.smu.source_voltage = 0
-        self.smu.disable_source()
-        MessageBeep()
-        self.finished.emit()
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Switch = QtWidgets.QWidget()
-    smu, k2700, afg1022 = checkInstrument(test = True)
-    ui = app_Switch(Switch, smu, k2700, afg1022)
-    ui.show()
-    app.exec_()
-    app.quit()
-

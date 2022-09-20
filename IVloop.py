@@ -454,7 +454,7 @@ class app_IVLoop(Ui_IVLoop):
     def formatIV_Excel(fname="Sample_IV.dat"):
         """
         Save the data and the plot into excel file,.
-
+        *** Obselete now *** may be removed later
         Parameters
         ----------
         fname : TYPE, optional
@@ -716,9 +716,7 @@ class Worker(QObject):
         i = 0
         while i<self.params["ncycles"] and not self.stopCall:
             self.smu.start_buffer()  # start the measurement
-            # TODO: get buffered data every n seconds
             while self.stopCall == False:
-                #self.smu.wait_till_done(1000)
                 sleep(1)
                 start_point = self.smu.get_start_point()
                 if start_point == 0:
@@ -757,4 +755,3 @@ if __name__ == "__main__":
     ui.show()
     app.exec_()
     app.quit()
-
