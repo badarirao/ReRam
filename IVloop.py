@@ -133,13 +133,13 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.ncycles_label_2 = QtWidgets.QLabel(self.groupBox)
         self.ncycles_label_2.setObjectName("ncycles_label_2")
         self.gridLayout.addWidget(self.ncycles_label_2, 8, 0, 1, 1)
-        self.ncycles_2 = QtWidgets.QSpinBox(self.groupBox)
-        self.ncycles_2.setStyleSheet("font: 12pt \"Times New Roman\";")
-        self.ncycles_2.setMinimum(2)
-        self.ncycles_2.setMaximum(1000)
-        self.ncycles_2.setProperty("value", 50)
-        self.ncycles_2.setObjectName("ncycles_2")
-        self.gridLayout.addWidget(self.ncycles_2, 8, 2, 1, 1)
+        self.nPointSet = QtWidgets.QSpinBox(self.groupBox)
+        self.nPointSet.setStyleSheet("font: 12pt \"Times New Roman\";")
+        self.nPointSet.setMinimum(2)
+        self.nPointSet.setMaximum(1000)
+        self.nPointSet.setProperty("value", 50)
+        self.nPointSet.setObjectName("nPointSet")
+        self.gridLayout.addWidget(self.nPointSet, 8, 2, 1, 1)
         self.gridLayout_2.addWidget(self.groupBox, 0, 0, 1, 1)
         self.widget = QtWidgets.QWidget(IVLoop)
         self.widget.setMinimumSize(QtCore.QSize(240, 200))
@@ -196,8 +196,8 @@ class Ui_IVLoop(QtWidgets.QWidget):
         IVLoop.setTabOrder(self.maxV, self.delay)
         IVLoop.setTabOrder(self.delay, self.scan_speed)
         IVLoop.setTabOrder(self.scan_speed, self.Ilimit)
-        IVLoop.setTabOrder(self.Ilimit, self.ncycles_2)
-        IVLoop.setTabOrder(self.ncycles_2, self.ncycles)
+        IVLoop.setTabOrder(self.Ilimit, self.nPointSet)
+        IVLoop.setTabOrder(self.nPointSet, self.ncycles)
         IVLoop.setTabOrder(self.ncycles, self.temp_check)
         IVLoop.setTabOrder(self.temp_check, self.temperature)
         IVLoop.setTabOrder(self.temperature, self.comment_checkBox)
@@ -231,7 +231,7 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.minV_label.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Minimum Voltage (V)</span></p></body></html>"))
         self.minV.setToolTip(_translate("IVLoop", "<html><head/><body><p>Max -10 V</p></body></html>"))
         self.ncycles_label_2.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Number of Points</span></p></body></html>"))
-        self.ncycles_2.setToolTip(_translate("IVLoop", "<html><head/><body><p>Number of cycles to be executed</p></body></html>"))
+        self.nPointSet.setToolTip(_translate("IVLoop", "<html><head/><body><p>Number of cycles to be executed</p></body></html>"))
         self.comment_checkBox.setText(_translate("IVLoop", "Add Comments"))
         self.start_Button.setToolTip(_translate("IVLoop", "<html><head/><body><p>Click to start the experiment</p></body></html>"))
         self.start_Button.setText(_translate("IVLoop", "START"))
@@ -266,6 +266,7 @@ class app_IVLoop(Ui_IVLoop):
             "Delay": 50/1000,
             "Speed": 3,
             "ILimit": 1/1000,
+            "npoints": 100,
             "ncycles": 1,
             "temperature": 300,
             "temp_check": 0,
@@ -286,9 +287,10 @@ class app_IVLoop(Ui_IVLoop):
             self.delay.setValue(self.parameters[2]*1000)
             self.scan_speed.setCurrentIndex(self.parameters[3])
             self.Ilimit.setValue(self.parameters[4]*1000)
-            self.ncycles.setValue(self.parameters[5])
-            self.temperature.setValue(self.parameters[6])
-            self.temp_check.setChecked(self.parameters[7])
+            self.nPointSet.setValue(self.parameters[5])
+            self.ncycles.setValue(self.parameters[6])
+            self.temperature.setValue(self.parameters[7])
+            self.temp_check.setChecked(self.parameters[8])
         except Exception:
             pass
     
@@ -305,13 +307,14 @@ class app_IVLoop(Ui_IVLoop):
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
         for t in wholeComment.split('\n'):
-            formattedComment += '##' + t + '\n'
+            formattedComment += '## ' + t + '\n'
         self.params = {
             "Vmin": self.minV.value(),
             "Vmax": self.maxV.value(),
             "Delay": self.delay.value()/1000,
             "Speed": self.scan_speed.currentIndex(),
             "ILimit": self.Ilimit.value()/1000,
+            "npoints": self.nPointSet.value(),
             "ncycles": self.ncycles.value(),
             "temperature": self.temperature.value(),
             "temp_check": int(self.temp_check.isChecked()),
@@ -376,6 +379,7 @@ class app_IVLoop(Ui_IVLoop):
         self.scan_speed.setEnabled(False)
         self.Ilimit.setEnabled(False)
         self.ncycles.setEnabled(False)
+        self.nPointSet.setEnabled(False)
         self.temp_check.setEnabled(False)
         self.start_Button.setEnabled(False)
         self.update_params()
@@ -409,6 +413,7 @@ class app_IVLoop(Ui_IVLoop):
         self.scan_speed.setEnabled(True)
         self.Ilimit.setEnabled(True)
         self.ncycles.setEnabled(True)
+        self.nPointSet.setEnabled(True)
         self.temp_check.setEnabled(True)
         self.start_Button.setEnabled(True)
         self.smu.source_voltage = 0
@@ -609,7 +614,6 @@ class Worker(QObject):
         self.currentSample = currentSample
         self.fullfilename = fullfilename
         self.stopcall.connect(self.stopcalled)
-        self.npoints = 100
         self.smu.nplc = 1
         self.status = 1
         
@@ -667,10 +671,12 @@ class Worker(QObject):
             f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
             f.write("## Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
             f.write('## Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"]*1000,self.params["Delay"]))
-            f.write('## Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed,self.params["ncycles"]))
+            f.write('## Scan speed = {0}, Points per cycle = {1}\n'.format(self.speed,self.params["npoints"]))
+            f.write(f"## Requested number of IV loops = {self.params['ncycles']}\n")
             f.write(self.params["comments"])
             f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
             
+        self.npoints = self.params['npoints']
         if self.params["Vmax"] == self.params["Vmin"]:
             self.points = [self.params["Vmax"]]
             self.smu.set_voltage_points(self.points[0])

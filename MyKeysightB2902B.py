@@ -77,10 +77,15 @@ class KeysightB2902B:
         self.write(f":SOUR{self.ch}:CURR {value}")
 
     def ask(self,cmd):
-        return self.inst.query(cmd)
-    
+        ans = self.inst.query(cmd)
+        #if self.error[1] != 'No error':
+        #    print(f"Problem with {cmd}")
+        return ans
+
     def write(self,cmd):
         self.inst.write(cmd)
+        if self.error[1] != 'No error':
+            print(f"Problem with {cmd}")
     
     def read(self):
         return self.inst.read()
@@ -117,8 +122,8 @@ class KeysightB2902B:
         """
         self.sense_mode = 'resistance'
         log.info("%s is measuring resistance.", self.name)
-        self.write(f":SENS{self.ch}:RES"
-                   f":SENS{self.ch}:RES:NPLC {self.nplc};")
+        self.write(f":SENS{self.ch}:FUNC 'RES'")
+        self.write(f":SENS{self.ch}:RES:NPLC {self.nplc};")
         if auto_range:
             self.write(f":SENS{self.ch}:RES:RANG:AUTO 1")
         else:
@@ -135,14 +140,13 @@ class KeysightB2902B:
         """
         self.sense_mode = 'voltage'
         log.info("%s is measuring voltage.", self.name)
-        self.write(f":SENS{self.ch}:VOLT"
-                   f":SENS{self.ch}:VOLT:NPLC {self.nplc};")
+        self.write(f":SENS{self.ch}:FUNC 'VOLT'")
+        self.write(f":SENS{self.ch}:VOLT:NPLC {self.nplc};")
         if auto_range:
             self.write(f":SENS{self.ch}:VOLT:RANG:AUTO 1")
         else:
             self.write(f":SENS{self.ch}:VOLT:RANG:AUTO 0")
             self.voltage_range = voltage
-
 
     def measure_current(self, current=1.05e-4, auto_range=True):
         """ Configures the measurement of current.
@@ -153,8 +157,8 @@ class KeysightB2902B:
         """
         self.sense_mode = 'current'
         log.info("%s is measuring current.", self.name)
-        self.write(f":SENS{self.ch}:CURR"
-                   f":SENS{self.ch}:CURR:NPLC {self.nplc}")
+        self.write(f":SENS{self.ch}:FUNC 'CURR'")
+        self.write(f":SENS:CURR:NPLC {self.nplc}")
         if auto_range:
             self.write(f":SENS{self.ch}:CURR:RANG:AUTO 1")
         else:
@@ -180,17 +184,18 @@ class KeysightB2902B:
     def set_wire_configuration(self, config = 2):
         config = int(float(config))
         if config == 2:
-            self.write(f"SENS{self.ch}:curr:rsen OFF") # Two wire configuration
+            self.write(f"SENS{self.ch}:REM OFF") # Two wire configuration
         elif config == 4:
-            self.write(f"SENS{self.ch}:curr:rsen ON") # Four wire configuration
+            self.write(f"SENS{self.ch}:REM ON") # Four wire configuration
         else:
             print("Wrong configuration command sent. Choose either 2 or 4 only.")
     
     def setNPLC(self, nplc = 'default'):
+        # nplc can also be 'auto' for automatic selection depending on range
         if nplc == 'default':
-            self.write(f"SENS{self.ch}:NPLC {self.nplc}")
+            self.write(f"SENS{self.ch}:VOLT:NPLC {self.nplc}")
         else:
-            self.write(f"SENS{self.ch}:NPLC {nplc}")
+            self.write(f"SENS{self.ch}:VOLT:NPLC {nplc}")
     
     def set_current_nplc(self, nplc = 'default'):
         if nplc == 'default':
@@ -272,7 +277,7 @@ class KeysightB2902B:
 
     def reset(self):
         """ Resets the instrument and clears the queue.  """
-        self.write("*RST;:stat:pres;:*CLS;")
+        self.write("*RST;:stat:pres;*CLS;")
 
     def ramp_to_current(self, target_current, steps=30, pause=20e-3):
         """ Ramps to a target current from the set current value over
@@ -471,12 +476,13 @@ class KeysightB2902B:
 
         """
         # nPoints = len(list) # get number of points in sweep
-        self.write(f"SOUR{self.ch}:LIST:VOLT:STAR: 1") # start at index 1 of list
+        self.write(f"SOUR{self.ch}:LIST:VOLT:STAR 1") # start at index 1 of list
         self.write(f"TRIG{self.ch}:ACQ:DEL {delay}") # set measurement delay between steps
         #points = int(float(self.ask(f"SOUR{self.ch}:LIST:VOLT:POINts?").strip()))
         # for number of sweep counts, I think you should change trigger count as below
         # self.write(f"TRIG{self.ch}:ALL:Count {npoints}") # 1 sweep
         # for n sweep, you should enter n*npoints
+        self.set_return_data_format()
     
     def set_simple_loop(self, count=1, delayTime = 0):
         if delayTime <= 0:
@@ -509,6 +515,9 @@ class KeysightB2902B:
         pass
         return 1
     
+    def set_return_data_format(self): # set to return source voltage, and measured current
+        self.write(":FORM:ELEM:SENS SOUR,CURR")
+
     def get_trace_data(self, offset='CURR', size=1):
         return self.ask(f"TRACe{self.ch}:data? {offset}").strip()
     
@@ -520,8 +529,15 @@ class KeysightB2902B:
         return self.ask("FETCh:ARRay?").strip().split(',')
         
     def get_trigger_state(self):
-        return self.ask(f"TRIG{self.ch}:ACQ:state?").strip()
-    
+        state = self.ask(f"TRIG{self.ch}:TRAN:TOUT:STATe?").strip()
+        state = self.ask(":STAT:OPER:COND?").strip()
+        if state == '1170':
+            return 'IDLE'
+        elif state == '1152':
+            return 'RUNNING'
+        else:
+            return 'Error'
+
     def abort(self):
         self.write(f"Abort (@{self.ch})")
     
@@ -606,3 +622,132 @@ class KeysightB2902B:
                 c = 1e-12
             Currents.append(c)
         return Currents
+
+#  misc commands
+    def set_power_line_frequency(self,freq):
+        # set the power line frequency to 50 or 60 Hz
+        assert freq in (50,60)
+        self.write(f":SYST:LFR {freq}")
+
+    def enable_beep(self, status = 'ON'):
+        if status == True:
+            status = 'ON'
+        elif status == False:
+            status = 'OFF'
+        assert status.upper() in (True,False)
+        self.write(f":SYST:BEEP:STAT {status}")
+
+    def set_date_time(self, date):
+        # get date and time in datetime format
+        setDate = date.strftime("%Y,%m,%d")
+        setTime = date.strftime("%H,%M,%S")
+        self.write(f":SYST:DATE {setDate}")
+        self.write(f":SYST:TIME {setTime}")
+
+    def perform_self_test(self):
+        result = self.ask("*TST?")
+        if result == 0:
+            return "PASS"
+        else:
+            return "FAIL"
+
+    def perform_self_calibration(self):
+        result = self.ask("*CAL?")
+        if result == 0:
+            return "PASS"
+        else:
+            return "FAIL"
+
+    def set_startup_task(self,program_name):
+        self.write(f":PROG:PON:COPY '{program_name}'")
+        self.write(":PROG:PON:RUN ON")
+
+    def clear_error_buffer(self):
+        errors = self.ask(":SYST:ERR:ALL?")
+        return errors
+
+    def get_timestamp(self):
+        timestamp = self.ask(":SYST:TIME:TIM:COUN?")
+        return timestamp
+
+    def clear_timestamp(self):
+        self.write(":SYST:TIME:TIM:COUN:RES")
+
+    def autoClear_timestamp(self, status = 'ON'):
+        # automatic clear of timestamp when initiate action occurs
+        if status == True:
+            status = 'ON'
+        elif status == False:
+            status = 'OFF'
+        assert status.upper() in ('ON', 'OFF')
+        self.write(f":SYST:TIME:TIM:COUN:RES:AUTO {status}")
+
+    def enable_remote_display(self, status = 'ON'):
+        if status == True:
+            status = 'ON'
+        elif status == False:
+            status = 'OFF'
+        assert status.upper() in ('ON','OFF')
+        self.write(f":DISP:ENAB {status}")
+
+    def set_continuous_trigger(self, status):
+        if status == True:
+            status = 'ON'
+        elif status == False:
+            status = 'OFF'
+        assert status.upper() in ('ON','OFF')
+        self.write(f"SOUR{self.ch}:FUNC:TRIG:CONT {status}")
+
+    def source_mode(self, mode):
+        # set voltage to sweep mode, list mode or fixed mode upon triggered.
+        if mode.lower() == 'swe':
+            mode = 'sweep'
+        elif mode.lower() == 'fix':
+            mode = 'fixed'
+        assert mode.lower() in ('sweep', 'list', 'fixed')
+        self.write(f':SOUR{self.ch}:{self.source_mode}:MODE {mode}')
+
+    def set_output_level(self,output):
+        # set current or voltage output level.
+        # Can be either a floating point or 'MIN', 'MAX' or 'DEFault'
+        # default is 0
+        if isinstance(output,str):
+            output = output.lower()
+            if output == 'minimum':
+                output = 'min'
+            elif output == 'maximum':
+                output = 'max'
+            elif output == 'default':
+                output = 'def'
+        else:
+            assert isinstance(output, (int,float)), 'invalid type'
+            if self.source_mode == 'Voltage':
+                assert -200 > output > 200, 'Voltage out of range'
+            elif self.sense_mode == 'Current':
+                assert -1 > output > 1, 'Current out of range'
+        self.write(f"SOUR{self.ch}:{self.source_mode}:TRIG {output}")
+
+    def configure_pulse(self, delay_time=1e-3, pulse_width=1e-3, baseV=0, peakV=0.1):
+        self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
+        self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")
+        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
+        self.write(f"SOUR{self.ch}:VOLT {baseV}")
+        self.write(f"SOUR{self.ch}:VOLT:TRIG {peakV}")
+
+    def trigger_pulse(self):
+        self.enable_source()  # start outputting pulse base value
+        self.trigger() # perform the specified pulse output and measurement
+
+    def configure_DC_sweep(self, delay_time, minV, maxV, direction, npoints, ncycles):
+        pass
+
+    def configure_pulse_sweep(self, ):
+        pass
+
+    def set_low_terminal_state(self, state):
+        if state.lower() == 'float':
+            state = 'flo'
+        elif state.llwer() == 'ground':
+            state = 'gro'
+        assert state.lower() in ('flo','gro'), "low terminal state can only be 'float' or 'ground'"
+

@@ -341,6 +341,29 @@ class app_Switch(Ui_Switch):
         self.afg1022 = afg1022
         self.connection = connection
         self.currentSample = currentSample
+        
+        if self.afg1022:
+            if self.afg1022.ID == 'Fake':
+                self.source.removeItem(2) # Remove AFG source option
+        else:
+            self.source.removeItem(2) # Remove AFG source option
+        if self.smu:
+            if self.smu.ID == 'Fake':
+                self.widget.setEnabled(False)
+                self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
+                self.widget1.setEnabled(False)
+                self.Rplot.setEnabled(False)
+                self.Vplot.setEnabled(False)
+            elif self.smu.ID == 'B2902B':
+                self.source.removeItem(1) # Remove Keithley SMU source option
+            elif self.smu.ID == 'K2450':
+                self.source.removeItem(0) # Remove Keysight SMU source option
+        else:
+            self.widget.setEnabled(False)
+            self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
+            self.widget1.setEnabled(False)
+            self.Rplot.setEnabled(False)
+            self.Vplot.setEnabled(False)
         self.save_Button.setEnabled(False)
         self.stop_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
@@ -444,6 +467,10 @@ class app_Switch(Ui_Switch):
     def load_parameters(self):
         try:
             self.source.setCurrentIndex(self.parameters[0])
+        except Exception as e:
+            print(e)
+            pass
+        try:
             self.setV.setValue(self.parameters[1]),
             self.setV_check.setChecked(self.parameters[2]),
             self.set_pulseWidth.setValue(self.parameters[3]),
@@ -474,7 +501,7 @@ class app_Switch(Ui_Switch):
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
         for t in wholeComment.split('\n'):
-            formattedComment += '##' + t + '\n'
+            formattedComment += '## ' + t + '\n'
         self.params = {
             "Vsource": self.source.currentIndex(),
             "Vset": self.setV.value(),
@@ -535,7 +562,7 @@ class app_Switch(Ui_Switch):
         if self.smu is None:
             self.smu = FakeAdapter()
         self.smu.apply_voltage(compliance_current=self.params["ILimit"])
-        self.smu.measure_current(nplc=self.smu.nplc)
+        self.smu.measure_current()
         self.smu.set_wire_configuration(2) # two wire configuration
         self.smu.display_light('ON', 25)
         self.smu.set_read_back_on()
@@ -838,159 +865,6 @@ class app_Switch(Ui_Switch):
             event.accept()
         else:
             event.ignore()
-
-class Worker(QObject):
-    finished = pyqtSignal()
-    data = pyqtSignal(list)
-    stopcall = pyqtSignal()
-    sendPoints = pyqtSignal(list)
-
-    def __init__(self, params, smu=None, k2700=None, fullfilename="sample.dat", connection=1, currentSample=0):
-        super(Worker, self).__init__()
-        self.stopCall = False
-        self.params = params
-        self.smu = smu
-        self.k2700 = k2700
-        self.connection = connection
-        self.currentSample = currentSample
-        self.fullfilename = fullfilename
-        self.stopcall.connect(self.stopcalled)
-        self.smu.nplc = 1
-        self.status = 1
-
-    def initialize_SMU(self):
-        """
-        Initialize the SMU.
-
-        Returns
-        -------
-        None.
-
-        """
-        if self.smu is None:
-            self.smu = FakeAdapter()
-        if self.k2700 is None:
-            self.k2700 = FakeAdapter()
-
-        # if afg is connected, remove and connect the source meter
-        connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
-        self.smu.measure_current()
-        self.smu.auto_range_sense()
-        self.smu.set_wire_configuration(2)  # two wire configuration
-        if self.params["Speed"] == 0:
-            nplc = 5
-            self.speed = "Very Slow"
-        elif self.params["Speed"] == 1:
-            nplc = 2
-            self.speed = "Slow"
-        elif self.params["Speed"] == 2:
-            nplc = 1
-            self.speed = "Normal"
-        elif self.params["Speed"] == 3:
-            nplc = 0.1
-            self.speed = "Fast"
-        elif self.params["Speed"] == 4:
-            nplc = 0.01
-            self.speed = "Very Fast"
-        self.smu.nplc = nplc
-        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
-        # correct for zero only at the beginning
-        self.smu.correct_zero_at_beginning_only()
-        self.smu.set_read_back_on()
-
-    def configure_sweep(self):
-        """
-        Configure the sweep conditions based on given parameters.
-
-        Returns
-        -------
-        None.
-
-        """
-        with open(self.fullfilename, 'w') as f:
-            f.write("## IV loop measurement using Keithley 2450 source measure unit.\n")
-            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
-            f.write("## Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"], self.params["Vmax"]))
-            f.write('## Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"] * 1000,
-                                                                                     self.params["Delay"]))
-            f.write(
-                '## Scan speed = {0}, Requested number of IV loops = {1}\n'.format(self.speed, self.params["ncycles"]))
-            f.write(self.params["comments"])
-            f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
-
-        if self.params["Vmax"] == self.params["Vmin"]:
-            self.points = [self.params["Vmax"]]
-            self.smu.set_voltage_points(self.points[0])
-        elif self.params["Vmax"] >= 0 >= self.params["Vmin"]:
-            nplus = int(
-                self.params["Vmax"] / (self.params["Vmax"] - self.params["Vmin"]) * self.npoints * 0.5)
-            nminus = int(abs(
-                self.params["Vmin"]) / (self.params["Vmax"] - self.params["Vmin"]) * self.npoints * 0.5)
-            l1 = linspace(0, self.params["Vmax"], nplus, endpoint=False)
-            l2 = linspace(
-                self.params["Vmax"], self.params["Vmin"], nplus + nminus, endpoint=False)
-            l3 = linspace(self.params["Vmin"], 0, nminus + 1, endpoint=True)
-            self.points = around(concatenate((l1, l2, l3)), 3)
-            self.points[self.points == 0] = 0.0001
-            # split the points into 6 chunks of equal size
-            self.chunks = array_split(self.points, 6)
-            # write the first chunk into the list
-            self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
-            # append the remaining chunks into the list
-            if len(self.chunks) > 1:
-                for i in self.chunks[1:]:
-                    self.smu.append_voltage_points(str(list(i))[1:-1])
-        else:
-            l1 = linspace(self.params["Vmin"], self.params["Vmax"], int(
-                self.npoints / 2), endpoint=False)
-            l2 = linspace(self.params["Vmax"], self.params["Vmin"], int(
-                self.npoints / 2) + 1, endpoint=True)
-            self.points = around(concatenate((l1, l2)), 3)
-            self.chunks = array_split(self.points, 5)
-            # write the first chunk into the list
-            self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
-            # append the remaining chunks into the list
-            if len(self.chunks) > 1:
-                for i in self.chunks[1:]:
-                    self.smu.append_voltage_points(str(list(i))[1:-1])
-        # set the sweep function with the above list
-        self.smu.configure_sweep(self.params["Delay"])
-        self.sendPoints.emit([self.points])
-
-    def start_IV(self):
-        self.initialize_SMU()
-        self.configure_sweep()
-        i = 0
-        while i < self.params["ncycles"] and not self.stopCall:
-            self.smu.start_buffer()  # start the measurement
-            # TODO: get buffered data every n seconds
-            while self.stopCall == False:
-                # self.smu.wait_till_done(1000)
-                sleep(1)
-                start_point = self.smu.get_start_point()
-                if start_point == 0:
-                    continue
-                end_point = self.smu.get_end_point()
-                data = self.smu.get_trace_data(start_point, end_point)
-                data = reshape(array(data.split(','), dtype=float), (-1, 2))
-                self.data.emit([data, i + 1])
-                state = self.smu.get_trigger_state()
-                if state != 'RUNNING':
-                    if state != 'IDLE':
-                        self.status = 0
-                    break
-            with open(self.fullfilename, "a") as f:
-                f.write("#Cycle {0}\n".format(i + 1))
-                data = insert(data, 0, self.points[0:len(data)], axis=1)
-                savetxt(f, data, delimiter='\t')
-                f.write("\n\n")
-            i = i + 1
-        if self.stopCall:
-            self.smu.abort()
-        self.smu.source_voltage = 0
-        self.smu.disable_source()
-        MessageBeep()
-        self.finished.emit()
 
 if __name__ == "__main__":
     import sys

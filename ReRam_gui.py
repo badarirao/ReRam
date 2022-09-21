@@ -27,6 +27,7 @@ Not tested for other Python versions or OS.
 # TODO: Add Keysight B2902B sourcemeter
 # TODO: combine all common import modules and put it in utilities, and import from 
 # TODO: checkinstrument - scan only for the instruments saved in the address file, and connect ones that are successful. This may be faster.
+# TODO: Only those instruments that are connected should be available to be selected in each program.
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
@@ -239,7 +240,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             if reply == QMessageBox.Ok:
                 self.abortMessage = True
                 self.close()
-        if self.connection == -1:
+        elif self.connection == -1:
             info = QMessageBox(self)
             info.setWindowTitle("Multiplexer connection error")
             info.setIcon(QMessageBox.Critical)
@@ -250,7 +251,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             if reply == QMessageBox.Ok:
                 self.abortMessage = True
                 self.close()
-        print("Closed channels = {}".format(self.k2700.display_closed_channels()))
+        elif self.connection != -2:
+            print("Closed channels = {}".format(self.k2700.display_closed_channels()))
         self.status = 0
         if self.smu.ID == 'Fake':
             self.status = self.status + 1
@@ -271,7 +273,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         elif self.status == 5:
             self.statusBar.showMessage('Sourcemeter not connected. Multiplexer connected')
         elif self.status == 6:
-            self.statusBar.showMessage('Sourcemeter connected.')
+            self.statusBar.showMessage(f'Sourcemeter connected ({self.smu.name}).')
         elif self.status == 7:
             self.statusBar.showMessage('No instruments connected.')
         self.inst_button.setEnabled(True)
@@ -461,6 +463,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 self.ft.parameters = [float(i) if '.' in i or 'e' in i else int(i) for i in f.readline().strip().split()]
                 self.rt.parameters = [float(i) if '.' in i or 'e' in i else int(i) for i in f.readline().strip().split()]
                 self.fr.parameters = [float(i) if '.' in i or 'e' in i else int(i) for i in f.readline().strip().split()]
+                comments = f.readlines()
+                self.commentBox.setText("".join(comments))
                 self.iv.load_parameters()
                 self.rv.load_parameters()
                 self.st.load_parameters()
@@ -482,6 +486,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
             f.write(' '.join(str(item) for item in self.ft.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.rt.parameters)+'\n')
             f.write(' '.join(str(item) for item in self.fr.parameters)+'\n')
+            f.write(self.commentBox.toPlainText())
                 
     def keyPressEvent(self, event):
         """Close application from escape key.

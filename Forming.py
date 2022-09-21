@@ -198,6 +198,21 @@ class app_Forming(Ui_Forming):
         self.k2700 = k2700
         self.connection = connection
         self.currentSample = currentSample
+        if self.smu:
+            if self.smu.ID == 'Fake':
+                self.widget.setEnabled(False)
+                self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
+                self.widget1.setEnabled(False)
+                self.graphWidget.setEnabled(False)
+            elif self.smu.ID == 'B2902B':
+                self.source.removeItem(1) # Remove Keithley SMU source option
+            elif self.smu.ID == 'K2450':
+                self.source.removeItem(0) # Remove Keysight SMU source option
+        else:
+            self.widget.setEnabled(False)
+            self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
+            self.widget1.setEnabled(False)
+            self.graphWidget.setEnabled(False)
         self.abort_Button.setEnabled(False)
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_Forming)
@@ -273,9 +288,9 @@ class app_Forming(Ui_Forming):
         
     def startThread(self):
         self.thread = QThread()
-        self.worker = Worker(self.smu, self.fullfilename)
+        self.worker = Worker(self.params, self.vPoints, self.iPoints, self.smu, self.fullfilename)
         self.worker.moveToThread(self.thread)
-        self.thread.started.connect(partial(self.worker.start_forming,self.vPoints,self.iPoints))
+        self.thread.started.connect(self.worker.start_forming)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -288,7 +303,7 @@ class app_Forming(Ui_Forming):
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
         for t in wholeComment.split('\n'):
-            formattedComment += '##' + t + '\n'
+            formattedComment += '## ' + t + '\n'
         self.params = {
             "VStart": self.vStart.value(),
             "VEnd": self.vEnd.value(),
@@ -363,20 +378,24 @@ class Worker(QObject):
     data = pyqtSignal(list)
     stopcall = pyqtSignal()
     
-    def __init__(self, smu=None, fullfilename="sample.dat"):
+    def __init__(self, params, vPoints, iPoints, smu=None, fullfilename="sample.dat"):
         super(Worker,self).__init__()
         self.stopCall = False
         self.smu = smu
         self.fullfilename = fullfilename
+        self.params = params
+        self.vPoints = vPoints
+        self.iPoints = iPoints
         self.stopcall.connect(self.stopcalled)
      
     def stopcalled(self):
         self.stopCall = True
     
-    def start_forming(self, vPoints, iPoints):
+    def start_forming(self):
         l = 1
-        i = iPoints[l]
-        self.smu.measure_current(nplc=2)
+        i = self.iPoints[l]
+        self.smu.nplc = 2 # why 2?
+        self.smu.measure_current()
         self.smu.source_voltage = 0
         self.smu.set_measurement_count(1)
         self.smu.set_read_back_on()
@@ -385,12 +404,12 @@ class Worker(QObject):
         file.write("##Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
         file.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
         file.write(self.params["comments"])
-        file.write("## Voltage Limit = {}\n".format(vPoints[-1]))
-        file.write("## Current Limit = {}\n".format(iPoints[-1]))
+        file.write("## Voltage Limit = {}\n".format(self.vPoints[-1]))
+        file.write("## Current Limit = {}\n".format(self.iPoints[-1]))
         file.write("# Applied Voltgage (V)\tCurrent(A)\n")
         iFlag = False
         self.smu.set_compliance(i)
-        for v in vPoints[1:]:
+        for v in self.vPoints[1:]:
             self.smu.source_voltage = v
             m = 0
             while True:
@@ -398,9 +417,9 @@ class Worker(QObject):
                     iFlag = True
                     break
                 if self.smu.is_compliance_tripped():
-                    if l < len(iPoints)-1:
+                    if l < len(self.iPoints)-1:
                         l = l+1
-                        i = iPoints[l]
+                        i = self.iPoints[l]
                         self.smu.set_compliance(i)
                         m = 0
                     else:

@@ -377,17 +377,11 @@ class Keithley2450:
         elif self.sense_mode == 'voltage':
             self.write("Sense:volt:AZero ON")
 
-    def set_source_compliance(self, limit):
+    def set_compliance(self, limit):
         if self.source_mode == 'voltage':
             self.write(f"source:voltage:ilimit {limit}")
         elif self.source_mode == 'current':
             self.write(f"source:current:vlimit {limit}")
-    
-    def set_compliance(self, limit):
-        if self.sense_mode == 'voltage':
-            self.write(f"sense:voltage:ilimit {limit}")
-        elif self.sense_mode == 'current':
-            self.write(f"sense:current:vlimit {limit}")
     
     def set_read_back_on(self):
         if self.source_mode == 'voltage':

@@ -361,6 +361,25 @@ class app_Fatigue(Ui_Fatigue):
         self.afg1022 = afg1022
         self.connection = connection
         self.currentSample = currentSample
+        disableScreen = False
+        if self.afg1022 and self.smu:
+            if self.afg1022.ID == 'Fake':
+                self.source.removeItem(1) # Remove AFG source option
+                if self.smu.ID == 'K2450':
+                    disableScreen = True
+            if self.smu.ID == 'Fake':
+                disableScreen = True
+        elif not self.smu:
+            disableScreen = True
+        elif not self.afg1022:
+            self.source.removeItem(1) # Remove AFG source option
+            if self.smu.ID == 'K2450':
+                disableScreen = True
+        if disableScreen:
+            self.widget.setEnabled(False)
+            self.status.setText("Required instruments not connected. Reconnect and try again.")
+            self.widget1.setEnabled(False)
+            self.fatiguePlot.setEnabled(False)                
         self.stopCall = False
         self.start_Button.clicked.connect(self.startFatigue)
         self.abort_Button.clicked.connect(self.abortFatigue)
@@ -487,7 +506,7 @@ class app_Fatigue(Ui_Fatigue):
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
         for t in wholeComment.split('\n'):
-            formattedComment += '##' + t + '\n'
+            formattedComment += '## ' + t + '\n'
         self.params = {
             "Vset": self.setV.value(),
             "setPwidth": self.set_pulseWidth.value(),
@@ -751,7 +770,10 @@ class app_Fatigue(Ui_Fatigue):
         """
         self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
         with open(self.fullfilename, "w", newline='') as f:
-            f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
+            if self.source.currentText() == 'Keysight B2902B':
+                f.write("##Pulse voltage source: Keysight B2902B SMU.\n")
+            elif self.source.currentText() == 'Tektronix AFG1022':
+                f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
             f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
             f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
             f.write("##Set voltage = {0}, Reset Voltage = {1}.\n".format(self.params["Vset"],self.params["Vreset"]))

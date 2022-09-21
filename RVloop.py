@@ -8,6 +8,7 @@
 
 # TODO: Add tooltips
 # TODO: There is some problem when stopping the measurement in between (I think it is resolved)
+#TODO: Implement plotting multiple RV cycles when threading is implemented.
 
 from winsound import MessageBeep
 from csv import writer
@@ -156,12 +157,12 @@ class Ui_RVLoop(QtWidgets.QWidget):
         self.ncycles_label_2 = QtWidgets.QLabel(self.frame)
         self.ncycles_label_2.setObjectName("ncycles_label_2")
         self.gridLayout.addWidget(self.ncycles_label_2, 10, 0, 1, 1)
-        self.read_voltage_2 = QtWidgets.QDoubleSpinBox(self.frame)
-        self.read_voltage_2.setDecimals(0)
-        self.read_voltage_2.setMaximum(500.0)
-        self.read_voltage_2.setProperty("value", 1.0)
-        self.read_voltage_2.setObjectName("read_voltage_2")
-        self.gridLayout.addWidget(self.read_voltage_2, 10, 1, 1, 1)
+        self.numCycles = QtWidgets.QDoubleSpinBox(self.frame)
+        self.numCycles.setDecimals(0)
+        self.numCycles.setMaximum(500.0)
+        self.numCycles.setProperty("value", 1.0)
+        self.numCycles.setObjectName("numCycles")
+        self.gridLayout.addWidget(self.numCycles, 10, 1, 1, 1)
         self.verticalLayout_2.addWidget(self.frame)
         self.gridLayout_2.addWidget(self.groupBox, 0, 0, 1, 1)
         self.widget = QtWidgets.QWidget(RVLoop)
@@ -221,8 +222,8 @@ class Ui_RVLoop(QtWidgets.QWidget):
         RVLoop.setTabOrder(self.time_unit, self.scan_speed)
         RVLoop.setTabOrder(self.scan_speed, self.Ilimit)
         RVLoop.setTabOrder(self.Ilimit, self.read_voltage)
-        RVLoop.setTabOrder(self.read_voltage, self.read_voltage_2)
-        RVLoop.setTabOrder(self.read_voltage_2, self.temp_check)
+        RVLoop.setTabOrder(self.read_voltage, self.numCycles)
+        RVLoop.setTabOrder(self.numCycles, self.temp_check)
         RVLoop.setTabOrder(self.temp_check, self.temperature)
         RVLoop.setTabOrder(self.temperature, self.comment_checkBox)
         RVLoop.setTabOrder(self.comment_checkBox, self.commentBox)
@@ -277,8 +278,29 @@ class app_RVLoop(Ui_RVLoop):
         super(app_RVLoop, self).__init__(parent)
         self.parent = parent
         self.smu = smu
-        self.k2700 = k2700 
+        self.k2700 = k2700
         self.afg1022 = afg1022
+        if self.afg1022:
+            if self.afg1022.ID == 'Fake':
+                self.vsource.removeItem(2) # Remove AFG source option
+        else:
+            self.vsource.removeItem(2) # Remove AFG source option
+        if self.smu:
+            if self.smu.ID == 'Fake':
+                self.groupBox.setEnabled(False)
+                self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
+                self.widget.setEnabled(False)
+                self.graphWidget.setEnabled(False)
+            elif self.smu.ID == 'B2902B':
+                self.vsource.removeItem(1) # Remove Keithley SMU source option
+            elif self.smu.ID == 'K2450':
+                self.vsource.removeItem(0) # Remove Keysight SMU source option
+        else:
+            self.groupBox.setEnabled(False)
+            self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
+            self.widget.setEnabled(False)
+            self.graphWidget.setEnabled(False)
+
         self.connection = connection
         self.currentSample = currentSample
         self.stop_Button.setEnabled(False)
@@ -297,6 +319,7 @@ class app_RVLoop(Ui_RVLoop):
         self.file_name.setReadOnly(True)
         self.file_name.setText(self.filename)
         self.temp_check.setEnabled(False)
+        self.numCycles.setEnabled(False)
         self.measurement_status = "Idle"
         self.vsource.currentIndexChanged.connect(self.update_limits)
         self.params = {
@@ -309,6 +332,7 @@ class app_RVLoop(Ui_RVLoop):
             "Speed": 3,
             "ILimit": 1/1000,
             "Rvoltage": 0.1,
+            "Ncycles": 1,
             "temperature": 300,
             "temp_check": 0,
             "comments" : ""}
@@ -324,6 +348,9 @@ class app_RVLoop(Ui_RVLoop):
     def load_parameters(self):
         try:
             self.vsource.setCurrentIndex(self.parameters[0])
+        except Exception as e:
+            print(e)
+        try:
             self.minV.setValue(self.parameters[1])
             self.maxV.setValue(self.parameters[2])
             self.vstep.setValue(self.parameters[3])
@@ -332,8 +359,9 @@ class app_RVLoop(Ui_RVLoop):
             self.scan_speed.setCurrentIndex(self.parameters[6])
             self.Ilimit.setValue(self.parameters[7]*1000)
             self.read_voltage.setValue(self.parameters[8])
-            self.temperature.setValue(self.parameters[9])
-            self.temp_check.setChecked(self.parameters[10])
+            self.numCycles.setValue(self.parameters[9])
+            self.temperature.setValue(self.parameters[10])
+            self.temp_check.setChecked(self.parameters[11])
         except Exception as e:
             print(e)
     
@@ -365,7 +393,7 @@ class app_RVLoop(Ui_RVLoop):
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
         for t in wholeComment.split('\n'):
-            formattedComment += '##' + t + '\n'
+            formattedComment += '## ' + t + '\n'
         self.params = {
             "Vsource": self.vsource.currentIndex(),
             "Vmin": self.minV.value(),
@@ -376,6 +404,7 @@ class app_RVLoop(Ui_RVLoop):
             "Speed": self.scan_speed.currentIndex(),
             "ILimit": self.Ilimit.value()/1000,
             "Rvoltage": self.read_voltage.value(),
+            "Ncycles": self.numCycles.value(),
             "temperature": self.temperature.value(),
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
@@ -593,6 +622,7 @@ class app_RVLoop(Ui_RVLoop):
         self.time_unit.setEnabled(False)
         self.scan_speed.setEnabled(False)
         self.Ilimit.setEnabled(False)
+        self.numCycles.setEnabled(False)
         self.read_voltage.setEnabled(False)
         self.start_Button.setEnabled(False)
         self.update_params()
@@ -624,7 +654,7 @@ class app_RVLoop(Ui_RVLoop):
                 f.write("##Resistance read using Keithley 2450 source-measure unit.\n")  
                 f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
                 f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
-                f.write("##Pulse width = {0}s\n".format(self.timestep))
+                f.write(f"##Pulse width = {self.timestep}s, Num. cycles = {self.params['Ncycles']}\n")
                 f.write("##Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))
                 f.write("##Limiting current = {}mA\n".format(self.params["ILimit"]*1000))
                 f.write(self.params["comments"])
@@ -639,7 +669,7 @@ class app_RVLoop(Ui_RVLoop):
                 f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
                 f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
                 f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
-                f.write("##Pulse width = {0}s\n".format(self.timestep))
+                f.write(f"##Pulse width = {self.timestep}s, Num. cycles = {self.params['Ncycles']}\n")
                 f.write("##Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))
                 f.write("##Limiting current = {}mA\n".format(self.params["Ilimit"]*1000))
                 f.write(self.params["comments"])
@@ -677,6 +707,7 @@ class app_RVLoop(Ui_RVLoop):
         self.time_unit.setEnabled(True)
         self.scan_speed.setEnabled(True)
         self.Ilimit.setEnabled(True)
+        #self.numCycles.setEnabled(True) #TODO to be implemented
         self.read_voltage.setEnabled(True)
         self.smu.source_voltage = 0
         self.smu.disable_source()

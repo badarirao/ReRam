@@ -369,6 +369,26 @@ class app_Retention(Ui_Retention):
         self.afg1022 = afg1022
         self.currentSample = currentSample
         self.connection = connection
+        if self.afg1022:
+            if self.afg1022.ID == 'Fake':
+                self.vsource.removeItem(2) # Remove AFG source option
+        else:
+            self.vsource.removeItem(2) # Remove AFG source option
+        if self.smu:
+            if self.smu.ID == 'Fake':
+                self.groupBox.setEnabled(False)
+                self.status.setText("Sourcemeter not connected. Reconnect and try again.")
+                self.widget.setEnabled(False)
+                self.retentionPlot.setEnabled(False)
+            elif self.smu.ID == 'B2902B':
+                self.vsource.removeItem(1) # Remove Keithley SMU source option
+            elif self.smu.ID == 'K2450':
+                self.vsource.removeItem(0) # Remove Keysight SMU source option
+        else:
+            self.groupBox.setEnabled(False)
+            self.status.setText("Sourcemeter not connected. Reconnect and try again.")
+            self.widget.setEnabled(False)
+            self.retentionPlot.setEnabled(False)
         self.stopCall = False
         self.skip = False
         self.resistor.setToolTip("Connect a resistor of this value in series to input from function generator.")
@@ -482,6 +502,9 @@ class app_Retention(Ui_Retention):
     def load_parameters(self):
         try:
             self.vsource.setCurrentIndex(self.parameters[0])
+        except Exception as e:
+            print(e)
+        try:
             self.setV.setValue(self.parameters[1])
             self.setVcheck.setChecked(self.parameters[2])
             self.setPwidth.setValue(self.parameters[3])
@@ -512,7 +535,7 @@ class app_Retention(Ui_Retention):
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
         for t in wholeComment.split('\n'):
-            formattedComment += '##' + t + '\n'
+            formattedComment += '## ' + t + '\n'
         self.params = {
             "Vsource": self.vsource.currentIndex(),
             "Vset": self.setV.value(),
