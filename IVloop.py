@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
 from numpy import linspace, array_split, around, concatenate, append
 from numpy import reshape, array, savetxt, hsplit, insert, loadtxt
+from math import ceil
 #from openpyxl import Workbook
 #from openpyxl.styles import Font
 #from openpyxl.chart import ScatterChart, Reference, Series
@@ -45,6 +46,8 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.temperature.setEnabled(False)
         self.temperature.setStyleSheet("font: 12pt \"Times New Roman\";")
         self.temperature.setMaximum(600.0)
+        self.temperature.setSingleStep(1)
+        self.temperature.setDecimals(2)
         self.temperature.setProperty("value", 300.0)
         self.temperature.setObjectName("temperature")
         self.gridLayout.addWidget(self.temperature, 12, 2, 1, 1)
@@ -68,8 +71,8 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.Ilimit = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.Ilimit.setStyleSheet("font: 12pt \"Times New Roman\";")
         self.Ilimit.setDecimals(3)
-        self.Ilimit.setMaximum(1.0)
-        self.Ilimit.setSingleStep(0.001)
+        self.Ilimit.setMaximum(100.0)
+        self.Ilimit.setSingleStep(0.100)
         self.Ilimit.setProperty("value", 0.5)
         self.Ilimit.setObjectName("Ilimit")
         self.gridLayout.addWidget(self.Ilimit, 7, 2, 1, 1)
@@ -112,9 +115,9 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.maxV = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.maxV.setStyleSheet("font: 12pt \"Times New Roman\";")
         self.maxV.setDecimals(3)
-        self.maxV.setMinimum(-9.0)
-        self.maxV.setMaximum(10.0)
-        self.maxV.setSingleStep(0.001)
+        self.maxV.setMinimum(-199.0)
+        self.maxV.setMaximum(200.0)
+        self.maxV.setSingleStep(0.1)
         self.maxV.setProperty("value", 3.0)
         self.maxV.setObjectName("maxV")
         self.gridLayout.addWidget(self.maxV, 4, 2, 1, 1)
@@ -124,9 +127,9 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.minV = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.minV.setStyleSheet("font: 12pt \"Times New Roman\";")
         self.minV.setDecimals(3)
-        self.minV.setMinimum(-10.0)
-        self.minV.setMaximum(9.0)
-        self.minV.setSingleStep(0.001)
+        self.minV.setMinimum(-200.0)
+        self.minV.setMaximum(199.0)
+        self.minV.setSingleStep(0.1)
         self.minV.setProperty("value", -3.0)
         self.minV.setObjectName("minV")
         self.gridLayout.addWidget(self.minV, 3, 2, 1, 1)
@@ -365,6 +368,9 @@ class app_IVLoop(Ui_IVLoop):
         None.
 
         """
+        if self.smu.ID == 'K2450':
+            if self.nPointSet.value() > 2500:
+                self.nPointSet.setValue(2500)
         self.previousCycle = 0
         self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat', datetimeformat="")
         self.statusbar.setText("Measurement Running..")
@@ -637,7 +643,7 @@ class Worker(QObject):
         connect_sample_with_SMU(self.k2700,self.connection,self.currentSample)
         self.smu.measure_current()
         self.smu.auto_range_sense()
-        self.smu.set_wire_configuration(2) # two wire configuration
+        self.smu.set_wire_configuration(self.smu.wire_config) # two wire configuration
         if self.params["Speed"] == 0:
             nplc = 5
             self.speed = "Very Slow"
@@ -670,7 +676,7 @@ class Worker(QObject):
         """
         with open(self.fullfilename,'w') as f:
             f.write("## IV loop measurement using Keithley 2450 source measure unit.\n")
-            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
+            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
             f.write("## Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
             f.write('## Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"]*1000,self.params["Delay"]))
             f.write('## Scan speed = {0}, Points per cycle = {1}\n'.format(self.speed,self.params["npoints"]))
@@ -694,7 +700,8 @@ class Worker(QObject):
             self.points = around(concatenate((l1, l2, l3)), 3)
             self.points[self.points == 0] = 0.0001
             # split the points into 6 chunks of equal size
-            self.chunks = array_split(self.points, 6)
+            chunk_size = ceil(self.npoints/100)
+            self.chunks = array_split(self.points, chunk_size)
             # write the first chunk into the list
             self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
             # append the remaining chunks into the list
@@ -723,6 +730,7 @@ class Worker(QObject):
         self.configure_sweep()
         i = 0
         while i<self.params["ncycles"] and not self.stopCall:
+            self.smu.clear_buffer(self.npoints)
             self.smu.start_buffer()  # start the measurement
             while self.stopCall == False:
                 sleep(1)
