@@ -63,6 +63,8 @@ class KeysightB2902B:
         
     @source_voltage.setter 
     def source_voltage(self,value):
+        # output voltage when output is on
+        # ensure source mode is voltage (apply_voltage())
         self._source_voltage = value
         self.write(f":SOUR{self.ch}:VOLT {value}")
     
@@ -73,6 +75,8 @@ class KeysightB2902B:
         
     @source_current.setter 
     def source_current(self,value):
+        # output current when output is on
+        # ensure source mode is current (apply_current())
         self._source_current = value
         self.write(f":SOUR{self.ch}:CURR {value}")
 
@@ -95,7 +99,7 @@ class KeysightB2902B:
     
     def start_buffer(self):
         """ Starts the buffer. """
-        self.write(":INIT")
+        self.write(f":INIT (@{self.ch})")
 
     def reset_buffer(self):
         """ Resets the buffer. """
@@ -455,10 +459,12 @@ class KeysightB2902B:
             self.write(f':SOUR{self.ch}:CURR:MODE {mode}')
         
     def set_voltage_points(self, points):
-        self.write(f"SOUR{self.ch}:LIST:VOLTage {points}")
+        points = points.replace(" ","")
+        self.write(f"SOUR{self.ch}:LIST:VOLT {points}")
     
     def append_voltage_points(self, points):
-        self.write(f"SOUR(self.ch):LIST:VOLTage:APPend {points}")
+        points = points.replace(" ","")
+        self.write(f"SOUR(self.ch):LIST:VOLT:APP {points}")
     
     def configure_sweep(self, delay = 0):
         """
@@ -475,15 +481,18 @@ class KeysightB2902B:
         None.
 
         """
-        # nPoints = len(list) # get number of points in sweep
-        self.write(f"SOUR{self.ch}:LIST:VOLT:STAR 1") # start at index 1 of list
-        self.write(f"TRIG{self.ch}:ACQ:DEL {delay}") # set measurement delay between steps
-        #points = int(float(self.ask(f"SOUR{self.ch}:LIST:VOLT:POINts?").strip()))
-        # for number of sweep counts, I think you should change trigger count as below
-        # self.write(f"TRIG{self.ch}:ALL:Count {npoints}") # 1 sweep
-        # for n sweep, you should enter n*npoints
-        self.set_return_data_format()
-    
+        self.write(":trig:sour aint") # auto decide trigger method
+        self.write(f"TRIG{self.ch}:TRAN:DEL 0")
+        self.write(f"TRIG{self.ch}:ACQ:DEL {delay}")
+        nPoints = int(float(self.ask(f"SOUR{self.ch}:LIST:VOLT:POINts?").strip()))
+        self.write(f"trig{self.ch}:coun {nPoints}")
+        self.write(":FORM:ELEM:SENS VOLT,CURR")
+        self.write(f"TRAC{self.ch}:CLEar")
+        self.write(f"TRAC{self.ch}:POIN {nPoints}")
+        self.write(f"TRAC{self.ch}:FEED SENS")
+        self.write(f"TRAC{self.ch}:FEED:CONT NEXT")
+        #self.write(f"TRAC{self.ch}:TST:FORM DELT") # set timestamp to delta T
+
     def set_simple_loop(self, count=1, delayTime = 0):
         if delayTime <= 0:
             self.write(f"SOUR{self.ch}:WAIT:AUTO ON")
@@ -622,6 +631,134 @@ class KeysightB2902B:
                 c = 1e-12
             Currents.append(c)
         return Currents
+
+#  misc commands
+    def set_power_line_frequency(self,freq):
+        # set the power line frequency to 50 or 60 Hz
+        assert freq in (50,60)
+        self.write(f":SYST:LFR {freq}")
+
+    def enable_beep(self, status = 'ON'):
+        if status == True:
+            status = 'ON'
+        elif status == False:
+            status = 'OFF'
+        assert status.upper() in (True,False)
+        self.write(f":SYST:BEEP:STAT {status}")
+
+    def set_date_time(self, date):
+        # get date and time in datetime format
+        setDate = date.strftime("%Y,%m,%d")
+        setTime = date.strftime("%H,%M,%S")
+        self.write(f":SYST:DATE {setDate}")
+        self.write(f":SYST:TIME {setTime}")
+
+    def perform_self_test(self):
+        result = self.ask("*TST?")
+        if result == 0:
+            return "PASS"
+        else:
+            return "FAIL"
+
+    def perform_self_calibration(self):
+        result = self.ask("*CAL?")
+        if result == 0:
+            return "PASS"
+        else:
+            return "FAIL"
+
+    def set_startup_task(self,program_name):
+        self.write(f":PROG:PON:COPY '{program_name}'")
+        self.write(f":PROG:PON:RUN ON")
+
+    def clear_error_buffer(self):
+        errors = self.ask(":SYST:ERR:ALL?")
+
+    def get_timestamp(self):
+        timestamp = self.ask(":SYST:TIME:TIM:COUN?")
+        return timestamp
+
+    def clear_timestamp(self):
+        self.write(":SYST:TIME:TIM:COUN:RES")
+
+    def autoClear_timestamp(self, status = 'ON'):
+        # automatic clear of timestamp when initiate action occurs
+        if status == True:
+            status = 'ON'
+        elif status == False:
+            status = 'OFF'
+        assert status.upper() in ('ON', 'OFF')
+        self.write(f":SYST:TIME:TIM:COUN:RES:AUTO {status}")
+
+    def enable_remote_display(self, status = 'ON'):
+        if status == True:
+            status = 'ON'
+        elif status == False:
+            status = 'OFF'
+        assert status.upper() in ('ON','OFF')
+        self.write(f":DISP:ENAB {status}")
+
+    def set_continuous_trigger(self, status):
+        if status == True:
+            status = 'ON'
+        elif status == False:
+            status = 'OFF'
+        assert status.upper() in ('ON','OFF')
+        self.write(f"SOUR{self.ch}:FUNC:TRIG:CONT {status}")
+
+    def source_mode(self, mode):
+        # set voltage to sweep mode, list mode or fixed mode upon triggered.
+        if mode.lower() == 'swe':
+            mode = 'sweep'
+        elif mode.lower() == 'fix':
+            mode = 'fixed'
+        assert mode.lower() in ('sweep', 'list', 'fixed')
+        self.write(f':SOUR{self.ch}:{self.source_mode}:MODE {mode}')
+
+    def set_output_level(self,output):
+        # set current or voltage output level.
+        # Can be either a floating point or 'MIN', 'MAX' or 'DEFault'
+        # default is 0
+        if isinstance(output,str):
+            output = output.lower()
+            if output == 'minimum':
+                output = 'min'
+            elif output == 'maximum':
+                output = 'max'
+            elif output == 'default':
+                output = 'def'
+        else:
+            assert isinstance(output, (int,float)), 'invalid type'
+            if self.source_mode == 'Voltage':
+                assert -200 > output > 200, 'Voltage out of range'
+            elif self.sense_mode == 'Current':
+                assert -1 > output > 1, 'Current out of range'
+        self.write(f"SOUR{self.ch}:{self.source_mode}:TRIG {output}")
+
+    def configure_pulse(self, delay_time=1e-3, pulse_width=1e-3, baseV=0, peakV=0.1):
+        self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
+        self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")
+        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
+        self.write(f"SOUR{self.ch}:VOLT {baseV}")
+        self.write(f"SOUR{self.ch}:VOLT:TRIG {peakV}")
+
+    def trigger_pulse(self):
+        self.enable_source()  # start outputting pulse base value
+        self.trigger() # perform the specified pulse output and measurement
+
+    def configure_DC_sweep(self, delay_time, minV, maxV, direction, npoints, ncycles):
+        pass
+
+    def configure_pulse_sweep(self, ):
+        pass
+
+    def set_low_terminal_state(self, state):
+        if state.lower() == 'float':
+            state = 'flo'
+        elif state.llwer() == 'ground':
+            state = 'gro'
+        assert state.lower() in ('flo','gro'), "low terminal state can only be 'float' or 'ground'"
+
 
 #  misc commands
     def set_power_line_frequency(self,freq):

@@ -12,22 +12,18 @@ Not tested for other Python versions or OS.
 # TODO: correct the tab order of all the windows.
 # TODO: Bug: minimizing the main window also minimized the child window, even if child.show() is given later.
 # TODO: clear the graphs in all apps when directory of filename is changed.
-# TODO: some VisaError occurs when open_resources finds an instrument over lan, and tries to connect to it.
 # TODO: Implement threading to plot data in a separate thread as a separate process.
 # TODO: Include date, start and end time of experiment in saved file.
+# TODO: Include timestamp for each datapoint
 # BUG: If soucemeter is Idle for long time, it connects, but no command works, gives visaerror.
 # TODO: Correct the channel connections after Sample and instrument connections in MUX have been modified.
-# TODO: Enable 4 probe measurements.
+# TODO: Enable 4 probe measurements. Prompt to make appropriate connections.
 # TODO: Enable using cryochamber.
 # TODO: Connect chino temperature controller, and Linkam temperature controller.
-# TODO: If funcion geerator is not connected, disable endurance function, and setting function generator as source in other programs.
 # TODO: if function generator is not connected, disable usage of MUX also!
-# TODO: MUX related tasks:"
+# TODO: MUX should only change AFG and SMU connection. It should not interfere with sample connections
 # TODO: If function generator is connected with another sample, make sure this program will not use function generator
-# TODO: Add Keysight B2902B sourcemeter
-# TODO: combine all common import modules and put it in utilities, and import from 
-# TODO: checkinstrument - scan only for the instruments saved in the address file, and connect ones that are successful. This may be faster.
-# TODO: Only those instruments that are connected should be available to be selected in each program.
+# TODO: combine all common import modules and put it in utilities, and import from
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'

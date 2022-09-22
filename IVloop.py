@@ -15,10 +15,10 @@ from PyQt5.QtWidgets import QMessageBox
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
 from numpy import linspace, array_split, around, concatenate, append
 from numpy import reshape, array, savetxt, hsplit, insert, loadtxt
-from openpyxl import Workbook
-from openpyxl.styles import Font
-from openpyxl.chart import ScatterChart, Reference, Series
-from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
+#from openpyxl import Workbook
+#from openpyxl.styles import Font
+#from openpyxl.chart import ScatterChart, Reference, Series
+#from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
 from utilities import unique_filename, FakeAdapter, checkInstrument
 from utilities import connect_sample_with_SMU, datetime
 
@@ -418,7 +418,7 @@ class app_IVLoop(Ui_IVLoop):
         self.start_Button.setEnabled(True)
         self.smu.source_voltage = 0
         self.stop_Button.setEnabled(False)
-        app_IVLoop.formatIV_Excel(self.fullfilename)
+        #app_IVLoop.formatIV_Excel(self.fullfilename)
     
     def initialize_plot(self):
         """
@@ -455,9 +455,10 @@ class app_IVLoop(Ui_IVLoop):
         self.worker.stopcall.emit()
 
     # make sure filename has some extension, it should be the file name that has collected data
+    """
     @staticmethod
     def formatIV_Excel(fname="Sample_IV.dat"):
-        """
+        """"""
         Save the data and the plot into excel file,.
         *** Obselete now *** may be removed later
         Parameters
@@ -469,7 +470,7 @@ class app_IVLoop(Ui_IVLoop):
         -------
         None.
 
-        """
+        """"""
         wb = Workbook()
         ws = wb.active
         ws.title = 'IV Data'
@@ -563,6 +564,7 @@ class app_IVLoop(Ui_IVLoop):
         plotsheet.add_chart(ivChart, 'C3')
         wb.save('.'.join(fname.split('.')[:-1])+'.xlsx')
         # wb.save(self.filename+'.xlsx')
+    """
     
     def keyPressEvent(self, event):
         """Close application from escape key.
