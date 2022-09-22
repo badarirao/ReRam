@@ -17,7 +17,6 @@ Not tested for other Python versions or OS.
 # TODO: Include timestamp for each datapoint
 # BUG: If soucemeter is Idle for long time, it connects, but no command works, gives visaerror.
 # TODO: Correct the channel connections after Sample and instrument connections in MUX have been modified.
-# TODO: Enable 4 probe measurements. Prompt to make appropriate connections.
 # TODO: Enable using cryochamber.
 # TODO: Connect chino temperature controller, and Linkam temperature controller.
 # TODO: if function generator is not connected, disable usage of MUX also!
@@ -63,6 +62,15 @@ class Worker(QObject):
         self.adapters.emit(instruments)
         self.finished.emit()
 
+
+# creating VLine class
+class VLine(QtWidgets.QFrame):
+
+    # a simple Vertical line
+    def __init__(self):
+        super(VLine, self).__init__()
+        self.setFrameShape(self.VLine | self.Sunken)
+
 class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
     """Class to initialize the main menu."""
 
@@ -105,9 +113,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.abort = False
         self.connection = 1
         self.currentSample = 0
+        self.configLabel = QtWidgets.QLabel("")
+        self.configLabel.setText("2-wire sense configuration")
+        self.statusBar().addPermanentWidget(self.configLabel)
+        self.statusBar().addPermanentWidget(VLine())
+        self.instLabel = QtWidgets.QLabel("")
+        self.statusBar().addPermanentWidget(self.instLabel)
         self.check_instrument_connection()
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
-    
+        self.actionSet_2_wire_configuration.triggered.connect(self.set_two_wire_config)
+        self.actionSet_4_wire_configuration.triggered.connect(self.set_four_wire_config)
+
     def updateCommentBox(self):
         if self.comment_checkBox.isChecked():
             self.commentBox.setEnabled(True)
@@ -200,7 +216,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.endurance_button.setDisabled(True)
         self.retention_button.setDisabled(True)
         self.forming_button.setDisabled(True)
-        self.statusBar.showMessage('Establishing instrument connection... Please wait')
+        self.instLabel.setText('Establishing instrument connection... Please wait')
         
         self.thread = QThread()
         self.worker = Worker()
@@ -257,21 +273,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         if self.afg1022.ID == 'Fake':
             self.status = self.status + 4
         if self.status == 0:
-            self.statusBar.showMessage('All instruments connected.')
+            self.instLabel.setText('All instruments connected.')
         elif self.status == 1:
-            self.statusBar.showMessage('Sourcemeter not connected.')
+            self.instLabel.setText('Sourcemeter not connected.')
         elif self.status == 2:
-            self.statusBar.showMessage('Sourcemeter, function generator connected')
+            self.instLabel.setText('Sourcemeter, function generator connected')
         elif self.status == 3:
-            self.statusBar.showMessage('Sourcemeter not connected. Function generator connected')
+            self.instLabel.setText('Sourcemeter not connected. Function generator connected')
         elif self.status == 4:
-            self.statusBar.showMessage('Sourcemeter, multiplexer connected.')
+            self.instLabel.setText('Sourcemeter, multiplexer connected.')
         elif self.status == 5:
-            self.statusBar.showMessage('Sourcemeter not connected. Multiplexer connected')
+            self.instLabel.setText('Sourcemeter not connected. Multiplexer connected')
         elif self.status == 6:
-            self.statusBar.showMessage(f'Sourcemeter connected ({self.smu.name}).')
+            self.instLabel.setText(f'Sourcemeter connected ({self.smu.name}).')
         elif self.status == 7:
-            self.statusBar.showMessage('No instruments connected.')
+            self.instLabel.setText('No instruments connected.')
         self.inst_button.setEnabled(True)
         self.dir_Button.setEnabled(True)
         self.filename.setEnabled(True)
@@ -315,6 +331,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 self.save_parameters()
                 self.currPath = dirName
                 self.load_parameters()
+
+    def set_two_wire_config(self):
+        try:
+            self.smu.set_wire_configuration(2)
+            self.configLabel.setText("2-wire sense configuration")
+            QMessageBox.warning(self,"Ensure proper wiring","In two wire configuration, "
+                                                            "connect positive terminal to Force-high (red), "
+                                                            "and negative terminal to Force-low (black)",QMessageBox.Ok)
+        except NotImplementedError:
+            QMessageBox.critical(self,"Error in setting configuration",
+                                 "There was an error in setting the configuration. "
+                                 "Most likely the SMU is not connected.",QMessageBox.Ok)
+
+    def set_four_wire_config(self):
+        try:
+            self.smu.set_wire_configuration(4)
+            QMessageBox.warning(self,"Ensure proper wiring","In four wire configuration, "
+                                                            "connect positive source terminal to Force-high (red), "
+                                                            "positive sense terminal to Sense-high (red), "
+                                                            "negative source terminal to Force-low (black),"
+                                                            "and negative sense terminal to Sense-low (black)",QMessageBox.Ok)
+            self.configLabel.setText("4-wire sense configuration")
+        except NotImplementedError:
+            QMessageBox.critical(self, "Error in setting configuration",
+                                 "There was an error in setting the configuration. "
+                                 "Most likely the SMU is not connected.", QMessageBox.Ok)
 
     def setFilename(self, initial=0):
         """
