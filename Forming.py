@@ -402,7 +402,7 @@ class Worker(QObject):
         self.smu.enable_source()
         file = open(self.fullfilename,'w')
         file.write("##Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
-        file.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
+        file.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
         file.write(self.params["comments"])
         file.write("## Voltage Limit = {}\n".format(self.vPoints[-1]))
         file.write("## Current Limit = {}\n".format(self.iPoints[-1]))

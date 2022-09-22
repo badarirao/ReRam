@@ -791,7 +791,7 @@ class app_Switch(Ui_Switch):
                 if not filePresent:
                     f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
                     f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
-                    f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
+                    f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
                     f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
                     f.write(self.params["comments"])
                     f.write("#Pulse Voltage (V)\tPulse Current (A)\tPulse Resistance (ohms)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
@@ -800,7 +800,7 @@ class app_Switch(Ui_Switch):
                 if not filePresent:
                     f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
                     f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
-                    f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
+                    f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
                     f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
                     f.write(self.params["comments"])
                     f.write("#Pulse Voltage (V)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")

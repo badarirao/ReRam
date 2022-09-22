@@ -9,7 +9,7 @@
 # TODO: Add tooltips
 # TODO: There is some problem when stopping the measurement in between (I think it is resolved)
 #TODO: Implement plotting multiple RV cycles when threading is implemented.
-
+# TODO: When Keysight B2902 is selected, use pulse stairs for this measurement
 from winsound import MessageBeep
 from csv import writer
 from numpy import linspace, around, concatenate, array
@@ -652,7 +652,7 @@ class app_RVLoop(Ui_RVLoop):
             with open(self.fullfilename, "w", newline='') as f:
                 f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
                 f.write("##Resistance read using Keithley 2450 source-measure unit.\n")  
-                f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
+                f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
                 f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
                 f.write(f"##Pulse width = {self.timestep}s, Num. cycles = {self.params['Ncycles']}\n")
                 f.write("##Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))
@@ -667,7 +667,7 @@ class app_RVLoop(Ui_RVLoop):
             with open(self.fullfilename, "w", newline='') as f:
                 f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
                 f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
-                f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
+                f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
                 f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],self.params["Vmax"]))
                 f.write(f"##Pulse width = {self.timestep}s, Num. cycles = {self.params['Ncycles']}\n")
                 f.write("##Read voltage = {0}V, averaged over {1} readings\n".format(self.params["Rvoltage"],self.avg_over_n_readings))

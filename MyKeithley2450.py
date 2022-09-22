@@ -50,6 +50,7 @@ class Keithley2450:
             self.nplc = 1
             self.source_mode = 'voltage'
             self.sense_mode = 'current'
+            self.wire_config = 2
         else:
             raise VisaIOError(-1073807346)
         self.name = "Keithley 2450 SMU"
@@ -166,8 +167,10 @@ class Keithley2450:
         config = int(float(config))
         if config == 2:
             self.write("SENS:curr:rsen OFF") # Two wire configuration
+            self.wire_config = config
         elif config == 4:
             self.write("SENS:curr:rsen ON") # Four wire configuration
+            self.wire_config = config
         else:
             print("Wrong configuration command sent. Choose either 2 or 4 only.")
     
@@ -419,6 +422,9 @@ class Keithley2450:
     def get_start_point(self):
         return int(self.ask("trace:actual:start?")[:-1])
     
+    def clear_buffer(self, npoints):
+        pass
+
     def set_measurement_count(self, count=1):
         self.write(f":Sense:count {count}")
     

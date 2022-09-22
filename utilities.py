@@ -127,6 +127,9 @@ class FakeAdapter():
         """Write the command to a buffer, so that it can be read back."""
         self._buffer += command
 
+    def set_wire_configuration(self,n):
+        raise NotImplementedError
+
     def __repr__(self):
         """Return the class name as a string."""
         return "<FakeAdapter>"

@@ -52,6 +52,8 @@ class KeysightB2902B:
             self.source_mode = 'voltage'
             self.sense_mode = 'current'
             self.ch = channel # channel number
+            self.overVoltage_protection(False)
+            self.wire_config = 2
         else:
             raise VisaIOError(-1073807346)
         self.name = "Keysight B2902B SMU"
@@ -189,8 +191,10 @@ class KeysightB2902B:
         config = int(float(config))
         if config == 2:
             self.write(f"SENS{self.ch}:REM OFF") # Two wire configuration
+            self.wire_config = config
         elif config == 4:
             self.write(f"SENS{self.ch}:REM ON") # Four wire configuration
+            self.wire_config = config
         else:
             print("Wrong configuration command sent. Choose either 2 or 4 only.")
     
@@ -243,7 +247,8 @@ class KeysightB2902B:
             self.auto_range_source()
         else:
             self.source_voltage_range = voltage_range
-        self.compliance_current = compliance_current
+        self.set_compliance(compliance_current)
+        self.setNPLC()
 
     def beep(self, frequency, duration):
         """ Sounds a system beep.
@@ -464,7 +469,7 @@ class KeysightB2902B:
     
     def append_voltage_points(self, points):
         points = points.replace(" ","")
-        self.write(f"SOUR(self.ch):LIST:VOLT:APP {points}")
+        self.write(f"SOUR{self.ch}:LIST:VOLT:APP {points}")
     
     def configure_sweep(self, delay = 0):
         """
@@ -481,17 +486,25 @@ class KeysightB2902B:
         None.
 
         """
+        self.source_sweep_mode('list')
         self.write(":trig:sour aint") # auto decide trigger method
         self.write(f"TRIG{self.ch}:TRAN:DEL 0")
         self.write(f"TRIG{self.ch}:ACQ:DEL {delay}")
         nPoints = int(float(self.ask(f"SOUR{self.ch}:LIST:VOLT:POINts?").strip()))
         self.write(f"trig{self.ch}:coun {nPoints}")
         self.write(":FORM:ELEM:SENS VOLT,CURR")
+        self.clear_buffer(nPoints)
+        #self.write(f"TRAC{self.ch}:POIN {nPoints}")
+        #self.write(f"TRAC{self.ch}:FEED SENS")
+        #self.write(f"TRAC{self.ch}:FEED:CONT NEXT")
+        #self.write(f"TRAC{self.ch}:TST:FORM DELT") # set timestamp to delta T
+
+    def clear_buffer(self,nPoints):
+        self.write(f"TRAC{self.ch}:FEED:CONT NEV")
         self.write(f"TRAC{self.ch}:CLEar")
         self.write(f"TRAC{self.ch}:POIN {nPoints}")
         self.write(f"TRAC{self.ch}:FEED SENS")
         self.write(f"TRAC{self.ch}:FEED:CONT NEXT")
-        #self.write(f"TRAC{self.ch}:TST:FORM DELT") # set timestamp to delta T
 
     def set_simple_loop(self, count=1, delayTime = 0):
         if delayTime <= 0:
@@ -528,7 +541,7 @@ class KeysightB2902B:
         self.write(":FORM:ELEM:SENS SOUR,CURR")
 
     def get_trace_data(self, offset='CURR', size=1):
-        return self.ask(f"TRACe{self.ch}:data? {offset}").strip()
+        return self.ask(f"TRACe{self.ch}:data?").strip()
     
     def get_average_trace_data(self):
         self.write(f"TRACe{self.ch}:STAT:FORM MEAN")
@@ -706,7 +719,7 @@ class KeysightB2902B:
         assert status.upper() in ('ON','OFF')
         self.write(f"SOUR{self.ch}:FUNC:TRIG:CONT {status}")
 
-    def source_mode(self, mode):
+    def source_sweep_mode(self, mode):
         # set voltage to sweep mode, list mode or fixed mode upon triggered.
         if mode.lower() == 'swe':
             mode = 'sweep'
@@ -887,4 +900,12 @@ class KeysightB2902B:
         elif state.llwer() == 'ground':
             state = 'gro'
         assert state.lower() in ('flo','gro'), "low terminal state can only be 'float' or 'ground'"
+
+    def overVoltage_protection(self, status = False):
+        if status == True:
+            status = 'on'
+        elif status == False:
+            status = 'off'
+        assert status.lower() in ('on','off'), "incorrect status command sent for over voltage protection"
+        self.write(f":OUTP{self.ch}:PROT {status}")
 

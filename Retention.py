@@ -853,7 +853,7 @@ class app_Retention(Ui_Retention):
                     f.write("##Pulse voltage source: Keithley 2450 SMU.\n")
                 else:
                     f.write("##Pulse voltage source: Tektronix AFG1022 Function Generator.\n")
-                f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
+                f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
                 f.write("##Pulse limiting current = {}mA\n".format(self.iLimit.value()))
                 f.write("##Resistance read using Keithley 2450 SMU.\n")
                 f.write(self.params["comments"])
