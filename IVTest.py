@@ -41,7 +41,7 @@ print("Started...")
 smu.write(":init (@1)")
 while smu.get_trigger_state() == 'RUNNING':
     sleep(2)
-    data = smu.ask(":TRAC:Data? CURR")
+    data = smu.ask(":TRAC:Data?")
     data2 = reshape(array(data.split(','), dtype=float), (-1, 2))
     print(len(data2))
 """    
