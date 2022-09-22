@@ -15,7 +15,7 @@ Not tested for other Python versions or OS.
 # TODO: Implement threading to plot data in a separate thread as a separate process.
 # TODO: Include date, start and end time of experiment in saved file.
 # TODO: Include timestamp for each datapoint
-# BUG: If soucemeter is Idle for long time, it connects, but no command works, gives visaerror.
+# TODO: BUG: If soucemeter is Idle for long time, it connects, but no command works, gives visaerror.
 # TODO: Correct the channel connections after Sample and instrument connections in MUX have been modified.
 # TODO: Enable using cryochamber.
 # TODO: Connect chino temperature controller, and Linkam temperature controller.
