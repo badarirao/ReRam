@@ -166,7 +166,7 @@ class KeysightB2902B:
         self.sense_mode = 'current'
         log.info("%s is measuring current.", self.name)
         self.write(f":SENS{self.ch}:FUNC 'CURR'")
-        self.write(f":SENS:CURR:NPLC {self.nplc}")
+        self.setNPLC()
         if auto_range:
             self.write(f":SENS{self.ch}:CURR:RANG:AUTO 1")
         else:
@@ -555,11 +555,12 @@ class KeysightB2902B:
         return self.ask("FETCh:ARRay?").strip().split(',')
         
     def get_trigger_state(self):
-        state = self.ask(f"TRIG{self.ch}:TRAN:TOUT:STATe?").strip()
         state = self.ask(":STAT:OPER:COND?").strip()
         if state == '1170':
             return 'IDLE'
-        elif state == '1152':
+        elif state == '1152' or state == '1154':
+            # 1152 means source trigger is running
+            # 1154 means acquire trigger is running
             return 'RUNNING'
         else:
             return 'Error'
