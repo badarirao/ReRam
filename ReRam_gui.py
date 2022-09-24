@@ -23,6 +23,7 @@ Not tested for other Python versions or OS.
 # TODO: MUX should only change AFG and SMU connection. It should not interfere with sample connections
 # TODO: If function generator is connected with another sample, make sure this program will not use function generator
 # TODO: combine all common import modules and put it in utilities, and import from
+# TODO: Keysight SMU can probably do PUND current measurement. Apply pulse, and measure current decay (min 20 us interval)
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'
@@ -119,8 +120,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.statusBar().addPermanentWidget(VLine())
         self.instLabel = QtWidgets.QLabel("")
         self.statusBar().addPermanentWidget(self.instLabel)
-        self.check_instrument_connection()
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
+        self.check_instrument_connection()
         self.actionSet_2_wire_configuration.triggered.connect(self.set_two_wire_config)
         self.actionSet_4_wire_configuration.triggered.connect(self.set_four_wire_config)
 
@@ -490,7 +491,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
     
     def load_parameters(self):
         os.chdir(self.currPath)
-        print(self.currPath)
         if os.path.isfile("parameter_file.prm"):
             with open("parameter_file.prm",'r') as f:
                 self.filename.setText(f.readline().strip())

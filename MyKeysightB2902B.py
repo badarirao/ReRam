@@ -90,8 +90,10 @@ class KeysightB2902B:
 
     def write(self,cmd):
         self.inst.write(cmd)
-        if self.error[1] != 'No error':
+        error_message = self.error
+        if error_message[1] != 'No error':
             print(f"Problem with {cmd}")
+            print(error_message)
     
     def read(self):
         return self.inst.read()
@@ -439,7 +441,7 @@ class KeysightB2902B:
     
     def display_light(self, state='ON', percent = 25):
         # cannot set percent in this SMU. It has been kept to keep it similar to K2450
-        self.write(f":DISPlay:enable {state} ON{percent}")
+        self.write(f":DISPlay:enable {state}")
     
     def set_source_mode(self, mode):
         """
@@ -458,11 +460,13 @@ class KeysightB2902B:
         None.
 
         """
-        if self.source_mode == 'voltage':
-            self.write(f':SOUR{self.ch}:VOLT:MODE {mode}')
-        elif self.source_mode == 'current':
-            self.write(f':SOUR{self.ch}:CURR:MODE {mode}')
-        
+        if mode.lower() == 'swe':
+            mode = 'sweep'
+        elif mode.lower() == 'fix':
+            mode = 'fixed'
+        assert mode.lower() in ('sweep', 'list', 'fixed')
+        self.write(f':SOUR{self.ch}:{self.source_mode}:MODE {mode}')
+
     def set_voltage_points(self, points):
         points = points.replace(" ","")
         self.write(f"SOUR{self.ch}:LIST:VOLT {points}")
@@ -848,15 +852,6 @@ class KeysightB2902B:
         assert status.upper() in ('ON','OFF')
         self.write(f"SOUR{self.ch}:FUNC:TRIG:CONT {status}")
 
-    def source_mode(self, mode):
-        # set voltage to sweep mode, list mode or fixed mode upon triggered.
-        if mode.lower() == 'swe':
-            mode = 'sweep'
-        elif mode.lower() == 'fix':
-            mode = 'fixed'
-        assert mode.lower() in ('sweep', 'list', 'fixed')
-        self.write(f':SOUR{self.ch}:{self.source_mode}:MODE {mode}')
-
     def set_output_level(self,output):
         # set current or voltage output level.
         # Can be either a floating point or 'MIN', 'MAX' or 'DEFault'
@@ -909,3 +904,19 @@ class KeysightB2902B:
         assert status.lower() in ('on','off'), "incorrect status command sent for over voltage protection"
         self.write(f":OUTP{self.ch}:PROT {status}")
 
+    def set_transient_speed(self, speed = 'normal'):
+        # normal - gives clean output
+        # fast - sets the fast mode to obtain high slew rate of output
+        if speed.lower() == 'norm':
+            speed = 'normal'
+        assert status.lower() in ('normal','fast'), "incorrect parameter sent to set_transient_speed"
+        self.write(f"sour{self.ch}:{self.source_mode}:tran:spe {speed}")
+
+    def get_measurement_time(self):
+        t = self.ask(f":SENS{self.ch}:{self.source_mode}:DC:APER?").strip()
+        return float(t)
+
+    def set_measurement_time(self,t):
+        if isinstance(t,float) or isinstance(t,int):
+            assert 8e-6 <= t <= 2, "measurement time should lie between 8 µs and 2 s"
+            self.write(f"SENS{self.ch}:{self.source_mode}:")

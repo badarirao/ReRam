@@ -222,7 +222,8 @@ class Keithley2450:
             self.auto_range_source()
         else:
             self.source_voltage_range = voltage_range
-        self.compliance_current = compliance_current
+        self.set_compliance(compliance_current)
+        self.setNPLC()
 
     def beep(self, frequency, duration):
         """ Sounds a system beep.

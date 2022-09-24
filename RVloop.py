@@ -10,6 +10,7 @@
 # TODO: There is some problem when stopping the measurement in between (I think it is resolved)
 #TODO: Implement plotting multiple RV cycles when threading is implemented.
 # TODO: When Keysight B2902 is selected, use pulse stairs for this measurement
+# TODO: option to start from minV or maxV, and specify it in metadata
 from winsound import MessageBeep
 from csv import writer
 from numpy import linspace, around, concatenate, array
@@ -363,8 +364,8 @@ class app_RVLoop(Ui_RVLoop):
             self.temperature.setValue(self.parameters[10])
             self.temp_check.setChecked(self.parameters[11])
         except Exception as e:
-            print(e)
-    
+            print(f"Problem with loading RV parameters. {e}")
+            print("Deleting parameter file from the folder may resolve the issue.")
     def update_limits(self):
         if self.vsource.currentIndex() == 0:
             self.minV.setMaximum(190)
@@ -433,7 +434,6 @@ class app_RVLoop(Ui_RVLoop):
         """
         if self.smu is None:
             self.smu = FakeAdapter()
-        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
         if self.params["Speed"] == 0:
             self.smu.nplc = 5
         elif self.params["Speed"] == 1:
@@ -444,6 +444,7 @@ class app_RVLoop(Ui_RVLoop):
             self.smu.nplc = 0.1
         elif self.params["Speed"] == 4:
             self.smu.nplc = 0.01
+        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
         self.smu.measure_current()
         self.smu.set_wire_configuration(2) # two wire configuration
         self.smu.set_zero_correct_on()
@@ -510,14 +511,18 @@ class app_RVLoop(Ui_RVLoop):
         self.timer = QtCore.QTimer()
         if self.params["Vsource"] == 0:
             connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
-            self.timer.singleShot(0, self.measure_RV_SMU)
+            if self.smu.ID == 'K2450':
+                self.timer.singleShot(0, self.measure_RV_K2450)
+            elif self.smu.ID == 'B2902B':
+                self.timer.singleShot(0, self.measure_RV_B2902b)
+
         else:
             self.smu.setNPLC()
             self.smu.set_simple_loop(self.avg_over_n_readings)
             self.smu.source_voltage = self.params["Rvoltage"]
             self.timer.singleShot(0, self.measure_RV_AFG)
 
-    def measure_RV_SMU(self):
+    def measure_RV_K2450(self):
         """
         Initiate the measurement of one data point.
 
@@ -554,6 +559,9 @@ class app_RVLoop(Ui_RVLoop):
             self.stop_program()
             return
         self.timer.singleShot(0, self.measure_RV_SMU)  # measure next point
+
+    def measure_RV_B2902b(self):
+        pass
     
     def measure_RV_AFG(self):
         """

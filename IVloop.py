@@ -22,7 +22,8 @@ from math import ceil
 #from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
 from utilities import unique_filename, FakeAdapter, checkInstrument
 from utilities import connect_sample_with_SMU, datetime
-
+# TODO: option to sweep right to left or left to right. --> just reverse the points list.
+# TODO: specify sweep direction in metadata
 class Ui_IVLoop(QtWidgets.QWidget):
     """The pyqt5 gui class for IV loop measurement."""
 
@@ -295,7 +296,8 @@ class app_IVLoop(Ui_IVLoop):
             self.temperature.setValue(self.parameters[7])
             self.temp_check.setChecked(self.parameters[8])
         except Exception:
-            pass
+            print(f"Problem with loading IV parameters. {e}")
+            print("Deleting parameter file from the folder may resolve the issue.")
     
     def update_params(self):
         """

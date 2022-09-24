@@ -249,7 +249,8 @@ class app_Forming(Ui_Forming):
             self.temperature.setValue(self.parameters[3])
             self.temp_check.setChecked(self.parameters[4])
         except Exception:
-            pass
+            print(f"Problem with loading forming parameters. {e}")
+            print("Deleting parameter file from the folder may resolve the issue.")
         
     def initialize_plot(self):
         """

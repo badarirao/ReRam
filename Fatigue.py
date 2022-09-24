@@ -491,7 +491,8 @@ class app_Fatigue(Ui_Fatigue):
             self.temperature.setValue(self.parameters[11]),
             self.temp_check.setChecked(self.parameters[12])
         except Exception:
-            pass
+            print(f"Problem with loading fatigue parameters. {e}")
+            print("Deleting parameter file from the folder may resolve the issue.")
     
     def configurePulse(self):
         """

@@ -486,7 +486,8 @@ class app_Switch(Ui_Switch):
             self.temperature.setValue(self.parameters[13]),
             self.temp_check.setChecked(self.parameters[14])
         except Exception:
-            pass
+            print(f"Problem with loading switch parameters. {e}")
+            print("Deleting parameter file from the folder may resolve the issue.")
     
     def configurePulse(self):
         """

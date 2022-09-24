@@ -520,8 +520,9 @@ class app_Retention(Ui_Retention):
             self.temperature.setValue(self.parameters[13])
             self.temp_check.setChecked(self.parameters[14])
         except Exception:
-            pass
-    
+            print(f"Problem with loading retention parameters. {e}")
+            print("Deleting parameter file from the folder may resolve the issue.")
+
     def configurePulse(self):
         """
         Configure the pulse parameters.
