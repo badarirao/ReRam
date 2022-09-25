@@ -54,6 +54,7 @@ class KeysightB2902B:
             self.ch = channel # channel number
             self.overVoltage_protection(False)
             self.wire_config = 2
+            self.avg = 1 # number of readings to take and average
         else:
             raise VisaIOError(-1073807346)
         self.name = "Keysight B2902B SMU"
@@ -498,10 +499,7 @@ class KeysightB2902B:
         self.write(f"trig{self.ch}:coun {nPoints}")
         self.write(":FORM:ELEM:SENS VOLT,CURR")
         self.clear_buffer(nPoints)
-        #self.write(f"TRAC{self.ch}:POIN {nPoints}")
-        #self.write(f"TRAC{self.ch}:FEED SENS")
-        #self.write(f"TRAC{self.ch}:FEED:CONT NEXT")
-        #self.write(f"TRAC{self.ch}:TST:FORM DELT") # set timestamp to delta T
+        #self.write(f"TRAC{self.ch}:TST:FORM ABS") # set timestamp to absolute
 
     def clear_buffer(self,nPoints):
         self.write(f"TRAC{self.ch}:FEED:CONT NEV")
@@ -509,6 +507,7 @@ class KeysightB2902B:
         self.write(f"TRAC{self.ch}:POIN {nPoints}")
         self.write(f"TRAC{self.ch}:FEED SENS")
         self.write(f"TRAC{self.ch}:FEED:CONT NEXT")
+        self.write(f"TRAC{self.ch}:TST:FORM ABS")
 
     def set_simple_loop(self, count=1, delayTime = 0):
         if delayTime <= 0:
@@ -767,8 +766,29 @@ class KeysightB2902B:
     def configure_DC_sweep(self, delay_time, minV, maxV, direction, npoints, ncycles):
         pass
 
-    def configure_pulse_sweep(self, ):
-        pass
+    def configure_pulse_sweep(self, voltages, baseV, pulse_width):
+        self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
+        self.write(f"SOUR{self.ch}:VOLT:MODE LIST")
+        self.write(f"SOUR{self.ch}:LIST:VOLT {voltages}")
+        self.write(f"SOUR{self.ch}:VOLT {baseV}")
+        pulse_delay = 2e-5 # set a default 20 µs pulse delay
+        self.write(f"SOUR{self.ch}:PULS:DEL {pulse_delay}")
+        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
+        self.write(f"TRIG{self.ch}:TRAN:DEL 0")
+        self.write(f"TRIG{smu.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
+
+        measurement_time = smu.get_measurement_time() + 2e-5  # assume 20 µs overhead, need to adjust appropriately
+        acq_trigger_period = pulse_width + pulse_delay + 2e-5  # add buffer 20 µs
+        source_trigger_period = (self.avg+1) * acq_trigger_period
+        nPoints = int(float(self.ask(":TRAC:POIN?").strip()))
+        self.write(f":trig{self.ch}:sour tim")
+        # set source trigger conditions
+        self.write(f":trig{self.ch}:tran:tim {source_trigger_period}")
+        smu.write(f":trig:tran:coun {nPoints}")
+        # set acquire trigger conditions
+        smu.write(f":trig{self.ch}:acq:tim {acq_trigger_period}")
+        smu.write(f":trig{self.ch}:acq:coun {(self.avg+1) * nPoints}")  # 1 set for write current, avg sets for read current
+        smu.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
 
     def set_low_terminal_state(self, state):
         if state.lower() == 'float':
@@ -902,7 +922,7 @@ class KeysightB2902B:
             status = 'on'
         elif status == False:
             status = 'off'
-        assert status.lower() in ('on','off'), "incorrect status command sent for over voltage protection"
+        assert status.lower() in ('on','off',1,0), "incorrect status command sent for over voltage protection"
         self.write(f":OUTP{self.ch}:PROT {status}")
 
     def set_transient_speed(self, speed = 'normal'):

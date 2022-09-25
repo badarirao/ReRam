@@ -377,9 +377,8 @@ class app_IVLoop(Ui_IVLoop):
         self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat', datetimeformat="")
         self.statusbar.setText("Measurement Running..")
         self.measurement_status = "Running"
-        if self.stop_flag:
-            self.stop_flag = False
-            self.graphWidget.clear()
+        self.stop_flag = False
+        self.graphWidget.clear()
         self.stop_Button.setEnabled(True)
         self.minV.setEnabled(False)
         self.maxV.setEnabled(False)

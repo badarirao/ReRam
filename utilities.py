@@ -306,7 +306,7 @@ def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
         SMU = B2902b
     return SMU, k2700, afg
 
-def connect_sample_with_AFG(k2700,connection = 1, sample_no=0):
+def connect_sample_with_AFG(k2700,connection = 1):
     """
     Connect the function generator with sample using multiplexer.
 
@@ -331,12 +331,12 @@ def connect_sample_with_AFG(k2700,connection = 1, sample_no=0):
             closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
         if connection == 1: # SMU connected through connection 1 of MUX
             closed_channels = [x for x in closed_channels if x <= 110]
-            required_channels = [sample_id[sample_no],AFG]
-            k2700.open_Channels([sample_id[sample_no]+10,AFG+10])
+            required_channels = [AFG]
+            k2700.open_Channels([AFG+10])
         elif connection == 2:
             closed_channels = [x for x in closed_channels if x > 110 and x <= 120]
-            required_channels = [sample_id[sample_no]+10,AFG+10]
-            k2700.open_Channels([sample_id[sample_no],AFG])
+            required_channels = [AFG+10]
+            k2700.open_Channels([AFG])
         channels_to_close = [x for x in required_channels if x not in closed_channels]
         channels_to_open = [x for x in closed_channels if x not in required_channels]
         k2700.close_Channels(channels_to_close)
@@ -344,7 +344,7 @@ def connect_sample_with_AFG(k2700,connection = 1, sample_no=0):
         sleep(0.2)
         #waitFor(20) # wait for 20msec to ensure switching is complete
 
-def connect_sample_with_SMU(k2700,connection = 1, sample_no= 0):
+def connect_sample_with_SMU(k2700,connection = 1):
     """
     Connect the function generator with sample using multiplexer.
 
@@ -369,12 +369,12 @@ def connect_sample_with_SMU(k2700,connection = 1, sample_no= 0):
             closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
         if connection == 1: # SMU connected through connection 1 of MUX
             closed_channels = [x for x in closed_channels if x <= 110]
-            required_channels = [sample_id[sample_no],SMU]
-            k2700.open_Channels([sample_id[sample_no]+10,SMU+10])
+            required_channels = [SMU]
+            k2700.open_Channels([SMU+10])
         elif connection == 2:
             closed_channels = [x for x in closed_channels if x > 110 and x <= 120]
-            required_channels = [sample_id[sample_no]+10,SMU+10]
-            k2700.open_Channels([sample_id[sample_no],SMU])
+            required_channels = [SMU+10]
+            k2700.open_Channels([SMU])
         channels_to_close = [x for x in required_channels if x not in closed_channels]
         channels_to_open = [x for x in closed_channels if x not in required_channels]
         k2700.close_Channels(channels_to_close)
