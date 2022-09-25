@@ -752,13 +752,14 @@ class KeysightB2902B:
                 assert -1 > output > 1, 'Current out of range'
         self.write(f"SOUR{self.ch}:{self.source_mode}:TRIG {output}")
 
-    def configure_pulse(self, delay_time=1e-3, pulse_width=1e-3, baseV=0, peakV=0.1):
+    def configure_pulse(self, delay_time=2e-5, baseV=0):
         self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
         self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")
-        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
         self.write(f"SOUR{self.ch}:VOLT {baseV}")
-        self.write(f"SOUR{self.ch}:VOLT:TRIG {peakV}")
 
+    def apply_pulse(self, pulse_width, amplitude):
+        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
+        self.write(f"SOUR{self.ch}:VOLT:TRIG {amplitude}")
     def trigger_pulse(self):
         self.enable_source()  # start outputting pulse base value
         self.trigger() # perform the specified pulse output and measurement

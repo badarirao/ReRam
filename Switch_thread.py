@@ -18,6 +18,7 @@ from utilities import unique_filename, FakeAdapter, checkInstrument, AFG, SMU
 from utilities import connect_sample_with_SMU, connect_sample_with_AFG
 from utilities import waitFor, datetime
 
+
 class Ui_Switch(QtWidgets.QWidget):
     """The pyqt5 gui class for switching experiment."""
 
@@ -142,7 +143,7 @@ class Ui_Switch(QtWidgets.QWidget):
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.avg = QtWidgets.QSpinBox(self.frame)
         self.avg.setMaximumSize(QtCore.QSize(50, 20))
-        self.avg.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.avg.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.avg.setMinimum(1)
         self.avg.setMaximum(1000)
         self.avg.setProperty("value", 5)
@@ -288,59 +289,105 @@ class Ui_Switch(QtWidgets.QWidget):
     def retranslateUi(self, Switch):
         _translate = QtCore.QCoreApplication.translate
         Switch.setWindowTitle(_translate("Switch", "Switch Test"))
-        self.title_label.setText(_translate("Switch", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt; color:#0000ff;\">Switching Test</span></p></body></html>"))
-        self.setting_label.setText(_translate("Switch", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt; font-weight:600; color:#aa0000;\">Settings</span></p></body></html>"))
-        self.set_timeUnit.setToolTip(_translate("Switch", "<html><head/><body><p>Select time unit. Time below 50 ms may not be reliable for Keithley 2450</p></body></html>"))
+        self.title_label.setText(_translate("Switch",
+                                            "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt; color:#0000ff;\">Switching Test</span></p></body></html>"))
+        self.setting_label.setText(_translate("Switch",
+                                              "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt; font-weight:600; color:#aa0000;\">Settings</span></p></body></html>"))
+        self.set_timeUnit.setToolTip(_translate("Switch",
+                                                "<html><head/><body><p>Select time unit. Time below 50 ms may not be reliable for Keithley 2450</p></body></html>"))
         self.set_timeUnit.setItemText(0, _translate("Switch", "us"))
         self.set_timeUnit.setItemText(1, _translate("Switch", "ms"))
         self.set_timeUnit.setItemText(2, _translate("Switch", "s"))
-        self.label_2.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Number of pulse sets</span></p></body></html>"))
-        self.set_pulseWidth_label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Set Pulse Width</span></p></body></html>"))
-        self.Ilimit.setToolTip(_translate("Switch", "<html><head/><body><p>The compliance current, which protects the sample from full breakdown</p></body></html>"))
-        self.temperature.setToolTip(_translate("Switch", "<html><head/><body><p>Temperature range will depend on the type of heater</p></body></html>"))
-        self.maxV_label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Reset Voltage (V)</span></p></body></html>"))
-        self.fname_label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">File Name</span></p></body></html>"))
-        self.ncycles_label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Read Voltage (V)</span></p></body></html>"))
+        self.label_2.setText(_translate("Switch",
+                                        "<html><head/><body><p><span style=\" font-size:10pt;\">Number of pulse sets</span></p></body></html>"))
+        self.set_pulseWidth_label.setText(_translate("Switch",
+                                                     "<html><head/><body><p><span style=\" font-size:10pt;\">Set Pulse Width</span></p></body></html>"))
+        self.Ilimit.setToolTip(_translate("Switch",
+                                          "<html><head/><body><p>The compliance current, which protects the sample from full breakdown</p></body></html>"))
+        self.temperature.setToolTip(_translate("Switch",
+                                               "<html><head/><body><p>Temperature range will depend on the type of heater</p></body></html>"))
+        self.maxV_label.setText(_translate("Switch",
+                                           "<html><head/><body><p><span style=\" font-size:10pt;\">Reset Voltage (V)</span></p></body></html>"))
+        self.fname_label.setText(_translate("Switch",
+                                            "<html><head/><body><p><span style=\" font-size:10pt;\">File Name</span></p></body></html>"))
+        self.ncycles_label.setText(_translate("Switch",
+                                              "<html><head/><body><p><span style=\" font-size:10pt;\">Read Voltage (V)</span></p></body></html>"))
         self.resetV.setToolTip(_translate("Switch", "<html><head/><body><p>Max 10 V</p></body></html>"))
-        self.reset_timeUnit.setToolTip(_translate("Switch", "<html><head/><body><p>Select time unit. Time below 50 ms may not be reliable for Keithley 2450</p></body></html>"))
+        self.reset_timeUnit.setToolTip(_translate("Switch",
+                                                  "<html><head/><body><p>Select time unit. Time below 50 ms may not be reliable for Keithley 2450</p></body></html>"))
         self.reset_timeUnit.setItemText(0, _translate("Switch", "us"))
         self.reset_timeUnit.setItemText(1, _translate("Switch", "ms"))
         self.reset_timeUnit.setItemText(2, _translate("Switch", "s"))
-        self.minV_label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Set Voltage (V)</span></p></body></html>"))
-        self.avgread_label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Readings</span></p></body></html>"))
+        self.minV_label.setText(_translate("Switch",
+                                           "<html><head/><body><p><span style=\" font-size:10pt;\">Set Voltage (V)</span></p></body></html>"))
+        self.avgread_label.setText(_translate("Switch",
+                                              "<html><head/><body><p><span style=\" font-size:10pt;\">Readings</span></p></body></html>"))
         self.file_name.setText(_translate("Switch", "Sample_Switch"))
         self.source.setItemText(0, _translate("Switch", "Keysight B2902B"))
         self.source.setItemText(1, _translate("Switch", "Keithley 2450"))
         self.source.setItemText(2, _translate("Switch", "Tektronix AFG1022"))
-        self.Ilimit_label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Current Limit (mA)</span></p></body></html>"))
-        self.temp_check.setToolTip(_translate("Switch", "<html><head/><body><p>Use temperature only if temperature controller is attached</p></body></html>"))
+        self.Ilimit_label.setText(_translate("Switch",
+                                             "<html><head/><body><p><span style=\" font-size:10pt;\">Current Limit (mA)</span></p></body></html>"))
+        self.temp_check.setToolTip(_translate("Switch",
+                                              "<html><head/><body><p>Use temperature only if temperature controller is attached</p></body></html>"))
         self.temp_check.setText(_translate("Switch", "Temperature (K)"))
-        self.avg_label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Average over</span></p></body></html>"))
-        self.label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Voltage Source</span></p></body></html>"))
-        self.reset_pulseWidth_label.setText(_translate("Switch", "<html><head/><body><p><span style=\" font-size:10pt;\">Reset Pulse width</span></p></body></html>"))
+        self.avg_label.setText(_translate("Switch",
+                                          "<html><head/><body><p><span style=\" font-size:10pt;\">Average over</span></p></body></html>"))
+        self.label.setText(_translate("Switch",
+                                      "<html><head/><body><p><span style=\" font-size:10pt;\">Voltage Source</span></p></body></html>"))
+        self.reset_pulseWidth_label.setText(_translate("Switch",
+                                                       "<html><head/><body><p><span style=\" font-size:10pt;\">Reset Pulse width</span></p></body></html>"))
         self.setV.setToolTip(_translate("Switch", "<html><head/><body><p>Max -10 V</p></body></html>"))
         self.comment_checkBox.setText(_translate("Switch", "Add Comments"))
-        self.applyPulse_Button.setToolTip(_translate("Switch", "<html><head/><body><p>Click to start the experiment</p></body></html>"))
+        self.applyPulse_Button.setToolTip(
+            _translate("Switch", "<html><head/><body><p>Click to start the experiment</p></body></html>"))
         self.applyPulse_Button.setText(_translate("Switch", "Apply Pulse"))
-        self.clearGraph_Button.setToolTip(_translate("Switch", "<html><head/><body><p>Click to abort the experiment</p></body></html>"))
+        self.clearGraph_Button.setToolTip(
+            _translate("Switch", "<html><head/><body><p>Click to abort the experiment</p></body></html>"))
         self.clearGraph_Button.setText(_translate("Switch", "Clear graph and start new measurement"))
         self.save_Button.setText(_translate("Switch", "Save Data"))
         self.stop_Button.setText(_translate("Switch", "Stop"))
 
+
 class app_Switch(Ui_Switch):
     """The Switch app module."""
 
-    def __init__(self, parent=None, smu=None, k2700 = None, afg1022 = None, sName="Sample_Switch.dat", connection=1, currentSample=0):
+    def __init__(self, parent=None, smu=None, k2700=None, afg1022=None, sName="Sample_Switch.dat", connection=1,
+                 currentSample=0):
         super(app_Switch, self).__init__(parent)
         self.parent = parent
         self.new_flag = True
         self.savedFlag = True
-        self.initial_source = 0 # 0 = SMU, 1 = AFG
+        self.stop_flag = False
+        self.initial_source = 0  # 0 = SMU, 1 = AFG
         self.smu = smu
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.connection = connection
         self.currentSample = currentSample
+
+        if self.afg1022:
+            if self.afg1022.ID == 'Fake':
+                self.source.removeItem(2)  # Remove AFG source option
+        else:
+            self.source.removeItem(2)  # Remove AFG source option
+        if self.smu:
+            if self.smu.ID == 'Fake':
+                self.widget.setEnabled(False)
+                self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
+                self.widget1.setEnabled(False)
+                self.Rplot.setEnabled(False)
+                self.Vplot.setEnabled(False)
+            elif self.smu.ID == 'B2902B':
+                self.source.removeItem(1)  # Remove Keithley SMU source option
+            elif self.smu.ID == 'K2450':
+                self.source.removeItem(0)  # Remove Keysight SMU source option
+        else:
+            self.widget.setEnabled(False)
+            self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
+            self.widget1.setEnabled(False)
+            self.Rplot.setEnabled(False)
+            self.Vplot.setEnabled(False)
         self.save_Button.setEnabled(False)
         self.stop_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
@@ -366,7 +413,7 @@ class app_Switch(Ui_Switch):
         self.file_name.setText(self.filename)
         self.file_name.setReadOnly(True)
         self.params = {
-            "Vsource": 0, # 0 = SMU, 1 = AFG
+            "Vsource": 0,  # 0 = SMU, 1 = AFG
             "Vset": 3,
             "VsetCheck": 1,
             "setPwidth": 50,
@@ -378,10 +425,10 @@ class app_Switch(Ui_Switch):
             "Rvoltage": 0.1,
             "Average": 5,
             "nPulses": 1,
-            "ILimit": 1/1000,
+            "ILimit": 1 / 1000,
             "temperature": 300,
             "temp_check": 0,
-            "comments" :""}
+            "comments": ""}
         self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
 
@@ -444,6 +491,10 @@ class app_Switch(Ui_Switch):
     def load_parameters(self):
         try:
             self.source.setCurrentIndex(self.parameters[0])
+        except Exception as e:
+            print(e)
+            pass
+        try:
             self.setV.setValue(self.parameters[1]),
             self.setV_check.setChecked(self.parameters[2]),
             self.set_pulseWidth.setValue(self.parameters[3]),
@@ -459,12 +510,14 @@ class app_Switch(Ui_Switch):
             self.temperature.setValue(self.parameters[13]),
             self.temp_check.setChecked(self.parameters[14])
         except Exception:
-            pass
+            print(f"Problem with loading switch parameters. {e}")
+            print("Deleting parameter file from the folder may resolve the issue.")
 
-    def configurePulse(self):
+    def update_params(self):
         """
-        Configure the pulse parameters.
+        Update the measurement parameters.
 
+        Note: Function gen: Vlimit: +-5V, npoints < 50
         Returns
         -------
         None.
@@ -474,7 +527,7 @@ class app_Switch(Ui_Switch):
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
         for t in wholeComment.split('\n'):
-            formattedComment += '##' + t + '\n'
+            formattedComment += '## ' + t + '\n'
         self.params = {
             "Vsource": self.source.currentIndex(),
             "Vset": self.setV.value(),
@@ -493,52 +546,6 @@ class app_Switch(Ui_Switch):
             "temp_check": int(self.temp_check.isChecked()),
             "comments": formattedComment}
         self.parameters = list(self.params.values())[:-1]
-        self.smu.readV = self.params["Rvoltage"]
-        self.smu.avg = self.params["Average"]
-        if self.params["set_timeUnit"] == 0:
-            self.setTimestep = self.params["setPwidth"] * 1e-6
-        elif self.params["set_timeUnit"] == 1:
-            self.setTimestep = self.params["setPwidth"] * 1e-3
-        elif self.params["set_timeUnit"] == 2:
-            self.setTimestep = self.params["setPwidth"]
-        if self.params["reset_timeUnit"] == 0:
-            self.resetTimestep = self.params["resetPwidth"] * 1e-6
-        elif self.params["reset_timeUnit"] == 1:
-            self.resetTimestep = self.params["resetPwidth"] * 1e-3
-        elif self.params["reset_timeUnit"] == 2:
-            self.resetTimestep = self.params["resetPwidth"]
-        self.points = []
-        for _ in range(self.params["nPulses"]):
-            if self.params["VsetCheck"]:
-                self.points.append(self.params["Vset"])
-            if self.params["VresetCheck"]:
-                self.points.append(self.params["Vreset"])
-            if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
-                self.points.append(0)
-        # set compliance current
-        self.smu.set_compliance(self.params["ILimit"])
-        # when function generator is used, limit number of pulses to 10
-        # This is to avoid using the multiplexer too much, as it has finite lifetime
-        if self.params["Vsource"] == 1:
-            if self.params["nPulses"] > 10:
-                self.params["nPulses"] = 10
-
-    def initialize_SMU(self):
-        """
-        Initialize the SMU.
-
-        Returns
-        -------
-        None.
-
-        """
-        if self.smu is None:
-            self.smu = FakeAdapter()
-        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
-        self.smu.measure_current(nplc=self.smu.nplc)
-        self.smu.set_wire_configuration(2)  # two wire configuration
-        self.smu.display_light('ON', 25)
-        self.smu.set_read_back_on()
 
     def pulseMeasure_SMU(self):
         """
@@ -658,7 +665,6 @@ class app_Switch(Ui_Switch):
         None.
 
         """
-        self.configurePulse()
         if self.params['Vsource'] == 1:
             limiting_current = self.Ilimit.value()
             max_applied_voltage = max(abs(self.setV.value()), abs(self.resetV.value()))
@@ -668,6 +674,9 @@ class app_Switch(Ui_Switch):
             reply = QMessageBox.question(self, title, text, QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.No:
                 return
+            # if nPulses is > 10 when using AFG, limit nPulses to 10, to avoid too much multiplex usage.
+            if self.nPulses.value() > 10:
+                self.nPulses.setValue(10)
         self.statusbar.setText("Measurement Running..")
         self.measurement_status = "Running"
         self.i = 0
@@ -688,7 +697,6 @@ class app_Switch(Ui_Switch):
             self.ilimits = []
             self.new_flag = False
             self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
-            self.initialize_SMU()
             pen1 = mkPen(color=(0, 0, 255), width=2)
             pen2 = mkPen(color=(255, 0, 0), width=2)
             self.data_lineR = self.Rplot.plot(
@@ -698,7 +706,7 @@ class app_Switch(Ui_Switch):
             del self.pulsecount[0]
             del self.readResistances[0]
             del self.volts[0]
-            self.timer = QtCore.QTimer()
+        self.widget.setEnabled(False)
         self.applyPulse_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
         self.save_Button.setEnabled(True)
@@ -710,33 +718,30 @@ class app_Switch(Ui_Switch):
 
     def startThread(self):
         self.thread = QThread()
-        self.worker = Worker(self.params, self.smu, self.k2700, self.fullfilename, self.connection, self.currentSample)
+        self.worker = Worker(self.params, self.smu, self.k2700, self.fullfilename, self.connection)
         self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.start_IV)
+        self.thread.started.connect(self.worker.start_RV)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.worker.data.connect(self.plotSwitch)
+        self.worker.data.connect(self.plot_realtime_data)
         self.thread.finished.connect(self.finishAction)
-        self.worker.sendPoints.connect(self.getPoints)
         self.thread.finished.connect(self.finishAction)
         self.thread.start()
 
-    def plotSwitch(self,data):
-        # data should have pulseCount, applied voltage, actual voltage, pulse current, read volts, read current
-        if self.pulsecount == []:
-            self.pulsecount = [1]
-        else:
-            self.pulsecount.append(data[0])
-        self.resistances.append(data[2] / data[3])
-        self.readVolts.append(data[4])
-        self.readCurrents.append(data[5])
-        self.currents.append(data[3])
-        self.data_lineR.setData(self.pulsecount, self.readResistances)
-        self.data_lineV.setData(self.pulsecount, self.volts)
-
     def stopSwitch(self):
-        self.stopCall = True
+        """
+        Trigger to stop the IV measurement.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.statusbar.setText("Measurement Aborted!")
+        self.measurement_status = "Aborted"
+        self.stop_flag = True
+        self.worker.stopcall.emit()
 
     def clearGraph(self):
         """
@@ -753,17 +758,22 @@ class app_Switch(Ui_Switch):
         self.saveData()
         self.clearGraph_Button.setEnabled(False)
 
-    def stop_program(self):
-        if self.stopCall:
-            self.statusbar.setText("Measurement Aborted.")
-            self.measurement_status = "Aborted"
-        else:
-            self.statusbar.setText("Measurement Finished.")
+    def finishAction(self):
+        """
+        Trigger to stop the Switch measurement.
+        Returns
+        -------
+        None.
+
+        """
+        if not self.stop_flag:
             self.measurement_status = "Idle"
+            self.statusbar.setText("Measurement Finished.")
+            self.stop_flag = True
+        self.widget.setEnabled(True)
         self.applyPulse_Button.setEnabled(True)
         self.clearGraph_Button.setEnabled(True)
-        self.smu.source_voltage = 0
-        self.smu.disable_source()
+        self.stop_Button.setEnabled(False)
         MessageBeep()
 
     def saveData(self):
@@ -783,7 +793,7 @@ class app_Switch(Ui_Switch):
                 if not filePresent:
                     f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
                     f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
-                    f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
+                    f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
                     f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
                     f.write(self.params["comments"])
                     f.write(
@@ -794,7 +804,7 @@ class app_Switch(Ui_Switch):
                 if not filePresent:
                     f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
                     f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
-                    f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}\n")
+                    f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
                     f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
                     f.write(self.params["comments"])
                     f.write(
@@ -861,3 +871,305 @@ class app_Switch(Ui_Switch):
             event.accept()
         else:
             event.ignore()
+
+class Worker(QObject):
+    finished = pyqtSignal()
+    data = pyqtSignal(list)
+    stopcall = pyqtSignal()
+
+    def __init__(self, params, new_flag, smu=None, k2700=None, fullfilename="sample.dat", connection=1):
+        super(Worker, self).__init__()
+        self.stopCall = False
+        self.params = params
+        self.smu = smu
+        self.new_flag = new_flag
+        if self.smu.ID == 'B2902B':
+            # TODO: implement average_over_n_readings for B2902B SMU
+            self.smu.avg = 1 # currently only 1 reading will be taken for read resistance per point
+        self.k2700 = k2700
+        self.connection = connection
+        self.fullfilename = fullfilename
+        self.stopcall.connect(self.stopcalled)
+        self.smu.nplc = 1
+        self.status = 1
+        self.npoints = self.params["nPulses"]
+        if self.params["VPwidth"] == 0:
+            self.params["VPwidth"] = 1
+            self.params["timeunit"] = 0
+        if self.params["timeunit"] == 0:
+            self.pulse_width = self.params["VPwidth"]*1e-6
+        elif self.params["timeunit"] == 1:
+            self.pulse_width = self.params["VPwidth"]*1e-3
+        elif self.params["timeunit"] == 2:
+            self.pulse_width = self.params["VPwidth"]
+
+    def initialize_SMU(self):
+        """
+            Initialize the SMU.
+
+            Returns
+            -------
+            None.
+
+        """
+        if self.smu is None:
+            self.smu = FakeAdapter()
+        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
+        self.smu.measure_current()
+        self.smu.set_wire_configuration(self.smu.wire_config)  # two wire configuration
+        self.smu.display_light('ON', 25)
+        self.smu.set_read_back_on()
+        self.smu.auto_range_sense()
+        self.smu.set_zero_correct_on()
+
+    def configure_pulse(self):
+        """
+            Configure the pulse parameters.
+
+            Returns
+            -------
+            None.
+
+        """
+        self.smu.readV = self.params["Rvoltage"]
+        self.smu.avg = self.params["Average"]
+        if self.params["set_timeUnit"] == 0:
+            self.setTimestep = self.params["setPwidth"] * 1e-6
+        elif self.params["set_timeUnit"] == 1:
+            self.setTimestep = self.params["setPwidth"] * 1e-3
+        elif self.params["set_timeUnit"] == 2:
+            self.setTimestep = self.params["setPwidth"]
+        if self.params["reset_timeUnit"] == 0:
+            self.resetTimestep = self.params["resetPwidth"] * 1e-6
+        elif self.params["reset_timeUnit"] == 1:
+            self.resetTimestep = self.params["resetPwidth"] * 1e-3
+        elif self.params["reset_timeUnit"] == 2:
+            self.resetTimestep = self.params["resetPwidth"]
+        self.points = []
+        if self.params["VsetCheck"]:
+            self.points.append(self.params["Vset"])
+        if self.params["VresetCheck"]:
+            self.points.append(self.params["Vreset"])
+        if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
+            self.points.append(0)
+        self.points = np.tile(self.points,self.npoints)
+
+        if not self.savedFlag:
+            filePresent = bool(fileExists(self.fullfilename))
+            if filePresent:
+                with open(self.fullfilename, "w", newline='') as f:
+                    if self.params["Vsource"] == 0:
+                        if self.smu.ID == "K2450":
+                            f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
+                            f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
+                        elif self.smu.ID == 'B2902':
+                            f.write("##Pulse voltage source: Keysight B2902 source-measure unit.\n")
+                            f.write("##Resistance read using Keysight B2902 source-measure unit.\n")
+                        f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
+                        f.write(f"##Read voltage averaged over {self.smu.avg} readings\n")
+                        f.write(self.params["comments"])
+                        if self.smu.ID == "K2450":
+                            f.write("#Pulse Voltage (V)\tPulse Current (A)\tPulse Resistance (ohms)\t"
+                                    "Read Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\t"
+                                    "Pulse Width (ms)\tCompliance current (A)\n")
+                        elif self.smu.ID == 'B2902B':
+                            f.write("#Pulse Voltage (V)\tPulse Current (A)\tPulse Resistance (ohms)\t"
+                                    "Read Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\t"
+                                    "Pulse Width (ms)\tCompliance current (A)\tTime Stamp (s)\n")
+                    else:
+                        f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
+                        if self.smu.ID == 'K2450':
+                            f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
+                        elif self.smu.ID == 'B2902B':
+                            f.write("##Resistance read using Keysight B2902B source-measure unit.\n")
+                        f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
+                        f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
+                        f.write(self.params["comments"])
+                        f.write("#Pulse Voltage (V)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
+
+        self.smu.avg = self.params["Average"]
+        if self.smu.ID == 'B2902B':
+            voltages = ",".join(self.points.astype('str'))
+            if self.params["setPwidth"] == self.params["resetPwidth"]:
+                self.smu.configure_pulse_sweep(voltages,
+                                               baseV=self.params["Rvoltage"],
+                                               pulse_width=self.params["setPwidth"])
+            else:
+                self.smu.configure_pulse(baseV = self.params["Rvoltage"])
+    def measure_RV_B2902b(self):
+        if self.params["setPwidth"] == self.params["resetPwidth"]:
+            self.smu.clear_buffer((self.smu.avg+1)*self.npoints)
+            self.smu.start_buffer()
+            number_of_data_per_point = 4
+            while self.smu.get_trigger_state() == 'RUNNING':
+                sleep(0.2)
+                data = smu.ask(":TRAC:Data?")
+                data2 = reshape(array(data.split(','), dtype=float), (-1, number_of_data_per_point))
+                writeData = data2[::self.smu.avg+1].copy()
+                if self.smu.avg == 1:
+                    readData = data2[1::2].copy()
+                else:
+                    readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg+1) != 0]
+                    readData = reshape(readData,(-1,self.smu.avg,number_of_data_per_point))
+                    readData = mean(readData,axis=1)
+                volts = writeData[:, 3]
+                read_currents = readData[:, 1]
+                resistances = self.params["Rvoltage"] / read_currents
+                self.data.emit(volts,resistances)
+            volts = writeData[:, 3]
+            read_currents = readData[:, 1]
+            resistances = self.params["Rvoltage"] / read_currents
+            self.data.emit(volts, resistances)
+            actual_setVolts = writeData[:,0]
+            set_currents = writeData[:,1]
+            time_stamp = writeData[:,2]
+            data = np.array((volts, actual_setVolts, set_currents, read_currents, resistances,time_stamp))
+            return data
+        else:
+            pass
+
+    def measure_RV_K2450(self):
+        """
+        Initiate the measurement of one data point.
+
+        Returns
+        -------
+        None.
+
+        """
+        i = 0
+        while i < self.npoints or not self.stopCall:
+            self.smu.setNPLC(0.01)
+            self.smu.set_simple_loop(delayTime=self.timestep)
+            self.smu.source_voltage = self.points[i]
+            self.smu.start_buffer()
+            self.wait_till_done(1)
+            setData = self.smu.get_trace_data(1, 1)
+            setData = array(setData.split(','), dtype=float)
+            v, c = setData[0], setData[1]
+            self.actual_setVolts.append(v)
+            self.set_currents.append(c)
+            self.smu.setNPLC()
+            self.smu.set_simple_loop(count=self.smu.avg)
+            self.smu.source_voltage = self.params["Rvoltage"]
+            self.smu.start_buffer()
+            self.wait_till_done()
+            self.read_currents.append(self.smu.get_average_trace_data())
+            if self.read_currents[i] == 0:
+                self.read_currents[i] = 1e-20
+            self.volts.append(self.points[i])
+            self.resistances.append(
+                self.params["Rvoltage"]/self.read_currents[i])
+            self.data.emit([self.volts, self.resistances],self.cycleNum)
+            i = i + 1
+        data = np.array((self.volts,self.actual_setVolts,self.set_currents,self.read_currents,self.resistances))
+        return data
+
+    def measure_RV_AFG(self):
+        """
+        Initiate the measurement of one data point.
+
+        Returns
+        -------
+        None.
+
+        """
+        i = 0
+        while i < self.npoints or not self.stopCall:
+            self.afg1022.setSinglePulse(self.points[i],self.timestep)
+            self.afg1022.trgNwait()
+            #self.set_currents.append(c)
+            if self.connection == 1:
+                self.k2700.open_Channels(AFG) # disconnect function generator
+                self.k2700.close_Channels(SMU) # connect SMU
+            elif self.connection == 2:
+                self.k2700.open_Channels(AFG+10) # disconnect function generator
+                self.k2700.close_Channels(SMU+10) # connect SMU
+            sleep(0.2) # wait for 200msec to ensure switching is complete
+            self.smu.start_buffer()
+            self.wait_till_done()
+            self.read_currents.append(self.smu.get_average_trace_data())
+            if self.read_currents[i] == 0:
+                self.read_currents[i] = 1e-11
+            self.volts.append(self.points[i])
+            self.resistances.append(
+                self.params["Rvoltage"]/self.read_currents[i])
+            self.data.emit([self.volts, self.resistances],self.cycleNum)
+            i = i + 1
+        data = np.array((self.volts, self.read_currents, self.resistances))
+        return data
+
+    def start_switch(self):
+        """
+                Begins the switching experiment.
+
+                Returns
+                -------
+                None.
+
+                """
+        self.i = 0
+        if self.initial_source != self.source.currentIndex():
+            if not self.savedFlag:
+                self.clearGraph()
+            self.initial_source = self.source.currentIndex()
+        if self.new_flag:
+            self.initialize_SMU()
+        if self.params["Vsource"] == 0:
+            connect_sample_with_SMU(self.k2700, self.connection)
+            if self.smu.ID == 'K2450':
+                data =  self.pulseMeasure_K2450()
+            elif self.smu.ID == 'B2902B':
+                data = self.pulseMeasure_B2902B()
+        elif self.params["Vsource"] == 1:
+            # TODO: check if this will work with Keysight SMU
+            connect_sample_with_AFG(self.k2700, self.connection)
+            self.smu.setNPLC()
+            self.smu.set_simple_loop(count=self.params["Average"])
+            self.smu.source_voltage = self.params["Rvoltage"]
+            data = self.pulseMeasure_AFG()
+        self.configurePulse()
+        self.smu.enable_source()
+        with open(self.fullfilename, "a") as f:
+            savetxt(f, data.T, delimiter='\t')
+            f.write("\n\n")
+
+    def wait_till_done(self):
+        """
+        Wait until the measurement is completed.
+
+        Infinite loop runs until the 'state' is not 'RUNNING'
+
+        Returns
+        -------
+        int
+            1: if the measurement has successfully finished
+            0: if there is some error
+        """
+        while True:  # wait for measurement to complete
+            sleep(0.1) # wait for 100 ms
+            state = self.smu.get_trigger_state()
+            if state == 'IDLE':
+                return 1
+            elif state not in ('RUNNING', 'BUILDING'):
+                return 0
+
+    def stop_program(self):
+        if self.stopCall:
+            self.smu.abort()
+        self.smu.source_voltage = 0
+        self.smu.disable_source()
+        self.finished.emit()
+
+    def stopcalled(self):
+        self.stopCall = True
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    Switch = QtWidgets.QWidget()
+    smu, k2700, afg1022 = checkInstrument(test=True)
+    ui = app_Switch(Switch, smu, k2700, afg1022)
+    ui.show()
+    app.exec_()
+    app.quit()

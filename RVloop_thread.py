@@ -410,7 +410,6 @@ class app_RVLoop(Ui_RVLoop):
             "temp_check": int(self.temp_check.isChecked()),
             "comments" : formattedComment}
         self.parameters = list(self.params.values())[:-1]
-        self.smu.readV = self.params["Rvoltage"]
 
     def plot_realtime_data(self,Data):
         """
@@ -470,10 +469,6 @@ class app_RVLoop(Ui_RVLoop):
         self.start_Button.setEnabled(False)
         self.update_params()
         self.startThread()
-        self.initialize_SMU()
-        self.configure_sweep()
-        self.smu.enable_source()
-        self.plot_realtime_data()
 
     def startThread(self):
         self.thread = QThread()
@@ -516,12 +511,6 @@ class app_RVLoop(Ui_RVLoop):
         self.graphWidget.setLabel('bottom', 'Voltage (V)', **styles)
         self.graphWidget.addLegend()
 
-    def stop_rvLoop(self):
-        self.statusbar.setText("Measurement Aborted!")
-        self.measurement_status = "Aborted"
-        self.stop_flag = True
-        self.worker.stopcall.emit()
-        
     def finishAction(self):
         """
         Trigger to stop the RV measurement.
@@ -659,6 +648,7 @@ class Worker(QObject):
         None.
 
         """
+        self.smu.readV = self.params["Rvoltage"]
         if self.params["Vsource"] == 0:
             # For SMU
             with open(self.fullfilename, "w", newline='') as f:
@@ -879,6 +869,7 @@ class Worker(QObject):
             self.smu.abort()
         self.smu.source_voltage = 0
         self.smu.disable_source()
+        self.smu.display_light('ON')
         self.finished.emit()
 
     def stopcalled(self):
