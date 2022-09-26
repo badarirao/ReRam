@@ -482,7 +482,7 @@ class app_RVLoop(Ui_RVLoop):
         self.currentCycle = Data[1]
         volts, resistances = data
         # volts = volts.flatten()
-        resistances = abs(resistances)
+        resistances = [abs(x) for x in resistances]
         pen1 = mkPen(intColor(3 * self.currentCycle, values=3), width=2)
         if self.currentCycle == self.previousCycle:
             self.data_line.setData(volts, resistances)
@@ -508,16 +508,7 @@ class app_RVLoop(Ui_RVLoop):
         self.graphWidget.clear()
         self.stopCall = False
         self.stop_Button.setEnabled(True)
-        self.vsource.setEnabled(False)
-        self.minV.setEnabled(False)
-        self.maxV.setEnabled(False)
-        self.vstep.setEnabled(False)
-        self.pulse_width.setEnabled(False)
-        self.time_unit.setEnabled(False)
-        self.scan_speed.setEnabled(False)
-        self.Ilimit.setEnabled(False)
-        self.numCycles.setEnabled(False)
-        self.read_voltage.setEnabled(False)
+        self.frame.setEnabled(False)
         self.start_Button.setEnabled(False)
         self.comment_checkBox.setEnabled(False)
         self.commentBox.setEnabled(False)
@@ -580,16 +571,7 @@ class app_RVLoop(Ui_RVLoop):
             self.stop_flag = True
         self.stop_Button.setEnabled(False)
         self.start_Button.setEnabled(True)
-        self.vsource.setEnabled(True)
-        self.minV.setEnabled(True)
-        self.maxV.setEnabled(True)
-        self.vstep.setEnabled(True)
-        self.pulse_width.setEnabled(True)
-        self.time_unit.setEnabled(True)
-        self.scan_speed.setEnabled(True)
-        self.Ilimit.setEnabled(True)
-        self.numCycles.setEnabled(True)
-        self.read_voltage.setEnabled(True)
+        self.frame.setEnabled(True)
         self.comment_checkBox.setEnabled(True)
         self.commentBox.setEnabled(True)
         MessageBeep()
@@ -748,13 +730,17 @@ class Worker(QObject):
                 f.write(f"#Set Voltage(V)\tRead Current at {self.params['Rvoltage']}V\t"
                         f"Read Resistance at {self.params['Rvoltage']}V (Ω)\n")
 
-        l1 = linspace(self.params["Vmax"], self.params["Vmin"], int(
-            self.npoints / 2), endpoint=False)
-        l2 = linspace(self.params["Vmin"], self.params["Vmax"], int(
-            self.npoints / 2) + 1, endpoint=True)
         if self.params["Direction"] == 1: # negative direction
+            l1 = linspace(self.params["Vmax"], self.params["Vmin"], int(
+                self.npoints / 2), endpoint=False)
+            l2 = linspace(self.params["Vmin"], self.params["Vmax"], int(
+                self.npoints / 2) + 1, endpoint=True)
             self.points = around(concatenate((l1, l2)), 4)
         elif self.params["Direction"] == 0: # Positive direction
+            l1 = linspace(self.params["Vmax"], self.params["Vmin"], int(
+                self.npoints / 2), endpoint=True)
+            l2 = linspace(self.params["Vmin"], self.params["Vmax"], int(
+                self.npoints / 2) + 1, endpoint=False)
             self.points = around(concatenate((l2, l1)), 4)
         self.points[self.points == 0] = 0.0001
         if self.smu.ID == 'B2902B':
@@ -806,12 +792,12 @@ class Worker(QObject):
 
         """
         i = 0
-        while i < self.npoints or not self.stopCall:
+        while i < self.npoints and not self.stopCall:
             self.smu.setNPLC(0.01)
             self.smu.set_simple_loop(delayTime=self.pulse_width)
             self.smu.source_voltage = self.points[i]
             self.smu.start_buffer()
-            self.wait_till_done(1)
+            self.smu.wait_till_done(1)
             setData = self.smu.get_trace_data(1, 1)
             setData = array(setData.split(','), dtype=float)
             v, c = setData[0], setData[1]
@@ -821,7 +807,7 @@ class Worker(QObject):
             self.smu.set_simple_loop(count=self.smu.avg)
             self.smu.source_voltage = self.params["Rvoltage"]
             self.smu.start_buffer()
-            self.wait_till_done()
+            self.smu.wait_till_done()
             self.read_currents.append(self.smu.get_average_trace_data())
             if self.read_currents[i] == 0:
                 self.read_currents[i] = 1e-20
@@ -843,7 +829,7 @@ class Worker(QObject):
 
         """
         i = 0
-        while i < self.npoints or not self.stopCall:
+        while i < self.npoints and not self.stopCall:
             self.afg1022.setSinglePulse(self.points[i], self.timestep)
             self.afg1022.trgNwait()
             # self.set_currents.append(c)
@@ -855,7 +841,7 @@ class Worker(QObject):
                 self.k2700.close_Channels(SMU + 10)  # connect SMU
             sleep(0.2)  # wait for 200msec to ensure switching is complete
             self.smu.start_buffer()
-            self.wait_till_done()
+            self.smu.wait_till_done()
             self.read_currents.append(self.smu.get_average_trace_data())
             if self.read_currents[i] == 0:
                 self.read_currents[i] = 1e-11
@@ -907,26 +893,6 @@ class Worker(QObject):
             np.savetxt(f, data.T, delimiter='\t')
             f.write("\n\n")
         self.stop_program()
-
-    def wait_till_done(self):
-        """
-        Wait until the measurement is completed.
-
-        Infinite loop runs until the 'state' is not 'RUNNING'
-
-        Returns
-        -------
-        int
-            1: if the measurement has successfully finished
-            0: if there is some error
-        """
-        while True:  # wait for measurement to complete
-            sleep(0.1)  # wait for 100 ms
-            state = self.smu.get_trigger_state()
-            if state == 'IDLE':
-                return 1
-            elif state not in ('RUNNING', 'BUILDING'):
-                return 0
 
     def stop_program(self):
         if self.stopCall:
