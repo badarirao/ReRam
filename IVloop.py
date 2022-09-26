@@ -699,15 +699,13 @@ class Worker(QObject):
             self.points = [self.params["Vmax"]]
             self.smu.set_voltage_points(self.points[0])
         elif self.params["Vmax"] >= 0 >= self.params["Vmin"]:
-            nplus = int(
-                self.params["Vmax"]/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
-            nminus = int(abs(
-                self.params["Vmin"])/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
+            nplus = int(self.params["Vmax"]/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
+            nminus = int(abs(self.params["Vmin"])/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
             l1 = np.linspace(0, self.params["Vmax"], nplus, endpoint=False)
-            l2 = np.linspace(
-                self.params["Vmax"], self.params["Vmin"], nplus+nminus, endpoint=False)
+            l2 = np.linspace(self.params["Vmax"], self.params["Vmin"], nplus+nminus, endpoint=False)
             l3 = np.linspace(self.params["Vmin"], 0, nminus+1, endpoint=True)
             self.points = np.around(np.concatenate((l1, l2, l3)), 3)
+            self.npoints = len(self.points)
             self.points[self.points == 0] = 0.0001
             if self.params["Direction"] == 1:
                 self.points = np.flip(self.points)
