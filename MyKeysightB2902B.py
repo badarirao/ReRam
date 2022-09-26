@@ -491,6 +491,7 @@ class KeysightB2902B:
         None.
 
         """
+        self.write(f"SOUR{self.ch}:FUNC:SHAP DC")
         self.source_sweep_mode('list')
         self.write(":trig:sour aint") # auto decide trigger method
         self.write(f"TRIG{self.ch}:TRAN:DEL 0")
@@ -776,20 +777,20 @@ class KeysightB2902B:
         self.write(f"SOUR{self.ch}:PULS:DEL {pulse_delay}")
         self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
         self.write(f"TRIG{self.ch}:TRAN:DEL 0")
-        self.write(f"TRIG{smu.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
+        self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
 
-        measurement_time = smu.get_measurement_time() + 2e-5  # assume 20 µs overhead, need to adjust appropriately
+        measurement_time = self.get_measurement_time() + 2e-5  # assume 20 µs overhead, need to adjust appropriately
         acq_trigger_period = pulse_width + pulse_delay + 2e-5  # add buffer 20 µs
         source_trigger_period = (self.avg+1) * acq_trigger_period
-        nPoints = int(float(self.ask(":TRAC:POIN?").strip()))
+        nPoints = int(float(self.ask(f":SOUR{self.ch}:LIST:{self.source_mode}:POIN?").strip()))
         self.write(f":trig{self.ch}:sour tim")
         # set source trigger conditions
         self.write(f":trig{self.ch}:tran:tim {source_trigger_period}")
-        smu.write(f":trig:tran:coun {nPoints}")
+        self.write(f":trig:tran:coun {nPoints}")
         # set acquire trigger conditions
-        smu.write(f":trig{self.ch}:acq:tim {acq_trigger_period}")
-        smu.write(f":trig{self.ch}:acq:coun {(self.avg+1) * nPoints}")  # 1 set for write current, avg sets for read current
-        smu.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
+        self.write(f":trig{self.ch}:acq:tim {acq_trigger_period}")
+        self.write(f":trig{self.ch}:acq:coun {(self.avg+1) * nPoints}")  # 1 set for write current, avg sets for read current
+        self.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
 
     def set_low_terminal_state(self, state):
         if state.lower() == 'float':
@@ -906,9 +907,6 @@ class KeysightB2902B:
         self.trigger() # perform the specified pulse output and measurement
 
     def configure_DC_sweep(self, delay_time, minV, maxV, direction, npoints, ncycles):
-        pass
-
-    def configure_pulse_sweep(self, ):
         pass
 
     def set_low_terminal_state(self, state):

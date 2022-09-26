@@ -330,7 +330,7 @@ class Ui_Switch(QtWidgets.QWidget):
 class app_Switch(Ui_Switch):
     """The Switch app module."""
 
-    def __init__(self, parent=None, smu=None, k2700 = None, afg1022 = None, sName="Sample_Switch.dat", connection=1, currentSample=0):
+    def __init__(self, parent=None, smu=None, k2700 = None, afg1022 = None, sName="Sample_Switch.dat", connection=1):
         super(app_Switch, self).__init__(parent)
         self.parent = parent
         self.new_flag = True
@@ -340,8 +340,7 @@ class app_Switch(Ui_Switch):
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.connection = connection
-        self.currentSample = currentSample
-        
+
         if self.afg1022:
             if self.afg1022.ID == 'Fake':
                 self.source.removeItem(2) # Remove AFG source option
@@ -735,10 +734,10 @@ class app_Switch(Ui_Switch):
         self.savedFlag = False
         self.stopCall = False
         if self.params["Vsource"] == 0:
-            connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
+            connect_sample_with_SMU(self.k2700, self.connection)
             self.timer.singleShot(0, self.pulseMeasure_SMU)
         elif self.params["Vsource"] == 1:
-            connect_sample_with_AFG(self.k2700, self.connection, self.currentSample)
+            connect_sample_with_AFG(self.k2700, self.connection)
             self.smu.setNPLC()
             self.smu.set_simple_loop(count = self.params["Average"])
             self.smu.source_voltage = self.params["Rvoltage"]

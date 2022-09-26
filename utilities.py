@@ -13,9 +13,17 @@ from MyAFG1022 import AFG1022
 from PyQt5.QtCore import QObject, QTimer, QEventLoop, pyqtSignal
 from PyQt5.QtWidgets import QTimeEdit, QSpinBox
 from math import log10
-from numpy import logspace, linspace, diff
+import numpy as np
 from time import sleep
+from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox
+from winsound import MessageBeep
+from itertools import chain
+from time import sleep
+from numpy import reshape, array, around
+from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
+from math import ceil
 
 SMU = 101
 AFG = 102
@@ -55,8 +63,6 @@ inst_key = {
                 102 : 1,
                 115 : 4
             }
-
-CURRENTSAMPLE = sample_key[SAMPLE1]
 
 class MyTimeEdit(QTimeEdit):
     def stepBy(self,steps):
@@ -388,34 +394,33 @@ def waitFor(wtime): # wtime is in msec
     loop.exec_()
     
 def linlinspace(totalTime):
-    return linspace(1,totalTime,totalTime)
+    return np.linspace(1,totalTime,totalTime)
 
 def linlogspace(counts,start=1,points_per_order=9):
     max_order = int(log10(counts))
-    lin_ranges = logspace(start,max_order,(max_order-start)+1)
+    lin_ranges = np.logspace(start,max_order,(max_order-start)+1)
     npoints = [1]
     for i in range(len(lin_ranges)-1):
-        npoints.extend(list(linspace(lin_ranges[i],lin_ranges[i+1],points_per_order,endpoint=False)))
+        npoints.extend(list(np.linspace(lin_ranges[i],lin_ranges[i+1],points_per_order,endpoint=False)))
     if points_per_order <= 9:
         last_order_divisions = int(counts/10**max_order)
     else:
         last_order_divisions = int(counts*points_per_order/(9*10**max_order)-1)
-    npoints.extend(list(linspace(10**max_order,counts,last_order_divisions)))
+    npoints.extend(list(np.linspace(10**max_order,counts,last_order_divisions)))
     npoints = list(dict.fromkeys(npoints))
     return npoints
 
 def getBinnedPoints(points,start=1):
     fpoints = [start]
-    fpoints.extend(list(diff(points).astype(float)))
+    fpoints.extend(list(np.diff(points).astype(float)))
     return fpoints
 
 def checkMUX_SMU(k2700):
     # If mux is connected, get connection details directly from mux
     # If mux is not accessible, get connection details from saved file
     if k2700.ID == 'Fake': # temp code. May need to change later
-        return -2, SAMPLE1
+        return -2
     connection = 0
-    CURRENTSAMPLE = -1
     try:
         with open("C:/Python Projects/MUX-Switch/status.txt",'r') as f:
             lines = f.readlines()
@@ -423,15 +428,12 @@ def checkMUX_SMU(k2700):
             print(line1)
             if line1[1] == 'True':
                 if int(line1[2]) == inst_key[SMU]:
-                    CURRENTSAMPLE = int(line1[3])
                     connection = 1
             line2 = lines[1].split()
             if line2[1] == 'True':
                 if int(line2[2]) == inst_key[SMU]:
-                    currentSAMPLE2 = int(line2[3])
                     if connection == 0:
                         connection = 2
-                        CURRENTSAMPLE = currentSAMPLE2
                     else:
                         connection = -1
     except:
@@ -446,4 +448,4 @@ def checkMUX_SMU(k2700):
         # So prompt to connect to 2-probe SMU using MUX program
         return -1, -1
     else:
-        return connection, CURRENTSAMPLE
+        return connection

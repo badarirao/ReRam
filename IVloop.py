@@ -6,34 +6,24 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from winsound import MessageBeep
-from itertools import chain
-from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
-from time import sleep
-from PyQt5 import QtCore, QtWidgets, QtGui
-from PyQt5.QtWidgets import QMessageBox
-from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
-from numpy import linspace, array_split, around, concatenate, append
-from numpy import reshape, array, savetxt, hsplit, insert, loadtxt
-from math import ceil
 #from openpyxl import Workbook
 #from openpyxl.styles import Font
 #from openpyxl.chart import ScatterChart, Reference, Series
 #from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
-from utilities import unique_filename, FakeAdapter, checkInstrument
-from utilities import connect_sample_with_SMU, datetime
+from utilities import *
 # TODO: option to sweep right to left or left to right. --> just reverse the points list.
 # TODO: specify sweep direction in metadata
+
 class Ui_IVLoop(QtWidgets.QWidget):
     """The pyqt5 gui class for IV loop measurement."""
 
     def __init__(self, parent=None):
         super(Ui_IVLoop, self).__init__(parent, QtCore.Qt.Window)
         self.setupUi(self)
-        
+
     def setupUi(self, IVLoop):
         IVLoop.setObjectName("IVLoop")
-        IVLoop.resize(818, 567)
+        IVLoop.resize(818, 617)
         IVLoop.setMinimumSize(QtCore.QSize(0, 0))
         self.gridLayout_2 = QtWidgets.QGridLayout(IVLoop)
         self.gridLayout_2.setObjectName("gridLayout_2")
@@ -43,64 +33,52 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.groupBox.setObjectName("groupBox")
         self.gridLayout = QtWidgets.QGridLayout(self.groupBox)
         self.gridLayout.setObjectName("gridLayout")
+        self.temp_check = QtWidgets.QCheckBox(self.groupBox)
+        self.temp_check.setObjectName("temp_check")
+        self.gridLayout.addWidget(self.temp_check, 14, 0, 1, 2)
         self.temperature = QtWidgets.QDoubleSpinBox(self.groupBox)
         self.temperature.setEnabled(False)
         self.temperature.setStyleSheet("font: 12pt \"Times New Roman\";")
         self.temperature.setMaximum(600.0)
-        self.temperature.setSingleStep(1)
-        self.temperature.setDecimals(2)
         self.temperature.setProperty("value", 300.0)
         self.temperature.setObjectName("temperature")
-        self.gridLayout.addWidget(self.temperature, 12, 2, 1, 1)
-        self.ncycles_label = QtWidgets.QLabel(self.groupBox)
-        self.ncycles_label.setObjectName("ncycles_label")
-        self.gridLayout.addWidget(self.ncycles_label, 9, 0, 1, 2)
-        self.Ilimit_label = QtWidgets.QLabel(self.groupBox)
-        self.Ilimit_label.setObjectName("Ilimit_label")
-        self.gridLayout.addWidget(self.Ilimit_label, 7, 0, 1, 2)
+        self.gridLayout.addWidget(self.temperature, 14, 2, 1, 1)
         self.scan_speed_label = QtWidgets.QLabel(self.groupBox)
         self.scan_speed_label.setObjectName("scan_speed_label")
         self.gridLayout.addWidget(self.scan_speed_label, 6, 0, 1, 2)
-        self.temp_check = QtWidgets.QCheckBox(self.groupBox)
-        self.temp_check.setObjectName("temp_check")
-        self.gridLayout.addWidget(self.temp_check, 12, 0, 1, 2)
-        self.setting_label = QtWidgets.QLabel(self.groupBox)
-        self.setting_label.setMinimumSize(QtCore.QSize(0, 24))
-        self.setting_label.setMaximumSize(QtCore.QSize(16777215, 50))
-        self.setting_label.setObjectName("setting_label")
-        self.gridLayout.addWidget(self.setting_label, 0, 0, 1, 3)
-        self.Ilimit = QtWidgets.QDoubleSpinBox(self.groupBox)
-        self.Ilimit.setStyleSheet("font: 12pt \"Times New Roman\";")
-        self.Ilimit.setDecimals(3)
-        self.Ilimit.setMaximum(100.0)
-        self.Ilimit.setSingleStep(0.100)
-        self.Ilimit.setProperty("value", 0.5)
-        self.Ilimit.setObjectName("Ilimit")
-        self.gridLayout.addWidget(self.Ilimit, 7, 2, 1, 1)
-        self.file_name = QtWidgets.QLineEdit(self.groupBox)
-        self.file_name.setStyleSheet("font: 12pt \"Times New Roman\";")
-        self.file_name.setObjectName("file_name")
-        self.gridLayout.addWidget(self.file_name, 1, 2, 1, 1)
-        self.fname_label = QtWidgets.QLabel(self.groupBox)
-        self.fname_label.setObjectName("fname_label")
-        self.gridLayout.addWidget(self.fname_label, 1, 0, 1, 2)
-        self.ncycles = QtWidgets.QSpinBox(self.groupBox)
-        self.ncycles.setStyleSheet("font: 12pt \"Times New Roman\";")
-        self.ncycles.setMinimum(1)
-        self.ncycles.setMaximum(500)
-        self.ncycles.setProperty("value", 1)
-        self.ncycles.setObjectName("ncycles")
-        self.gridLayout.addWidget(self.ncycles, 9, 2, 1, 1)
-        self.delay = QtWidgets.QDoubleSpinBox(self.groupBox)
-        self.delay.setStyleSheet("font: 12pt \"Times New Roman\";")
-        self.delay.setMaximum(10000.0)
-        self.delay.setSingleStep(0.05)
-        self.delay.setProperty("value", 1.0)
-        self.delay.setObjectName("delay")
-        self.gridLayout.addWidget(self.delay, 5, 2, 1, 1)
-        self.delay_label = QtWidgets.QLabel(self.groupBox)
-        self.delay_label.setObjectName("delay_label")
-        self.gridLayout.addWidget(self.delay_label, 5, 0, 1, 1)
+        self.ncycles_label = QtWidgets.QLabel(self.groupBox)
+        self.ncycles_label.setObjectName("ncycles_label")
+        self.gridLayout.addWidget(self.ncycles_label, 11, 0, 1, 2)
+        self.Ilimit_label = QtWidgets.QLabel(self.groupBox)
+        self.Ilimit_label.setObjectName("Ilimit_label")
+        self.gridLayout.addWidget(self.Ilimit_label, 9, 0, 1, 2)
+        self.ncycles_label_2 = QtWidgets.QLabel(self.groupBox)
+        self.ncycles_label_2.setObjectName("ncycles_label_2")
+        self.gridLayout.addWidget(self.ncycles_label_2, 10, 0, 1, 1)
+        self.minV_label = QtWidgets.QLabel(self.groupBox)
+        self.minV_label.setObjectName("minV_label")
+        self.gridLayout.addWidget(self.minV_label, 3, 0, 1, 2)
+        self.maxV_label = QtWidgets.QLabel(self.groupBox)
+        self.maxV_label.setObjectName("maxV_label")
+        self.gridLayout.addWidget(self.maxV_label, 4, 0, 1, 2)
+        self.maxV = QtWidgets.QDoubleSpinBox(self.groupBox)
+        self.maxV.setStyleSheet("font: 12pt \"Times New Roman\";")
+        self.maxV.setDecimals(3)
+        self.maxV.setMinimum(-9.0)
+        self.maxV.setMaximum(10.0)
+        self.maxV.setSingleStep(0.001)
+        self.maxV.setProperty("value", 3.0)
+        self.maxV.setObjectName("maxV")
+        self.gridLayout.addWidget(self.maxV, 4, 2, 1, 1)
+        self.minV = QtWidgets.QDoubleSpinBox(self.groupBox)
+        self.minV.setStyleSheet("font: 12pt \"Times New Roman\";")
+        self.minV.setDecimals(3)
+        self.minV.setMinimum(-10.0)
+        self.minV.setMaximum(9.0)
+        self.minV.setSingleStep(0.001)
+        self.minV.setProperty("value", -3.0)
+        self.minV.setObjectName("minV")
+        self.gridLayout.addWidget(self.minV, 3, 2, 1, 1)
         self.scan_speed = QtWidgets.QComboBox(self.groupBox)
         self.scan_speed.setStyleSheet("font: 12pt \"Times New Roman\";")
         self.scan_speed.setObjectName("scan_speed")
@@ -110,40 +88,59 @@ class Ui_IVLoop(QtWidgets.QWidget):
         self.scan_speed.addItem("")
         self.scan_speed.addItem("")
         self.gridLayout.addWidget(self.scan_speed, 6, 2, 1, 1)
-        self.maxV_label = QtWidgets.QLabel(self.groupBox)
-        self.maxV_label.setObjectName("maxV_label")
-        self.gridLayout.addWidget(self.maxV_label, 4, 0, 1, 2)
-        self.maxV = QtWidgets.QDoubleSpinBox(self.groupBox)
-        self.maxV.setStyleSheet("font: 12pt \"Times New Roman\";")
-        self.maxV.setDecimals(3)
-        self.maxV.setMinimum(-199.0)
-        self.maxV.setMaximum(200.0)
-        self.maxV.setSingleStep(0.1)
-        self.maxV.setProperty("value", 3.0)
-        self.maxV.setObjectName("maxV")
-        self.gridLayout.addWidget(self.maxV, 4, 2, 1, 1)
-        self.minV_label = QtWidgets.QLabel(self.groupBox)
-        self.minV_label.setObjectName("minV_label")
-        self.gridLayout.addWidget(self.minV_label, 3, 0, 1, 2)
-        self.minV = QtWidgets.QDoubleSpinBox(self.groupBox)
-        self.minV.setStyleSheet("font: 12pt \"Times New Roman\";")
-        self.minV.setDecimals(3)
-        self.minV.setMinimum(-200.0)
-        self.minV.setMaximum(199.0)
-        self.minV.setSingleStep(0.1)
-        self.minV.setProperty("value", -3.0)
-        self.minV.setObjectName("minV")
-        self.gridLayout.addWidget(self.minV, 3, 2, 1, 1)
-        self.ncycles_label_2 = QtWidgets.QLabel(self.groupBox)
-        self.ncycles_label_2.setObjectName("ncycles_label_2")
-        self.gridLayout.addWidget(self.ncycles_label_2, 8, 0, 1, 1)
+        self.ncycles = QtWidgets.QSpinBox(self.groupBox)
+        self.ncycles.setStyleSheet("font: 12pt \"Times New Roman\";")
+        self.ncycles.setMinimum(1)
+        self.ncycles.setMaximum(500)
+        self.ncycles.setProperty("value", 1)
+        self.ncycles.setObjectName("ncycles")
+        self.gridLayout.addWidget(self.ncycles, 11, 2, 1, 1)
+        self.fname_label = QtWidgets.QLabel(self.groupBox)
+        self.fname_label.setObjectName("fname_label")
+        self.gridLayout.addWidget(self.fname_label, 1, 0, 1, 2)
+        self.delay = QtWidgets.QDoubleSpinBox(self.groupBox)
+        self.delay.setStyleSheet("font: 12pt \"Times New Roman\";")
+        self.delay.setMaximum(10000.0)
+        self.delay.setSingleStep(0.05)
+        self.delay.setProperty("value", 1.0)
+        self.delay.setObjectName("delay")
+        self.gridLayout.addWidget(self.delay, 5, 2, 1, 1)
+        self.Ilimit = QtWidgets.QDoubleSpinBox(self.groupBox)
+        self.Ilimit.setStyleSheet("font: 12pt \"Times New Roman\";")
+        self.Ilimit.setDecimals(3)
+        self.Ilimit.setMaximum(1.0)
+        self.Ilimit.setSingleStep(0.001)
+        self.Ilimit.setProperty("value", 0.5)
+        self.Ilimit.setObjectName("Ilimit")
+        self.gridLayout.addWidget(self.Ilimit, 9, 2, 1, 1)
+        self.setting_label = QtWidgets.QLabel(self.groupBox)
+        self.setting_label.setMinimumSize(QtCore.QSize(0, 24))
+        self.setting_label.setMaximumSize(QtCore.QSize(16777215, 50))
+        self.setting_label.setObjectName("setting_label")
+        self.gridLayout.addWidget(self.setting_label, 0, 0, 1, 3)
+        self.delay_label = QtWidgets.QLabel(self.groupBox)
+        self.delay_label.setObjectName("delay_label")
+        self.gridLayout.addWidget(self.delay_label, 5, 0, 1, 1)
+        self.file_name = QtWidgets.QLineEdit(self.groupBox)
+        self.file_name.setStyleSheet("font: 12pt \"Times New Roman\";")
+        self.file_name.setObjectName("file_name")
+        self.gridLayout.addWidget(self.file_name, 1, 2, 1, 1)
         self.nPointSet = QtWidgets.QSpinBox(self.groupBox)
         self.nPointSet.setStyleSheet("font: 12pt \"Times New Roman\";")
         self.nPointSet.setMinimum(2)
         self.nPointSet.setMaximum(1000)
         self.nPointSet.setProperty("value", 50)
         self.nPointSet.setObjectName("nPointSet")
-        self.gridLayout.addWidget(self.nPointSet, 8, 2, 1, 1)
+        self.gridLayout.addWidget(self.nPointSet, 10, 2, 1, 1)
+        self.scan_direction_label = QtWidgets.QLabel(self.groupBox)
+        self.scan_direction_label.setObjectName("scan_direction_label")
+        self.gridLayout.addWidget(self.scan_direction_label, 7, 0, 1, 1)
+        self.scan_direction = QtWidgets.QComboBox(self.groupBox)
+        self.scan_direction.setStyleSheet("font: 12pt \"Times New Roman\";")
+        self.scan_direction.setObjectName("scan_direction")
+        self.scan_direction.addItem("")
+        self.scan_direction.addItem("")
+        self.gridLayout.addWidget(self.scan_direction, 7, 2, 1, 1)
         self.gridLayout_2.addWidget(self.groupBox, 0, 0, 1, 1)
         self.widget = QtWidgets.QWidget(IVLoop)
         self.widget.setMinimumSize(QtCore.QSize(240, 200))
@@ -194,6 +191,7 @@ class Ui_IVLoop(QtWidgets.QWidget):
 
         self.retranslateUi(IVLoop)
         self.scan_speed.setCurrentIndex(3)
+        self.scan_direction.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(IVLoop)
         IVLoop.setTabOrder(self.file_name, self.minV)
         IVLoop.setTabOrder(self.minV, self.maxV)
@@ -213,46 +211,65 @@ class Ui_IVLoop(QtWidgets.QWidget):
     def retranslateUi(self, IVLoop):
         _translate = QtCore.QCoreApplication.translate
         IVLoop.setWindowTitle(_translate("IVLoop", "IV Loop"))
-        self.temperature.setToolTip(_translate("IVLoop", "<html><head/><body><p>Temperature range will depend on the type of heater</p></body></html>"))
-        self.ncycles_label.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Number of Cycles</span></p></body></html>"))
-        self.Ilimit_label.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Current Limit (mA)</span></p></body></html>"))
-        self.scan_speed_label.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Scan Speed</span></p></body></html>"))
-        self.temp_check.setToolTip(_translate("IVLoop", "<html><head/><body><p>Use temperature only if temperature controller is attached</p></body></html>"))
+        self.temp_check.setToolTip(_translate("IVLoop",
+                                              "<html><head/><body><p>Use temperature only if temperature controller is attached</p></body></html>"))
         self.temp_check.setText(_translate("IVLoop", "Temperature (K)"))
-        self.setting_label.setText(_translate("IVLoop", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt; font-weight:600;\">Parameters</span></p></body></html>"))
-        self.Ilimit.setToolTip(_translate("IVLoop", "<html><head/><body><p>The compliance current, which protects the sample from full breakdown</p></body></html>"))
-        self.file_name.setText(_translate("IVLoop", "Sample_IV"))
-        self.fname_label.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">File Name</span></p></body></html>"))
-        self.ncycles.setToolTip(_translate("IVLoop", "<html><head/><body><p>Number of cycles to be executed</p></body></html>"))
-        self.delay_label.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Delay per point (ms)</span></p></body></html>"))
+        self.temperature.setToolTip(_translate("IVLoop",
+                                               "<html><head/><body><p>Temperature range will depend on the type of heater</p></body></html>"))
+        self.scan_speed_label.setText(_translate("IVLoop",
+                                                 "<html><head/><body><p><span style=\" font-size:10pt;\">Scan Speed</span></p></body></html>"))
+        self.ncycles_label.setText(_translate("IVLoop",
+                                              "<html><head/><body><p><span style=\" font-size:10pt;\">Number of Cycles</span></p></body></html>"))
+        self.Ilimit_label.setText(_translate("IVLoop",
+                                             "<html><head/><body><p><span style=\" font-size:10pt;\">Current Limit (mA)</span></p></body></html>"))
+        self.ncycles_label_2.setText(_translate("IVLoop",
+                                                "<html><head/><body><p><span style=\" font-size:10pt;\">Number of Points</span></p></body></html>"))
+        self.minV_label.setText(_translate("IVLoop",
+                                           "<html><head/><body><p><span style=\" font-size:10pt;\">Minimum Voltage (V)</span></p></body></html>"))
+        self.maxV_label.setText(_translate("IVLoop",
+                                           "<html><head/><body><p><span style=\" font-size:10pt;\">Maximum Voltage (V)</span></p></body></html>"))
+        self.maxV.setToolTip(_translate("IVLoop", "<html><head/><body><p>Max 10 V</p></body></html>"))
+        self.minV.setToolTip(_translate("IVLoop", "<html><head/><body><p>Max -10 V</p></body></html>"))
         self.scan_speed.setItemText(0, _translate("IVLoop", "Very Slow"))
         self.scan_speed.setItemText(1, _translate("IVLoop", "Slow"))
         self.scan_speed.setItemText(2, _translate("IVLoop", "Normal"))
         self.scan_speed.setItemText(3, _translate("IVLoop", "Fast"))
         self.scan_speed.setItemText(4, _translate("IVLoop", "Very Fast"))
-        self.maxV_label.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Maximum Voltage (V)</span></p></body></html>"))
-        self.maxV.setToolTip(_translate("IVLoop", "<html><head/><body><p>Max 10 V</p></body></html>"))
-        self.minV_label.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Minimum Voltage (V)</span></p></body></html>"))
-        self.minV.setToolTip(_translate("IVLoop", "<html><head/><body><p>Max -10 V</p></body></html>"))
-        self.ncycles_label_2.setText(_translate("IVLoop", "<html><head/><body><p><span style=\" font-size:10pt;\">Number of Points</span></p></body></html>"))
-        self.nPointSet.setToolTip(_translate("IVLoop", "<html><head/><body><p>Number of cycles to be executed</p></body></html>"))
+        self.ncycles.setToolTip(
+            _translate("IVLoop", "<html><head/><body><p>Number of cycles to be executed</p></body></html>"))
+        self.fname_label.setText(_translate("IVLoop",
+                                            "<html><head/><body><p><span style=\" font-size:10pt;\">File Name</span></p></body></html>"))
+        self.Ilimit.setToolTip(_translate("IVLoop",
+                                          "<html><head/><body><p>The compliance current, which protects the sample from full breakdown</p></body></html>"))
+        self.setting_label.setText(_translate("IVLoop",
+                                              "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt; font-weight:600;\">Parameters</span></p></body></html>"))
+        self.delay_label.setText(_translate("IVLoop",
+                                            "<html><head/><body><p><span style=\" font-size:10pt;\">Delay per point (ms)</span></p></body></html>"))
+        self.file_name.setText(_translate("IVLoop", "Sample_IV"))
+        self.nPointSet.setToolTip(
+            _translate("IVLoop", "<html><head/><body><p>Number of cycles to be executed</p></body></html>"))
+        self.scan_direction_label.setText(_translate("IVLoop",
+                                                     "<html><head/><body><p><span style=\" font-size:10pt;\">Scan Direction</span></p></body></html>"))
+        self.scan_direction.setItemText(0, _translate("IVLoop", "Positive"))
+        self.scan_direction.setItemText(1, _translate("IVLoop", "Negative"))
         self.comment_checkBox.setText(_translate("IVLoop", "Add Comments"))
-        self.start_Button.setToolTip(_translate("IVLoop", "<html><head/><body><p>Click to start the experiment</p></body></html>"))
+        self.start_Button.setToolTip(
+            _translate("IVLoop", "<html><head/><body><p>Click to start the experiment</p></body></html>"))
         self.start_Button.setText(_translate("IVLoop", "START"))
-        self.stop_Button.setToolTip(_translate("IVLoop", "<html><head/><body><p>Click to abort the experiment</p></body></html>"))
+        self.stop_Button.setToolTip(
+            _translate("IVLoop", "<html><head/><body><p>Click to abort the experiment</p></body></html>"))
         self.stop_Button.setText(_translate("IVLoop", "STOP"))
 
 class app_IVLoop(Ui_IVLoop):
     """The IV-Loop app module."""
 
-    def __init__(self, parent=None, smu=None, k2700 = None, sName="Sample_IV.txt",connection=1,currentSample=0):
+    def __init__(self, parent=None, smu=None, k2700 = None, sName="Sample_IV.txt",connection=1):
         super(app_IVLoop, self).__init__(parent)
         self.parent = parent
         self.file_name.setReadOnly(True)
         self.smu = smu
         self.k2700 = k2700
         self.connection = connection
-        self.currentSample = currentSample
         self.smu.reset()
         self.stop_Button.setEnabled(False)
         self.stop_flag = False
@@ -269,6 +286,7 @@ class app_IVLoop(Ui_IVLoop):
             "Vmax": 3,
             "Delay": 50/1000,
             "Speed": 3,
+            "Direction": 0,
             "ILimit": 1/1000,
             "npoints": 100,
             "ncycles": 1,
@@ -290,12 +308,13 @@ class app_IVLoop(Ui_IVLoop):
             self.maxV.setValue(self.parameters[1])
             self.delay.setValue(self.parameters[2]*1000)
             self.scan_speed.setCurrentIndex(self.parameters[3])
-            self.Ilimit.setValue(self.parameters[4]*1000)
-            self.nPointSet.setValue(self.parameters[5])
-            self.ncycles.setValue(self.parameters[6])
-            self.temperature.setValue(self.parameters[7])
-            self.temp_check.setChecked(self.parameters[8])
-        except Exception:
+            self.scan_direction.setCurrentIndex(self.parameters[4])
+            self.Ilimit.setValue(self.parameters[5]*1000)
+            self.nPointSet.setValue(self.parameters[6])
+            self.ncycles.setValue(self.parameters[7])
+            self.temperature.setValue(self.parameters[8])
+            self.temp_check.setChecked(self.parameters[9])
+        except Exception as e:
             print(f"Problem with loading IV parameters. {e}")
             print("Deleting parameter file from the folder may resolve the issue.")
     
@@ -318,6 +337,7 @@ class app_IVLoop(Ui_IVLoop):
             "Vmax": self.maxV.value(),
             "Delay": self.delay.value()/1000,
             "Speed": self.scan_speed.currentIndex(),
+            "Direction": self.scan_direction.currentIndex(),
             "ILimit": self.Ilimit.value()/1000,
             "npoints": self.nPointSet.value(),
             "ncycles": self.ncycles.value(),
@@ -351,7 +371,7 @@ class app_IVLoop(Ui_IVLoop):
         data = Data[0]
         i = Data[1]
         self.currentCycle = i
-        volts, currents = hsplit(data, 2)
+        volts, currents = np.hsplit(data, 2)
         volts = volts.flatten()
         currents = abs(currents.flatten())
         pen1 = mkPen(intColor(3*i, values=3), width=2)
@@ -380,21 +400,16 @@ class app_IVLoop(Ui_IVLoop):
         self.stop_flag = False
         self.graphWidget.clear()
         self.stop_Button.setEnabled(True)
-        self.minV.setEnabled(False)
-        self.maxV.setEnabled(False)
-        self.delay.setEnabled(False)
-        self.scan_speed.setEnabled(False)
-        self.Ilimit.setEnabled(False)
-        self.ncycles.setEnabled(False)
-        self.nPointSet.setEnabled(False)
-        self.temp_check.setEnabled(False)
+        self.groupBox.setEnabled(False)
         self.start_Button.setEnabled(False)
+        self.comment_checkBox.setEnabled(False)
+        self.commentBox.setEnabled(False)
         self.update_params()
         self.startThread()
 
     def startThread(self):
         self.thread = QThread()
-        self.worker = Worker(self.params, self.smu, self.k2700, self.fullfilename, self.connection, self.currentSample)
+        self.worker = Worker(self.params, self.smu, self.k2700, self.fullfilename, self.connection)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.start_IV)
         self.worker.finished.connect(self.thread.quit)
@@ -414,15 +429,10 @@ class app_IVLoop(Ui_IVLoop):
             self.statusbar.setText("Measurement Finished.")
             self.measurement_status = "Idle"
             self.stop_flag = True
-        self.minV.setEnabled(True)
-        self.maxV.setEnabled(True)
-        self.delay.setEnabled(True)
-        self.scan_speed.setEnabled(True)
-        self.Ilimit.setEnabled(True)
-        self.ncycles.setEnabled(True)
-        self.nPointSet.setEnabled(True)
-        self.temp_check.setEnabled(True)
+        self.groupBox.setEnabled(True)
         self.start_Button.setEnabled(True)
+        self.comment_checkBox.setEnabled(True)
+        self.commentBox.setEnabled(True)
         self.smu.source_voltage = 0
         self.stop_Button.setEnabled(False)
         #app_IVLoop.formatIV_Excel(self.fullfilename)
@@ -481,7 +491,7 @@ class app_IVLoop(Ui_IVLoop):
         wb = Workbook()
         ws = wb.active
         ws.title = 'IV Data'
-        dataFile = loadtxt(fname)
+        dataFile = np.loadtxt(fname)
         dataFile = append(dataFile, array([abs(dataFile[:, 2])]).T, axis=1)
         header1s = []
         header2s = []
@@ -613,14 +623,13 @@ class Worker(QObject):
     stopcall = pyqtSignal()
     sendPoints = pyqtSignal(list)
     
-    def __init__(self, params, smu=None, k2700=None, fullfilename="sample.dat", connection = 1, currentSample = 0):
+    def __init__(self, params, smu=None, k2700=None, fullfilename="sample.dat", connection = 1):
         super(Worker,self).__init__()
         self.stopCall = False
         self.params = params
         self.smu = smu
         self.k2700 = k2700
         self.connection = connection
-        self.currentSample = currentSample
         self.fullfilename = fullfilename
         self.stopcall.connect(self.stopcalled)
         self.smu.nplc = 1
@@ -641,7 +650,7 @@ class Worker(QObject):
             self.k2700 = FakeAdapter()
         
         # if afg is connected, remove and connect the source meter
-        connect_sample_with_SMU(self.k2700,self.connection,self.currentSample)
+        connect_sample_with_SMU(self.k2700,self.connection)
         self.smu.measure_current()
         self.smu.auto_range_sense()
         self.smu.set_wire_configuration(self.smu.wire_config) # two wire configuration
@@ -694,15 +703,17 @@ class Worker(QObject):
                 self.params["Vmax"]/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
             nminus = int(abs(
                 self.params["Vmin"])/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
-            l1 = linspace(0, self.params["Vmax"], nplus, endpoint=False)
-            l2 = linspace(
+            l1 = np.linspace(0, self.params["Vmax"], nplus, endpoint=False)
+            l2 = np.linspace(
                 self.params["Vmax"], self.params["Vmin"], nplus+nminus, endpoint=False)
-            l3 = linspace(self.params["Vmin"], 0, nminus+1, endpoint=True)
-            self.points = around(concatenate((l1, l2, l3)), 3)
+            l3 = np.linspace(self.params["Vmin"], 0, nminus+1, endpoint=True)
+            self.points = np.around(np.concatenate((l1, l2, l3)), 3)
             self.points[self.points == 0] = 0.0001
+            if self.params["Direction"] == 1:
+                self.points = np.flip(self.points)
             # split the points into 6 chunks of equal size
             chunk_size = ceil(self.npoints/100)
-            self.chunks = array_split(self.points, chunk_size)
+            self.chunks = np.array_split(self.points, chunk_size)
             # write the first chunk into the list
             self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
             # append the remaining chunks into the list
@@ -710,12 +721,14 @@ class Worker(QObject):
                 for i in self.chunks[1:]:
                     self.smu.append_voltage_points(str(list(i))[1:-1])
         else:
-            l1 = linspace(self.params["Vmin"], self.params["Vmax"], int(
+            l1 = np.linspace(self.params["Vmin"], self.params["Vmax"], int(
                 self.npoints/2), endpoint=False)
-            l2 = linspace(self.params["Vmax"], self.params["Vmin"], int(
+            l2 = np.linspace(self.params["Vmax"], self.params["Vmin"], int(
                 self.npoints/2)+1, endpoint=True)
-            self.points = around(concatenate((l1, l2)), 3)
-            self.chunks = array_split(self.points, 5)
+            self.points = np.around(np.concatenate((l1, l2)), 3)
+            if self.params["Direction"] == 1:
+                self.points = np.flip(self.points)
+            self.chunks = np.array_split(self.points, 5)
             # write the first chunk into the list
             self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
             # append the remaining chunks into the list
@@ -740,7 +753,7 @@ class Worker(QObject):
                     continue
                 end_point = self.smu.get_end_point()
                 data = self.smu.get_trace_data(start_point, end_point)
-                data = reshape(array(data.split(','), dtype=float), (-1, 2))
+                data = np.reshape(np.array(data.split(','), dtype=float), (-1, 2))
                 self.data.emit([data,i+1])
                 state = self.smu.get_trigger_state()
                 if state != 'RUNNING':
@@ -749,8 +762,8 @@ class Worker(QObject):
                     break
             with open(self.fullfilename, "a") as f:
                 f.write("#Cycle {0}\n".format(i+1))
-                data = insert(data, 0, self.points[0:len(data)], axis=1)
-                savetxt(f, data, delimiter='\t')
+                data = np.insert(data, 0, self.points[0:len(data)], axis=1)
+                np.savetxt(f, data, delimiter='\t')
                 f.write("\n\n")
             i = i + 1
         if self.stopCall:

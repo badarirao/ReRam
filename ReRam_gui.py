@@ -113,7 +113,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.setFilename(1)  # 1 indicates initial setting of filename
         self.abort = False
         self.connection = 1
-        self.currentSample = 0
         self.configLabel = QtWidgets.QLabel("")
         self.configLabel.setText("2-wire sense configuration")
         self.statusBar().addPermanentWidget(self.configLabel)
@@ -241,7 +240,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.afg1022 = instruments[2]
         
     def afterConnect(self):
-        self.connection, self.currentSample = checkMUX_SMU(self.k2700)
+        self.connection = checkMUX_SMU(self.k2700)
         if self.connection == 0:
             info = QMessageBox(self)
             info.setWindowTitle("Multiplexer connection error")
@@ -300,17 +299,17 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.forming_button.setEnabled(True)
     
     def initialize_apps(self):
-        self.iv = app_IVLoop(self, self.smu, self.k2700, self.IVfilename, self.connection, self.currentSample)
+        self.iv = app_IVLoop(self, self.smu, self.k2700, self.IVfilename, self.connection)
         self.iv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rv = app_RVLoop(self, self.smu, self.k2700, self.afg1022, self.RVfilename, self.connection, self.currentSample)
+        self.rv = app_RVLoop(self, self.smu, self.k2700, self.afg1022, self.RVfilename, self.connection)
         self.rv.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.st = app_Switch(self, self.smu, self.k2700, self.afg1022, self.Switchfilename, self.connection, self.currentSample)
+        self.st = app_Switch(self, self.smu, self.k2700, self.afg1022, self.Switchfilename, self.connection)
         self.st.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.ft = app_Fatigue(self, self.smu, self.k2700, self.afg1022, self.Fatiguefilename, self.connection, self.currentSample)
+        self.ft = app_Fatigue(self, self.smu, self.k2700, self.afg1022, self.Fatiguefilename, self.connection)
         self.ft.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.rt = app_Retention(self, self.smu, self.k2700, self.afg1022, self.Retentionfilename, self.connection, self.currentSample)
+        self.rt = app_Retention(self, self.smu, self.k2700, self.afg1022, self.Retentionfilename, self.connection)
         self.rt.setWindowModality(QtCore.Qt.ApplicationModal)
-        self.fr = app_Forming(self, self.smu, self.k2700, self.Formingfilename, self.connection, self.currentSample)
+        self.fr = app_Forming(self, self.smu, self.k2700, self.Formingfilename, self.connection)
         self.fr.setWindowModality(QtCore.Qt.ApplicationModal)
         self.load_parameters()
     
@@ -548,7 +547,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
 
         """
         def perform_preCloseOperations():
-            connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
+            connect_sample_with_SMU(self.k2700, self.connection)
             self.save_parameters()
             os.chdir(self.settingPath)
             with open('SettingFile.dnd', 'w') as f:

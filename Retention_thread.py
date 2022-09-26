@@ -361,13 +361,12 @@ class Ui_Retention(QtWidgets.QWidget):
 class app_Retention(Ui_Retention):
     """The Switch app module."""
 
-    def __init__(self, parent=None, smu = None, k2700 = None, afg1022 = None, sName="Sample_Retention.dat", connection=1, currentSample=0):
+    def __init__(self, parent=None, smu = None, k2700 = None, afg1022 = None, sName="Sample_Retention.dat", connection=1):
         super(app_Retention, self).__init__(parent)
         self.parent = parent
         self.smu = smu
         self.k2700 = k2700
         self.afg1022 = afg1022
-        self.currentSample = currentSample
         self.connection = connection
         self.stopCall = False
         self.skip = False
@@ -580,11 +579,11 @@ class app_Retention(Ui_Retention):
 
         """
         if self.vsource.currentIndex() == 0:
-            connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
+            connect_sample_with_SMU(self.k2700, self.connection)
             self.smu.apply_switch_pulse(*self.pulses_to_apply[self.i])
             print("Applied {}V".format(self.pulses_to_apply[self.i][0]))
         elif self.vsource.currentIndex() == 1:
-            connect_sample_with_AFG(self.k2700, self.connection, self.curentSample)
+            connect_sample_with_AFG(self.k2700, self.connection)
             self.afg1022.setSinglePulse(*self.pulses_to_apply[self.i])
             self.afg1022.trgNwait()
             connect_sample_with_SMU(self.k2700)
@@ -745,7 +744,7 @@ class app_Retention(Ui_Retention):
 
     def startThread(self):
         self.thread = QThread()
-        self.worker = Worker(self.params, self.smu, self.k2700, self.fullfilename, self.connection, self.currentSample)
+        self.worker = Worker(self.params, self.smu, self.k2700, self.fullfilename, self.connection)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.start_retention)
         self.worker.finished.connect(self.thread.quit)
@@ -924,14 +923,13 @@ class Worker(QObject):
     stopcall = pyqtSignal()
     sendPoints = pyqtSignal(list)
 
-    def __init__(self, params, smu=None, k2700=None, fullfilename="sample_Retention.dat", connection=1, currentSample=0):
+    def __init__(self, params, smu=None, k2700=None, fullfilename="sample_Retention.dat", connection=1):
         super(Worker, self).__init__()
         self.stopCall = False
         self.params = params
         self.smu = smu
         self.k2700 = k2700
         self.connection = connection
-        self.currentSample = currentSample
         self.fullfilename = fullfilename
         self.stopcall.connect(self.stopcalled)
         self.smu.nplc = 1

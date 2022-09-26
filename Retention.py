@@ -361,13 +361,12 @@ class Ui_Retention(QtWidgets.QWidget):
 class app_Retention(Ui_Retention):
     """The Switch app module."""
 
-    def __init__(self, parent=None, smu = None, k2700 = None, afg1022 = None, sName="Sample_Retention.dat", connection=1, currentSample=0):
+    def __init__(self, parent=None, smu = None, k2700 = None, afg1022 = None, sName="Sample_Retention.dat", connection=1):
         super(app_Retention, self).__init__(parent)
         self.parent = parent
         self.smu = smu
         self.k2700 = k2700
         self.afg1022 = afg1022
-        self.currentSample = currentSample
         self.connection = connection
         if self.afg1022:
             if self.afg1022.ID == 'Fake':
@@ -604,7 +603,7 @@ class app_Retention(Ui_Retention):
 
         """
         if self.vsource.currentIndex() == 0:
-            connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
+            connect_sample_with_SMU(self.k2700, self.connection)
             self.smu.apply_switch_pulse(*self.pulses_to_apply[self.i])
             print("Applied {}V".format(self.pulses_to_apply[self.i][0]))
         elif self.vsource.currentIndex() == 1:

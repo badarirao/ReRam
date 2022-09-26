@@ -190,14 +190,13 @@ class Ui_Forming(QtWidgets.QWidget):
 class app_Forming(Ui_Forming):
     """The IV-Loop app module."""
 
-    def __init__(self, parent=None, smu=None, k2700 = None, sName="Sample_IV.txt", connection=1, currentSample=0):
+    def __init__(self, parent=None, smu=None, k2700 = None, sName="Sample_IV.txt", connection=1):
         super(app_Forming, self).__init__(parent)
         self.parent = parent
         self.file_name.setReadOnly(True)
         self.smu = smu
         self.k2700 = k2700
         self.connection = connection
-        self.currentSample = currentSample
         if self.smu:
             if self.smu.ID == 'Fake':
                 self.widget.setEnabled(False)
@@ -232,7 +231,7 @@ class app_Forming(Ui_Forming):
             "temp_check": 0,
             "comments" : ""}
         self.parameters = list(self.params.values())[:-1]
-        connect_sample_with_SMU(self.k2700, self.connection, self.currentSample)
+        connect_sample_with_SMU(self.k2700, self.connection)
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
     
     def updateCommentBox(self):

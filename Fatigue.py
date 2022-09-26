@@ -353,14 +353,13 @@ class Ui_Fatigue(QtWidgets.QWidget):
 class app_Fatigue(Ui_Fatigue):
     """The Switch app module."""
     
-    def __init__(self, parent=None, smu = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue", connection=1, currentSample=0):
+    def __init__(self, parent=None, smu = None, k2700 = None, afg1022 = None, sName="Sample_Fatigue", connection=1):
         super(app_Fatigue, self).__init__(parent)
         self.parent = parent
         self.smu = smu
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.connection = connection
-        self.currentSample = currentSample
         disableScreen = False
         if self.afg1022 and self.smu:
             if self.afg1022.ID == 'Fake':
@@ -580,7 +579,7 @@ class app_Fatigue(Ui_Fatigue):
         self.smu.measure_current()
         self.smu.set_simple_loop(self.params["Average"])
         self.smu.source_voltage = self.params["Rvoltage"]
-        connect_sample_with_AFG(self.k2700, self.connection, self.currentSample)
+        connect_sample_with_AFG(self.k2700, self.connection)
 
     def pulseMeasure_AFG(self):
         """
