@@ -506,8 +506,9 @@ class KeysightB2902B:
         self.write(f"TRAC{self.ch}:FEED:CONT NEV")
         self.write(f"TRAC{self.ch}:CLEar")
         self.write(f"TRAC{self.ch}:POIN {nPoints}")
-        self.write(f"TRAC{self.ch}:FEED SENS")
         self.write(f"TRAC{self.ch}:FEED:CONT NEXT")
+        # TODO: check if the following 2 lines can be set only at the beginning
+        self.write(f"TRAC{self.ch}:FEED SENS")
         self.write(f"TRAC{self.ch}:TST:FORM ABS")
 
     def set_simple_loop(self, count=1, delayTime = 0):
@@ -586,7 +587,7 @@ class KeysightB2902B:
         """
         Wait until the measurement is completed.
 
-            Infinite loop runs until the 'state' is not 'RUNNING'
+            waits indefinitely until measurement is completed
 
         Returns
         -------
@@ -594,15 +595,11 @@ class KeysightB2902B:
             1: if the measurement has successfully finished
             0: if there is some error
         """
-        loop = QEventLoop()
-        while True:
-            QTimer.singleShot(wait_time, loop.quit)
-            loop.exec_()
-            state = self.get_trigger_state()
-            if state == 'IDLE':
-                return 1
-            elif state != 'RUNNING':
-                return 0
+        original_timeout = self.inst.timeout
+        self.inst.timeout = None
+        ans = self.ask(f":IDLE{self.ch}:ACQ?")
+        self.inst.timeout = original_timeout
+        return ans
             
     def apply_switch_pulse(self,voltage,pulse_width):
         """
@@ -753,17 +750,40 @@ class KeysightB2902B:
                 assert -1 > output > 1, 'Current out of range'
         self.write(f"SOUR{self.ch}:{self.source_mode}:TRIG {output}")
 
-    def configure_pulse(self, delay_time=2e-5, baseV=0):
+    def configure_pulse(self, delay_time=2e-5, baseV=0,pw1 = 0.1, pw2 = 0.2):
         self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
         self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")
         self.write(f"SOUR{self.ch}:VOLT {baseV}")
 
-    def apply_pulse(self, pulse_width, amplitude):
-        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
+        pulse_delay = 2e-5  # set a default 20 µs pulse delay
+        self.write(f"SOUR{self.ch}:PULS:DEL {pulse_delay}")
+        self.write(f"TRIG{self.ch}:TRAN:DEL 0")
+
+        self.acq_trigger_period1 = pw1 + pulse_delay + 2e-5  # add buffer 20 µs
+        self.acq_trigger_period2 = pw2 + pulse_delay + 2e-5  # add buffer 20 µs
+        self.source_trigger_period1 = (self.avg + 1) * self.acq_trigger_period1
+        self.source_trigger_period2 = (self.avg + 1) * self.acq_trigger_period2
+        # TODO: check if the following settings will be preserved when buffer is cleared
+        self.write(f":trig{self.ch}:sour tim")
+        self.write(":trig:tran:coun 1")
+        self.write(f":trig{self.ch}:acq:coun {self.avg + 1}")  # 1 set for write current, avg sets for read current
+        self.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
+        self.write(f"TRAC{self.ch}:FEED SENS")
+
+    def set_pulse1(self, pulse_width, amplitude):
+        self.clear_buffer(2)
         self.write(f"SOUR{self.ch}:VOLT:TRIG {amplitude}")
-    def trigger_pulse(self):
-        self.enable_source()  # start outputting pulse base value
-        self.trigger() # perform the specified pulse output and measurement
+        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
+        self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
+        self.write(f":trig{self.ch}:tran:tim {self.source_trigger_period1}")
+        self.write(f":trig{self.ch}:acq:tim {self.acq_trigger_period1}")
+    def set_pulse2(self, pulse_width, amplitude):
+        self.clear_buffer(2)
+        self.write(f"SOUR{self.ch}:VOLT:TRIG {amplitude}")
+        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
+        self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
+        self.write(f":trig{self.ch}:tran:tim {self.source_trigger_period2}")
+        self.write(f":trig{self.ch}:acq:tim {self.acq_trigger_period2}")
 
     def configure_DC_sweep(self, delay_time, minV, maxV, direction, npoints, ncycles):
         pass

@@ -7,16 +7,9 @@
 # WARNING! All changes made in this file will be lost!
 
 # TODO: Add tooltips
-# TODO: There is some problem when stopping the measurement in between (I think it is resolved)
-# TODO: Implement plotting multiple RV cycles when threading is implemented.
-# TODO: When Keysight B2902 is selected, use pulse stairs for this measurement
-# TODO: option to start from minV or maxV, and specify it in metadata
-from winsound import MessageBeep
-from csv import writer
-from numpy import linspace, around, concatenate, array
-from PyQt5 import QtCore, QtWidgets, QtGui
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMessageBox
+# TODO: There is some problem when stopping the measurement in between (I think it is resolved now)
+# TODO: check if average over n reading works as desired
+
 from utilities import *
 
 class Ui_RVLoop(QtWidgets.QWidget):
@@ -630,6 +623,7 @@ class Worker(QObject):
         self.stopcall.connect(self.stopcalled)
         self.smu.nplc = 1
         self.status = 1
+        self.mtime = 0
         self.npoints = int(
             (self.params["Vmax"] - self.params["Vmin"]) / (self.params["Vstep"])) * 2 + 1
         if self.params["VPwidth"] == 0:
@@ -694,14 +688,18 @@ class Worker(QObject):
                     f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
                     f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
                 elif self.smu.ID == 'B2902B':
-                    f.write(f"##Pulse voltage source: Keysight B2902B source-measure unit (channel-{self.smu.ch}).\n")
-                    f.write(f"##Resistance read using Keysight B2902B source-measure unit (channel-{self.smu.ch}).\n")
-                f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
-                f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"], self.params["Vmax"]))
+                    f.write(f"##Pulse voltage source: Keysight B2902B source-measure unit "
+                            f"(channel-{self.smu.ch}).\n")
+                    f.write(f"##Resistance read using Keysight B2902B source-measure unit "
+                            f"(channel-{self.smu.ch}).\n")
+                f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
+                        f"measurement time = {self.mtime}\n")
+                f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],
+                                                                           self.params["Vmax"]))
                 f.write(f"##Pulse width = {self.pulse_width}s, Num. cycles = {self.params['Ncycles']}\n")
                 f.write(f"##Read voltage = {self.params['Rvoltage']}V, "
                         f"averaged over {self.smu.avg} readings\n")
-                f.write("##Limiting current = {}mA\n".format(self.params["ILimit"] * 1000))
+                f.write(f"##Limiting current = {self.params["ILimit"] * 1000}mA\n")
                 f.write(self.params["comments"])
                 if self.smu.ID == 'K2450':
                     f.write(f"#Set Voltage(V)\tActual Volts applied(V)\tSet Current(A)\t"
@@ -719,8 +717,10 @@ class Worker(QObject):
                 if self.smu.ID == 'K2450':
                     f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
                 elif self.smu.ID == 'B2902B':
-                    f.write("##Resistance read using Keysight B2902B source-measure unit.\n")
-                f.write(f"##Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
+                    f.write("##Resistance read using Keysight B2902B source-measure unit "
+                            f"(channel-{self.smu.ch}).\n")
+                f.write(f"##Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
+                        f"measurement time = {self.mtime}\n")
                 f.write(f"##Min voltage = {self.params['Vmin']}, Max Voltage = {self.params['Vmax']}.\n")
                 f.write(f"##Pulse width = {self.pulse_width}s, Num. cycles = {self.params['Ncycles']}\n")
                 f.write(f"##Read voltage = {self.params['Rvoltage']}V, "
@@ -731,17 +731,17 @@ class Worker(QObject):
                         f"Read Resistance at {self.params['Rvoltage']}V (Ω)\n")
 
         if self.params["Direction"] == 1: # negative direction
-            l1 = linspace(self.params["Vmax"], self.params["Vmin"], int(
+            l1 = np.linspace(self.params["Vmax"], self.params["Vmin"], int(
                 self.npoints / 2), endpoint=False)
-            l2 = linspace(self.params["Vmin"], self.params["Vmax"], int(
+            l2 = np.linspace(self.params["Vmin"], self.params["Vmax"], int(
                 self.npoints / 2) + 1, endpoint=True)
-            self.points = around(concatenate((l1, l2)), 4)
+            self.points = np.around(np.concatenate((l1, l2)), 4)
         elif self.params["Direction"] == 0: # Positive direction
-            l1 = linspace(self.params["Vmax"], self.params["Vmin"], int(
+            l1 = np.linspace(self.params["Vmax"], self.params["Vmin"], int(
                 self.npoints / 2), endpoint=True)
-            l2 = linspace(self.params["Vmin"], self.params["Vmax"], int(
+            l2 = np.linspace(self.params["Vmin"], self.params["Vmax"], int(
                 self.npoints / 2) + 1, endpoint=False)
-            self.points = around(concatenate((l2, l1)), 4)
+            self.points = np.around(np.concatenate((l2, l1)), 4)
         self.points[self.points == 0] = 0.0001
         if self.smu.ID == 'B2902B':
             voltages = ",".join(self.points.astype('str'))
@@ -752,11 +752,11 @@ class Worker(QObject):
     def measure_RV_B2902b(self):
         self.smu.clear_buffer((self.smu.avg + 1) * self.npoints)
         self.smu.start_buffer()
-        number_of_data_per_point = 4
-        while self.smu.get_trigger_state() == 'RUNNING':
+        number_of_data_per_point = 4 #TODO: get it directly from SMU
+        while self.smu.get_trigger_state() == 'RUNNING' and not self.stopCall:
             sleep(0.2)
-            data = self.smu.ask(":TRAC:Data?")
-            data2 = reshape(array(data.split(','), dtype=float), (-1, number_of_data_per_point))
+            data = self.smu.get_trace_data()
+            data2 = reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
             writeData = data2[::self.smu.avg + 1].copy()
             if self.smu.avg == 1:
                 readData = data2[1::self.smu.avg + 1].copy()
@@ -799,7 +799,7 @@ class Worker(QObject):
             self.smu.start_buffer()
             self.smu.wait_till_done(1)
             setData = self.smu.get_trace_data(1, 1)
-            setData = array(setData.split(','), dtype=float)
+            setData = np.array(setData.split(','), dtype=float)
             v, c = setData[0], setData[1]
             self.actual_setVolts.append(v)
             self.set_currents.append(c)
@@ -854,6 +854,7 @@ class Worker(QObject):
         return data
 
     def start_RV(self):
+        self.mtime = datetime.now()
         self.initialize_SMU()
         self.configure_sweep()
         self.smu.enable_source()
@@ -900,15 +901,14 @@ class Worker(QObject):
         self.smu.source_voltage = 0
         self.smu.disable_source()
         self.smu.display_light('ON')
+        self.mtime = str(datetime.now() - self.mtime)
         self.finished.emit()
 
     def stopcalled(self):
         self.stopCall = True
 
-
 if __name__ == "__main__":
     import sys
-
     app = QtWidgets.QApplication(sys.argv)
     RVLoop = QtWidgets.QWidget()
     smu, k2700, afg1022 = checkInstrument(test=True)

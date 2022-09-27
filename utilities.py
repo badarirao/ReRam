@@ -148,7 +148,7 @@ class FakeAdapter():
 
 
 
-def unique_filename(directory, prefix='DATA', suffix='', ext='csv',
+def unique_filename(directory, prefix='DATA', suffix='', ext='dat',
                     dated_folder=False, index=True, datetimeformat="%Y-%m-%d"):
     """
     Return a unique filename based on the directory and prefix.
@@ -241,7 +241,14 @@ def connect_known_instruments(k2450Addr = None, k2700Addr = None, AFG1022Addr = 
         SMU = k2450
     else:
         SMU = B2902b
-
+    if k2700.ID == 'Fake' and AFG.ID != 'Fake':
+        AFG.close()
+        del AFG
+        AFG = FakeAdapter()
+    elif k2700.ID != 'Fake' and AFG.ID == 'Fake':
+        k2700.close()
+        del k2700
+        k2700 = FakeAdapter()
     return SMU,k2700,AFG
 
 def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None, 

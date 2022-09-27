@@ -4,25 +4,15 @@ Module to initialize the main menu.
 Works on Python 3.8.5, Windows 10.
 Not tested for other Python versions or OS.
 
-# TODO: when mux is not connected, source meter is expected to be connected by default.
-        hence, use of function generator must be disabled.
 # TODO: Program to investigate switching speed, using Keysight SMU.
-# TODO: Allow for both SCPI and TSP commands (currently only SCPI works).
 # TODO: Not able to cleanly exit if no instrument is connected and TESTING = False.
-# TODO: correct the tab order of all the windows.
 # TODO: Bug: minimizing the main window also minimized the child window, even if child.show() is given later.
-# TODO: clear the graphs in all apps when directory of filename is changed.
 # TODO: Implement threading to plot data in a separate thread as a separate process.
-# TODO: Include date, start and end time of experiment in saved file.
+# TODO: Include date, start and end time of experiment in saved file for forming, fatigue and retention.
 # TODO: Include timestamp for each datapoint
 # TODO: BUG: If soucemeter is Idle for long time, it connects, but no command works, gives visaerror.
-# TODO: Correct the channel connections after Sample and instrument connections in MUX have been modified.
-# TODO: Enable using cryochamber.
 # TODO: Connect chino temperature controller, and Linkam temperature controller.
-# TODO: if function generator is not connected, disable usage of MUX also!
-# TODO: MUX should only change AFG and SMU connection. It should not interfere with sample connections
-# TODO: If function generator is connected with another sample, make sure this program will not use function generator
-# TODO: combine all common import modules and put it in utilities, and import from
+# TODO: combine all common import modules and put it in utilities, and import from utilities
 # TODO: Keysight SMU can probably do PUND current measurement. Apply pulse, and measure current decay (min 20 us interval)
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
@@ -329,6 +319,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         if dirName:
             if self.currPath != dirName:
                 self.save_parameters()
+                # clear all app graphs
+                self.iv.graphWidget.clear()
+                self.rv.graphWidget.clear()
+                self.st.Rplot.clear()
+                self.st.Vplot.clear()
+                self.fr.graphWidget.clear()
+                self.rt.retentionPlot.clear()
+                self.ft.fatiguePlot.clear()
+                # clear comment boxes
+                self.commentBox.setText("Sample Details: ")
+                self.iv.commentBox.clear()
+                self.rv.commentBox.clear()
+                self.st.commentBox.clear()
+                self.fr.commentBox.clear()
+                self.rt.commentBox.clear()
+                self.ft.commentBox.clear()
                 self.currPath = dirName
                 self.load_parameters()
 

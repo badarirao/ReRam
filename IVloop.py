@@ -1,18 +1,5 @@
-# -*- coding: utf-8 -*-
-
-# Form implementation generated from reading ui file 'IVloop.ui'
-#
-# Created by: PyQt5 UI code generator 5.9.2
-#
-# WARNING! All changes made in this file will be lost!
-
-#from openpyxl import Workbook
-#from openpyxl.styles import Font
-#from openpyxl.chart import ScatterChart, Reference, Series
-#from openpyxl.drawing.text import ParagraphProperties, CharacterProperties
 from utilities import *
-# TODO: option to sweep right to left or left to right. --> just reverse the points list.
-# TODO: specify sweep direction in metadata
+# TODO: add timestamp for each datapoint in the file
 
 class Ui_IVLoop(QtWidgets.QWidget):
     """The pyqt5 gui class for IV loop measurement."""
@@ -449,13 +436,11 @@ class app_IVLoop(Ui_IVLoop):
         styles = {'color': 'r', 'font-size': '20px'}
         self.graphWidget.setLabel('left', '|Current (A)|', **styles)
         self.graphWidget.setLabel('bottom', 'Voltage (V)', **styles)
-        self.graphWidget.setRange(QtCore.QRectF(self.minV.value(
-        ), 1e-12, self.maxV.value()-self.minV.value(), self.Ilimit.value()), padding=0)
+        self.graphWidget.setRange(QtCore.QRectF(self.minV.value(), 1e-12,
+                                                self.maxV.value()-self.minV.value(),
+                                                self.Ilimit.value()), padding=0)
         self.graphWidget.getPlotItem().setLogMode(None, True)
         self.graphWidget.addLegend()
-        # self.graphWidget.plot((0,0),(1e-12,2),pen=pen1)
-        # self.graphWidget.addLegend(offset=(180,170))
-        #self.graphWidget.showGrid(x=True, y=True)
 
     def stop_ivloop(self):
         """
@@ -471,118 +456,6 @@ class app_IVLoop(Ui_IVLoop):
         self.stop_flag = True
         self.worker.stopcall.emit()
 
-    # make sure filename has some extension, it should be the file name that has collected data
-    """
-    @staticmethod
-    def formatIV_Excel(fname="Sample_IV.dat"):
-        """"""
-        Save the data and the plot into excel file,.
-        *** Obselete now *** may be removed later
-        Parameters
-        ----------
-        fname : TYPE, optional
-            DESCRIPTION. The default is "Sample_IV.txt".
-
-        Returns
-        -------
-        None.
-
-        """"""
-        wb = Workbook()
-        ws = wb.active
-        ws.title = 'IV Data'
-        dataFile = np.loadtxt(fname)
-        dataFile = append(dataFile, array([abs(dataFile[:, 2])]).T, axis=1)
-        header1s = []
-        header2s = []
-        legend = []
-        cycles = 0
-        myfile = open(fname, "r")
-        h = ''
-        while myfile:
-            line = myfile.readline()
-            li = line.strip()
-            if li.startswith('##'):
-                continue
-            if li.startswith('#'):
-                line2 = myfile.readline()
-                li2 = line2.strip()
-                if li2.startswith('#'):
-                    l = li2
-                    li2 = li
-                    li = l
-                    li2 = li2[1:].split('\t')
-                    li2.append('Absolute Current (A)')
-                    h = li2
-                header2s.append(h)
-                legend.append(li)
-                header1s.append([' ', ' ', ' ', li])
-                line2 = myfile.readline()
-                li2 = line2.strip()
-                cycles = cycles + 1
-
-            if line == "":
-                break
-        myfile.close()
-        header1 = list(chain.from_iterable(header1s))
-        header2 = list(chain.from_iterable(header2s))
-        ws.append(header1)
-        ws.append(header2)
-        rownum = 3
-        colnum = 1
-        for r in ws.iter_rows(min_row=1, max_row=2, max_col=len(header2)):
-            for cell in r:
-                cell.font = Font(bold=True)
-        c = 1
-        for row in dataFile:
-            for value in row:
-                ws.cell(row=rownum, column=colnum).value = value
-                colnum = colnum + 1
-            colnum = c
-            rownum = rownum+1
-            if (rownum-3) % 501 == 0:
-                rownum = 3
-                c = c + 4
-        ws.freeze_panes = 'A3'
-        for column_cells in ws.columns:
-            ws.column_dimensions[column_cells[0].column_letter].width = 20
-
-        # plot all IV loops
-        plotsheet = wb.create_sheet()
-        plotsheet.title = 'IV Plot'
-        ivChart = ScatterChart()
-        ivChart.height = 14
-        ivChart.width = 25
-        ivChart.title = "Cumulative IV Plots (log-scale)"
-        ivChart.style = 12
-        ivChart.y_axis.title = "Abs. Current (A)"
-        ivChart.y_axis.scaling.logBase = 10
-        ivChart.y_axis.scaling.max = dataFile[:, 3].max()*1.2
-        ivChart.x_axis.title = 'Voltage (V)'
-        paraprops = ParagraphProperties()
-
-        # change the x and y-axis title font size
-        paraprops.defRPr = CharacterProperties(sz=1600)
-        for para in ivChart.x_axis.title.tx.rich.paragraphs:
-            para.pPr = paraprops
-        for para in ivChart.y_axis.title.tx.rich.paragraphs:
-            para.pPr = paraprops
-
-        ivChart.x_axis.tickLblPos = "low"
-        ivChart.y_axis.tickLblPos = "low"
-        for i in range(int(ws.max_column/4)):
-            xvalues = Reference(ws, min_col=i*4+2,
-                                min_row=3, max_row=ws.max_row)
-            yvalues = Reference(ws, min_col=i*4+4,
-                                min_row=3, max_row=ws.max_row)
-            series = Series(yvalues, xvalues,
-                            title_from_data=False, title=legend[i])
-            ivChart.series.append(series)
-        plotsheet.add_chart(ivChart, 'C3')
-        wb.save('.'.join(fname.split('.')[:-1])+'.xlsx')
-        # wb.save(self.filename+'.xlsx')
-    """
-    
     def keyPressEvent(self, event):
         """Close application from escape key.
 
@@ -634,6 +507,7 @@ class Worker(QObject):
         self.stopcall.connect(self.stopcalled)
         self.smu.nplc = 1
         self.status = 1
+        self.mtime = 0
         
     def initialize_SMU(self):
         """
@@ -685,12 +559,23 @@ class Worker(QObject):
 
         """
         with open(self.fullfilename,'w') as f:
-            f.write("## IV loop measurement using Keithley 2450 source measure unit.\n")
-            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
-            f.write("## Min voltage = {0}V, Max voltage = {1}V\n".format(self.params["Vmin"],self.params["Vmax"]))
-            f.write('## Limiting current = {0} mA, Delay per point = {1}ms\n'.format(self.params["ILimit"]*1000,self.params["Delay"]))
-            f.write('## Scan speed = {0}, Points per cycle = {1}\n'.format(self.speed,self.params["npoints"]))
-            f.write(f"## Requested number of IV loops = {self.params['ncycles']}\n")
+            if self.params["Direction"] == 0:
+                direction = "Positive first"
+            else:
+                direction = "Negative first"
+            if self.smu.ID == 'K2450':
+                f.write("## IV loop measurement using Keithley 2450 source measure unit.\n")
+            elif self.smu.ID == 'B2902B':
+                f.write("## IV loop measurement using Keysight B2902B source measure unit "
+                        f"(channel-{self.smu.ch}).\n")
+            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
+                    f"measurement time = {self.mtime}\n")
+            f.write(f"## Min voltage = {self.params['Vmin']}V, Max voltage = {self.params['Vmax']}V\n")
+            f.write(f"## Limiting current = {self.params['ILimit']*1000} mA, "
+                    f"Delay per point = {self.params['Delay']}ms\n")
+            f.write(f"## Scan speed = {self.speed}, Points per cycle = {self.params['npoints']}\n")
+            f.write(f"## Requested number of IV loops = {self.params['ncycles']}, "
+                    f"Scan Direction = {direction}\n")
             f.write(self.params["comments"])
             f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
             
@@ -726,7 +611,9 @@ class Worker(QObject):
             self.points = np.around(np.concatenate((l1, l2)), 3)
             if self.params["Direction"] == 1:
                 self.points = np.flip(self.points)
-            self.chunks = np.array_split(self.points, 5)
+            self.npoints = len(self.points)
+            chunk_size = ceil(self.npoints/100)
+            self.chunks = np.array_split(self.points, chunk_size)
             # write the first chunk into the list
             self.smu.set_voltage_points(str(list(self.chunks[0]))[1:-1])
             # append the remaining chunks into the list
@@ -738,6 +625,7 @@ class Worker(QObject):
         self.sendPoints.emit([self.points])
     
     def start_IV(self):
+        self.mtime = datetime.now()
         self.initialize_SMU()
         self.configure_sweep()
         i = 0
@@ -769,6 +657,7 @@ class Worker(QObject):
         self.smu.source_voltage = 0
         self.smu.disable_source()
         MessageBeep()
+        self.mtime = str(timedelta(datetime.now(),self.mtime))
         self.finished.emit()
     
     def stopcalled(self):
