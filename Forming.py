@@ -439,6 +439,9 @@ class Worker(QObject):
             if iFlag:
                 break
         file.close()
+        volt = float(values[0])
+        current = float(values[1])
+        self.data.emit([volt,current])
         self.smu.source_voltage = 0
         self.smu.disable_source()
         self.finished.emit()
