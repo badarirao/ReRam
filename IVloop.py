@@ -558,27 +558,6 @@ class Worker(QObject):
         None.
 
         """
-        with open(self.fullfilename,'w') as f:
-            if self.params["Direction"] == 0:
-                direction = "Positive first"
-            else:
-                direction = "Negative first"
-            if self.smu.ID == 'K2450':
-                f.write("## IV loop measurement using Keithley 2450 source measure unit.\n")
-            elif self.smu.ID == 'B2902B':
-                f.write("## IV loop measurement using Keysight B2902B source measure unit "
-                        f"(channel-{self.smu.ch}).\n")
-            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
-                    f"measurement time = {self.mtime}\n")
-            f.write(f"## Min voltage = {self.params['Vmin']}V, Max voltage = {self.params['Vmax']}V\n")
-            f.write(f"## Limiting current = {self.params['ILimit']*1000} mA, "
-                    f"Delay per point = {self.params['Delay']}ms\n")
-            f.write(f"## Scan speed = {self.speed}, Points per cycle = {self.params['npoints']}\n")
-            f.write(f"## Requested number of IV loops = {self.params['ncycles']}, "
-                    f"Scan Direction = {direction}\n")
-            f.write(self.params["comments"])
-            f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
-            
         self.npoints = self.params['npoints']
         if self.params["Vmax"] == self.params["Vmin"]:
             self.points = [self.params["Vmax"]]
@@ -589,7 +568,7 @@ class Worker(QObject):
             l1 = np.linspace(0, self.params["Vmax"], nplus, endpoint=False)
             l2 = np.linspace(self.params["Vmax"], self.params["Vmin"], nplus+nminus, endpoint=False)
             l3 = np.linspace(self.params["Vmin"], 0, nminus+1, endpoint=True)
-            self.points = np.around(np.concatenate((l1, l2, l3)), 3)
+            self.points = np.around(np.concatenate((l1, l2, l3)), 4)
             self.npoints = len(self.points)
             self.points[self.points == 0] = 0.0001
             if self.params["Direction"] == 1:
@@ -608,7 +587,7 @@ class Worker(QObject):
                 self.npoints/2), endpoint=False)
             l2 = np.linspace(self.params["Vmax"], self.params["Vmin"], int(
                 self.npoints/2)+1, endpoint=True)
-            self.points = np.around(np.concatenate((l1, l2)), 3)
+            self.points = np.around(np.concatenate((l1, l2)), 4)
             if self.params["Direction"] == 1:
                 self.points = np.flip(self.points)
             self.npoints = len(self.points)
@@ -629,6 +608,7 @@ class Worker(QObject):
         self.initialize_SMU()
         self.configure_sweep()
         i = 0
+        self.tempfileName = self.fullfilename[:-4] + "_tmp.dat"
         while i<self.params["ncycles"] and not self.stopCall:
             self.smu.clear_buffer(self.npoints)
             self.smu.start_buffer()  # start the measurement
@@ -646,7 +626,7 @@ class Worker(QObject):
                     if state != 'IDLE':
                         self.status = 0
                     break
-            with open(self.fullfilename, "a") as f:
+            with open(self.tempfileName, "a") as f:
                 f.write("#Cycle {0}\n".format(i+1))
                 data = np.insert(data, 0, self.points[0:len(data)], axis=1)
                 np.savetxt(f, data, delimiter='\t')
@@ -657,8 +637,35 @@ class Worker(QObject):
         self.smu.source_voltage = 0
         self.smu.disable_source()
         MessageBeep()
-        self.mtime = str(timedelta(datetime.now(),self.mtime))
+        self.mtime = str(datetime.now() - self.mtime)
+        self.saveFile()
         self.finished.emit()
+    
+    def saveFile(self):
+        with open(self.fullfilename,'w') as f:
+            if self.params["Direction"] == 0:
+                direction = "Positive first"
+            else:
+                direction = "Negative first"
+            if self.smu.ID == 'K2450':
+                f.write("## IV loop measurement using Keithley 2450 source measure unit.\n")
+            elif self.smu.ID == 'B2902B':
+                f.write("## IV loop measurement using Keysight B2902B source measure unit "
+                        f"(channel-{self.smu.ch}).\n")
+            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
+                    f"Total measurement time = {self.mtime}\n")
+            f.write(f"## Min voltage = {self.params['Vmin']}V, Max voltage = {self.params['Vmax']}V\n")
+            f.write(f"## Limiting current = {self.params['ILimit']*1000} mA, "
+                    f"Delay per point = {self.params['Delay']}ms\n")
+            f.write(f"## Scan speed = {self.speed}, Points per cycle = {self.params['npoints']}\n")
+            f.write(f"## Requested number of IV loops = {self.params['ncycles']}, "
+                    f"Scan Direction = {direction}\n")
+            f.write(self.params["comments"])
+            f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
+            with open(self.tempfileName, 'r') as tmp:
+                lines = tmp.readlines()
+                f.writelines(lines)
+        os.remove(self.tempfileName)
     
     def stopcalled(self):
         self.stopCall = True

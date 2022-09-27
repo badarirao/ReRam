@@ -4,6 +4,7 @@ from datetime import datetime
 from os.path import abspath, join, exists
 from pyvisa import ResourceManager, VisaIOError
 from os import makedirs
+import os
 from copy import copy
 from re import sub
 from MyKeithley2450 import Keithley2450

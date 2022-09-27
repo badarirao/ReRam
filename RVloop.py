@@ -681,55 +681,6 @@ class Worker(QObject):
 
         """
         self.smu.readV = self.params["Rvoltage"]
-        if self.params["Vsource"] == 0:
-            # For SMU
-            with open(self.fullfilename, "w", newline='') as f:
-                if self.smu.ID == 'K2450':
-                    f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
-                    f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
-                elif self.smu.ID == 'B2902B':
-                    f.write(f"##Pulse voltage source: Keysight B2902B source-measure unit "
-                            f"(channel-{self.smu.ch}).\n")
-                    f.write(f"##Resistance read using Keysight B2902B source-measure unit "
-                            f"(channel-{self.smu.ch}).\n")
-                f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
-                        f"measurement time = {self.mtime}\n")
-                f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],
-                                                                           self.params["Vmax"]))
-                f.write(f"##Pulse width = {self.pulse_width}s, Num. cycles = {self.params['Ncycles']}\n")
-                f.write(f"##Read voltage = {self.params['Rvoltage']}V, "
-                        f"averaged over {self.smu.avg} readings\n")
-                f.write(f"##Limiting current = {self.params["ILimit"] * 1000}mA\n")
-                f.write(self.params["comments"])
-                if self.smu.ID == 'K2450':
-                    f.write(f"#Set Voltage(V)\tActual Volts applied(V)\tSet Current(A)\t"
-                            f"Read Current at {self.params['Rvoltage']}V\t"
-                            f"Read Resistance at {self.params['Rvoltage']}V (Ω)\n")
-                elif self.smu.ID == 'B2450':
-                    f.write(f"#Set Voltage(V)\tActual Volts applied(V)\tSet Current(A)\t"
-                            f"Read Current at {self.params['Rvoltage']}V\t"
-                            f"Read Resistance at {self.params['Rvoltage']}V (Ω)\t"
-                            f"Time Stamp (s)\n")
-        else:
-            # For AGF
-            with open(self.fullfilename, "w", newline='') as f:
-                f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
-                if self.smu.ID == 'K2450':
-                    f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
-                elif self.smu.ID == 'B2902B':
-                    f.write("##Resistance read using Keysight B2902B source-measure unit "
-                            f"(channel-{self.smu.ch}).\n")
-                f.write(f"##Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
-                        f"measurement time = {self.mtime}\n")
-                f.write(f"##Min voltage = {self.params['Vmin']}, Max Voltage = {self.params['Vmax']}.\n")
-                f.write(f"##Pulse width = {self.pulse_width}s, Num. cycles = {self.params['Ncycles']}\n")
-                f.write(f"##Read voltage = {self.params['Rvoltage']}V, "
-                        f"averaged over {self.smu.avg} readings\n")
-                f.write("##Limiting current = {}mA\n".format(self.params["Ilimit"] * 1000))
-                f.write(self.params["comments"])
-                f.write(f"#Set Voltage(V)\tRead Current at {self.params['Rvoltage']}V\t"
-                        f"Read Resistance at {self.params['Rvoltage']}V (Ω)\n")
-
         if self.params["Direction"] == 1: # negative direction
             l1 = np.linspace(self.params["Vmax"], self.params["Vmin"], int(
                 self.npoints / 2), endpoint=False)
@@ -859,6 +810,7 @@ class Worker(QObject):
         self.configure_sweep()
         self.smu.enable_source()
         self.cycleNum = 0
+        self.tempfileName = self.fullfilename[:-4] + "_tmp.dat"
         if self.params["Vsource"] == 0:
             connect_sample_with_SMU(self.k2700, self.connection)
         else:
@@ -889,11 +841,68 @@ class Worker(QObject):
                 self.smu.source_voltage = self.params["Rvoltage"]
                 data = self.measure_RV_AFG()
             self.cycleNum = self.cycleNum + 1
-        with open(self.fullfilename, "a") as f:
-            f.write(f"#Cycle {self.cycleNum + 1}\n")
-            np.savetxt(f, data.T, delimiter='\t')
-            f.write("\n\n")
+            with open(self.tempfileName, "a") as f:
+                f.write(f"#Cycle {self.cycleNum}\n")
+                np.savetxt(f, data.T, delimiter='\t')
+                f.write("\n\n")
+        self.mtime = str(datetime.now() - self.mtime)
+        self.saveFile()
         self.stop_program()
+
+    def saveFile(self):
+        if self.params["Vsource"] == 0:
+            # For SMU
+            f = open(self.fullfilename, "w", newline='')
+            if self.smu.ID == 'K2450':
+                f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
+                f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
+            elif self.smu.ID == 'B2902B':
+                f.write(f"##Pulse voltage source: Keysight B2902B source-measure unit "
+                        f"(channel-{self.smu.ch}).\n")
+                f.write(f"##Resistance read using Keysight B2902B source-measure unit "
+                        f"(channel-{self.smu.ch}).\n")
+            f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
+                    f"Total measurement time = {self.mtime}\n")
+            f.write("##Min voltage = {0}, Max Voltage = {1}.\n".format(self.params["Vmin"],
+                                                                       self.params["Vmax"]))
+            f.write(f"##Pulse width = {self.pulse_width}s, Num. cycles = {self.params['Ncycles']}\n")
+            f.write(f"##Read voltage = {self.params['Rvoltage']}V, "
+                    f"averaged over {self.smu.avg} readings\n")
+            f.write(f"##Limiting current = {self.params['ILimit'] * 1000}mA\n")
+            f.write(self.params["comments"])
+            if self.smu.ID == 'K2450':
+                f.write(f"#Set Voltage(V)\tActual Volts applied(V)\tSet Current(A)\t"
+                        f"Read Current at {self.params['Rvoltage']}V\t"
+                        f"Read Resistance at {self.params['Rvoltage']}V (Ω)\n")
+            elif self.smu.ID == 'B2450':
+                f.write(f"#Set Voltage(V)\tActual Volts applied(V)\tSet Current(A)\t"
+                        f"Read Current at {self.params['Rvoltage']}V\t"
+                        f"Read Resistance at {self.params['Rvoltage']}V (Ω)\t"
+                        f"Time Stamp (s)\n")
+        else:
+            # For AGF
+            f = open(self.fullfilename, "w", newline='')
+            f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
+            if self.smu.ID == 'K2450':
+                f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
+            elif self.smu.ID == 'B2902B':
+                f.write("##Resistance read using Keysight B2902B source-measure unit "
+                        f"(channel-{self.smu.ch}).\n")
+            f.write(f"##Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
+                    f"Total measurement time = {self.mtime}\n")
+            f.write(f"##Min voltage = {self.params['Vmin']}, Max Voltage = {self.params['Vmax']}.\n")
+            f.write(f"##Pulse width = {self.pulse_width}s, Num. cycles = {self.params['Ncycles']}\n")
+            f.write(f"##Read voltage = {self.params['Rvoltage']}V, "
+                    f"averaged over {self.smu.avg} readings\n")
+            f.write("##Limiting current = {}mA\n".format(self.params["Ilimit"] * 1000))
+            f.write(self.params["comments"])
+            f.write(f"#Set Voltage(V)\tRead Current at {self.params['Rvoltage']}V\t"
+                    f"Read Resistance at {self.params['Rvoltage']}V (Ω)\n")
+        with open(self.tempfileName, 'r') as tmp:
+            lines = tmp.readlines()
+            f.writelines(lines)
+        f.close()
+        os.remove(self.tempfileName)
 
     def stop_program(self):
         if self.stopCall:
@@ -901,7 +910,6 @@ class Worker(QObject):
         self.smu.source_voltage = 0
         self.smu.disable_source()
         self.smu.display_light('ON')
-        self.mtime = str(datetime.now() - self.mtime)
         self.finished.emit()
 
     def stopcalled(self):
