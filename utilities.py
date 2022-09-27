@@ -1,30 +1,31 @@
 """Utilities file with useful classes and functions."""
 
 from datetime import datetime
-from os.path import abspath, join, exists
+from os.path import abspath, join
+from os.path import exists as fileExists
 from pyvisa import ResourceManager, VisaIOError
 from os import makedirs
 import os
 from copy import copy
 from re import sub
-from MyKeithley2450 import Keithley2450
-from MyKeithley2700 import Keithley2700
-from MyKeysightB2902B import KeysightB2902B
-from MyAFG1022 import AFG1022 
-from PyQt5.QtCore import QObject, QTimer, QEventLoop, pyqtSignal
-from PyQt5.QtWidgets import QTimeEdit, QSpinBox
 from math import log10
 import numpy as np
 from time import sleep
 from PyQt5 import QtCore, QtWidgets, QtGui
-from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, QTimer, QEventLoop
+from PyQt5.QtWidgets import QMessageBox, QTimeEdit, QSpinBox
+from PyQt5.QtGui import QPalette, QColor, QBrush
 from winsound import MessageBeep
 from itertools import chain
 from time import sleep
 from numpy import reshape, array, around
-from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor
+from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor, GraphicsLayoutWidget
 from math import ceil
+from csv import writer
+from MyKeithley2450 import Keithley2450
+from MyKeithley2700 import Keithley2700
+from MyKeysightB2902B import KeysightB2902B
+from MyAFG1022 import AFG1022
 
 SMU = 101
 AFG = 102
@@ -160,14 +161,14 @@ def unique_filename(directory, prefix='DATA', suffix='', ext='dat',
     directory = abspath(directory)
     if dated_folder:
         directory = join(directory, now.strftime('%Y-%m-%d'))
-    if not exists(directory):
+    if not fileExists(directory):
         makedirs(directory)
     if index:
         i = 1
         basename = "%s%s" % (prefix, now.strftime(datetimeformat))
         basepath = join(directory, basename)
         filename = "%s_%d%s.%s" % (basepath, i, suffix, ext)
-        while exists(filename):
+        while fileExists(filename):
             i += 1
             filename = "%s_%d%s.%s" % (basepath, i, suffix, ext)
     else:

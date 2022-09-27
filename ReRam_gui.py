@@ -33,7 +33,7 @@ from functools import partial
 from Memory import Ui_Memory
 from IVloop import app_IVLoop
 from RVloop import app_RVLoop
-from Switch import app_Switch
+from Switch_thread import app_Switch
 from Fatigue import app_Fatigue
 from Retention import app_Retention
 from Forming import app_Forming

@@ -55,6 +55,7 @@ class KeysightB2902B:
             self.overVoltage_protection(False)
             self.wire_config = 2
             self.avg = 1 # number of readings to take and average
+            self.write(f"TRAC{self.ch}:FEED SENS")
         else:
             raise VisaIOError(-1073807346)
         self.name = "Keysight B2902B SMU"
@@ -508,7 +509,6 @@ class KeysightB2902B:
         self.write(f"TRAC{self.ch}:POIN {nPoints}")
         self.write(f"TRAC{self.ch}:FEED:CONT NEXT")
         # TODO: check if the following 2 lines can be set only at the beginning
-        self.write(f"TRAC{self.ch}:FEED SENS")
         self.write(f"TRAC{self.ch}:TST:FORM ABS")
 
     def set_simple_loop(self, count=1, delayTime = 0):
@@ -768,7 +768,6 @@ class KeysightB2902B:
         self.write(":trig:tran:coun 1")
         self.write(f":trig{self.ch}:acq:coun {self.avg + 1}")  # 1 set for write current, avg sets for read current
         self.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
-        self.write(f"TRAC{self.ch}:FEED SENS")
 
     def set_pulse1(self, pulse_width, amplitude):
         self.clear_buffer(2)
@@ -914,13 +913,6 @@ class KeysightB2902B:
             elif self.sense_mode == 'Current':
                 assert -1 > output > 1, 'Current out of range'
         self.write(f"SOUR{self.ch}:{self.source_mode}:TRIG {output}")
-
-    def configure_pulse(self, delay_time=1e-3, pulse_width=1e-3, baseV=0, peakV=0.1):
-        self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
-        self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")
-        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
-        self.write(f"SOUR{self.ch}:VOLT {baseV}")
-        self.write(f"SOUR{self.ch}:VOLT:TRIG {peakV}")
 
     def trigger_pulse(self):
         self.enable_source()  # start outputting pulse base value

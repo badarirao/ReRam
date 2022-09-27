@@ -626,9 +626,6 @@ class Worker(QObject):
         self.mtime = 0
         self.npoints = int(
             (self.params["Vmax"] - self.params["Vmin"]) / (self.params["Vstep"])) * 2 + 1
-        if self.params["VPwidth"] == 0:
-            self.params["VPwidth"] = 1
-            self.params["timeunit"] = 0
         if self.params["timeunit"] == 0:
             self.pulse_width = self.params["VPwidth"] * 1e-6
         elif self.params["timeunit"] == 1:
