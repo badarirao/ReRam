@@ -880,6 +880,7 @@ class Worker(QObject):
         self.stopCall = False
         self.params = params
         self.smu = smu
+        self.mtime = 0
         self.new_flag = new_flag
         if self.smu.ID == 'B2902B':
             # TODO: implement average_over_n_readings for B2902B SMU
@@ -943,14 +944,6 @@ class Worker(QObject):
             self.resetTimestep = self.params["resetPwidth"] * 1e-3
         elif self.params["reset_timeUnit"] == 2:
             self.resetTimestep = self.params["resetPwidth"]
-        self.points = []
-        if self.params["VsetCheck"]:
-            self.points.append(self.params["Vset"])
-        if self.params["VresetCheck"]:
-            self.points.append(self.params["Vreset"])
-        if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
-            self.points.append(0)
-        self.points = np.tile(self.points,self.npoints)
 
         if not self.savedFlag:
             filePresent = bool(fileExists(self.fullfilename))
@@ -961,9 +954,12 @@ class Worker(QObject):
                             f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
                             f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
                         elif self.smu.ID == 'B2902':
-                            f.write("##Pulse voltage source: Keysight B2902 source-measure unit.\n")
-                            f.write("##Resistance read using Keysight B2902 source-measure unit.\n")
-                        f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
+                            f.write("##Pulse voltage source: Keysight B2902 source-measure unit."
+                                    f"(channel {self.smu.ch})\n")
+                            f.write("##Resistance read using Keysight B2902 source-measure unit."
+                                    f"(channel {self.smu.ch})\n")
+                        f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
+                                f"measurement time = {self.mtime}\n")
                         f.write(f"##Read voltage averaged over {self.smu.avg} readings\n")
                         f.write(self.params["comments"])
                         if self.smu.ID == "K2450":
@@ -979,52 +975,96 @@ class Worker(QObject):
                         if self.smu.ID == 'K2450':
                             f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
                         elif self.smu.ID == 'B2902B':
-                            f.write("##Resistance read using Keysight B2902B source-measure unit.\n")
-                        f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
-                        f.write("##Read voltage averaged over {0} readings\n".format(self.params["Average"]))
+                            f.write("##Resistance read using Keysight B2902B source-measure unit "
+                                    f"channel {self.smu.ch}.\n")
+                        f.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}, "
+                                f"measurement time = {self.mtime}\n")
+                        f.write(f"##Read voltage averaged over {self.params["Average"]} readings\n")
                         f.write(self.params["comments"])
                         f.write("#Pulse Voltage (V)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\tPulse Width (ms)\tCompliance current (A)\n")
 
+        self.points = []
+        if self.params["VsetCheck"]:
+            self.points.append(self.params["Vset"])
+        if self.params["VresetCheck"]:
+            self.points.append(self.params["Vreset"])
+        if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
+            self.points.append(0)
+        self.points = np.tile(self.points, self.npoints)
         self.smu.avg = self.params["Average"]
         if self.smu.ID == 'B2902B':
             voltages = ",".join(self.points.astype('str'))
-            if self.params["setPwidth"] == self.params["resetPwidth"]:
+            if self.params["setPwidth"] == self.params["resetPwidth"] or
+                    not self.params["VsetCheck"] or not self.params["VresetCheck"]:
                 self.smu.configure_pulse_sweep(voltages,
                                                baseV=self.params["Rvoltage"],
                                                pulse_width=self.params["setPwidth"])
             else:
-                self.smu.configure_pulse(baseV = self.params["Rvoltage"])
+                self.smu.configure_pulse(baseV = self.params["Rvoltage"],
+                                         pw1 = self.params["setPwidth"],
+                                         pw2 = self.params["resetPwidth"])
     def measure_RV_B2902b(self):
         if self.params["setPwidth"] == self.params["resetPwidth"]:
-            self.smu.clear_buffer((self.smu.avg+1)*self.npoints)
+            self.npoints = len(self.points)
+            self.smu.clear_buffer((self.smu.avg + 1) * self.npoints)
             self.smu.start_buffer()
-            number_of_data_per_point = 4
-            while self.smu.get_trigger_state() == 'RUNNING':
+            number_of_data_per_point = 4  # TODO: get it directly from SMU
+            while self.smu.get_trigger_state() == 'RUNNING' and not self.stopCall:
                 sleep(0.2)
-                data = smu.ask(":TRAC:Data?")
-                data2 = reshape(array(data.split(','), dtype=float), (-1, number_of_data_per_point))
-                writeData = data2[::self.smu.avg+1].copy()
+                data = self.smu.get_trace_data()
+                data2 = reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
+                writeData = data2[::self.smu.avg + 1].copy()
                 if self.smu.avg == 1:
-                    readData = data2[1::2].copy()
+                    readData = data2[1::self.smu.avg + 1].copy()
                 else:
-                    readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg+1) != 0]
-                    readData = reshape(readData,(-1,self.smu.avg,number_of_data_per_point))
-                    readData = mean(readData,axis=1)
+                    readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0]
+                    readData = reshape(readData, (-1, self.smu.avg, number_of_data_per_point))
+                    readData = mean(readData, axis=1)
                 volts = writeData[:, 3]
                 read_currents = readData[:, 1]
+                if len(volts) < len(read_currents):
+                    read_currents = read_currents[:len(volts)]
+                elif len(read_currents) < len(volts):
+                    volts = volts[:len(read_currents)]
                 resistances = self.params["Rvoltage"] / read_currents
-                self.data.emit(volts,resistances)
+                self.data.emit([[volts, resistances], self.cycleNum])
             volts = writeData[:, 3]
             read_currents = readData[:, 1]
             resistances = self.params["Rvoltage"] / read_currents
-            self.data.emit(volts, resistances)
-            actual_setVolts = writeData[:,0]
-            set_currents = writeData[:,1]
-            time_stamp = writeData[:,2]
-            data = np.array((volts, actual_setVolts, set_currents, read_currents, resistances,time_stamp))
+            self.data.emit([[volts, resistances], self.cycleNum])
+            actual_setVolts = writeData[:, 0]
+            set_currents = writeData[:, 1]
+            time_stamp = writeData[:, 2]
+            data = np.array((volts, actual_setVolts, set_currents, read_currents, resistances, time_stamp))
             return data
         else:
-            pass
+            i = 0
+            while i < self.npoints and not self.stopCall:
+                self.smu.setNPLC(0.01)
+                self.smu.set_pulse1(self.params["setPwidth"], self.params["setV"])
+                self.smu.start_buffer()
+                self.smu.wait_till_done()
+                setData = self.smu.get_trace_data()
+                self.smu.set_pulse2(self.params["resetPwidth"], self.params["resetV"])
+                self.smu.start_buffer()
+                self.smu.wait_till_done()
+                resetData = self.smu.get_trace_data()
+                setData = reshape(array(setData.split(','), dtype=float),(-1,2))
+                resetData = reshape(array(resetData.split(','), dtype=float),(-1,2))
+                ### TODO: extract required data from set and reset data accordingly
+                v, c = setData[0], setData[1]
+                self.actual_setVolts.append(v)
+                self.set_currents.append(c)
+                self.read_currents.append(self.smu.get_average_trace_data())
+                if self.read_currents[i] == 0:
+                    self.read_currents[i] = 1e-20
+                self.volts.append(self.points[i])
+                self.resistances.append(
+                    self.params["Rvoltage"] / self.read_currents[i])
+                self.data.emit([self.volts, self.resistances], self.cycleNum)
+                i = i + 1
+            data = np.array((self.volts, self.actual_setVolts, self.set_currents, self.read_currents, self.resistances))
+            return data
 
     def measure_RV_K2450(self):
         """
@@ -1036,7 +1076,7 @@ class Worker(QObject):
 
         """
         i = 0
-        while i < self.npoints or not self.stopCall:
+        while i < self.npoints and not self.stopCall:
             self.smu.setNPLC(0.01)
             self.smu.set_simple_loop(delayTime=self.timestep)
             self.smu.source_voltage = self.points[i]
@@ -1073,7 +1113,7 @@ class Worker(QObject):
 
         """
         i = 0
-        while i < self.npoints or not self.stopCall:
+        while i < self.npoints and not self.stopCall:
             self.afg1022.setSinglePulse(self.points[i],self.timestep)
             self.afg1022.trgNwait()
             #self.set_currents.append(c)
@@ -1107,6 +1147,7 @@ class Worker(QObject):
 
                 """
         self.i = 0
+        self.mtime = datetime.now()
         if self.initial_source != self.source.currentIndex():
             if not self.savedFlag:
                 self.clearGraph()
@@ -1157,6 +1198,7 @@ class Worker(QObject):
             self.smu.abort()
         self.smu.source_voltage = 0
         self.smu.disable_source()
+        self.mtime = str(datetime.now() - self.mtime)
         self.finished.emit()
 
     def stopcalled(self):
