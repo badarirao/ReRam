@@ -5,7 +5,7 @@
 # Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
-
+#TODO: finished message is not shown after measurement
 from utilities import *
 
 class Ui_Switch(QtWidgets.QWidget):
@@ -366,8 +366,10 @@ class app_Switch(Ui_Switch):
                 self.Vplot.setEnabled(False)
             elif self.smu.ID == 'B2902B':
                 self.source.removeItem(1)  # Remove Keithley SMU source option
+                self.smu.avg = 1
             elif self.smu.ID == 'K2450':
                 self.source.removeItem(0)  # Remove Keysight SMU source option
+                self.smu.avg = 5
         else:
             self.widget.setEnabled(False)
             self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
@@ -392,7 +394,6 @@ class app_Switch(Ui_Switch):
         self.stopCall = False
         self.measurement_status = "Idle"
         self.smu.nplc = 1
-        self.smu.avg = 5
         self.smu.readV = 0.1
         self.filename = self.fullfilename = sName
         self.file_name.setText(self.filename)
@@ -417,7 +418,6 @@ class app_Switch(Ui_Switch):
         self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
         self.pulsecount = [1]
-        self.initialize_thread(self.smu, self.k2700, self.connection)
 
     def updateCommentBox(self):
         if self.comment_checkBox.isChecked():
@@ -611,22 +611,22 @@ class app_Switch(Ui_Switch):
         self.stop_Button.setEnabled(True)
         self.smu.enable_source()
         self.stopCall = False
-        self.thread.start()
+        self.initialize_thread()
         self.new_flag = False
 
     def initialize_thread(self):
         self.thread = QThread()
-        self.worker = Worker()
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(parital(self.worker.start_switch,
-                                            self.params, self.new_flag,
+        self.worker = Worker(self.smu, self.k2700, self.connection, self.params, self.new_flag,
                                             self.fullfilename, self.pulsecount)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.start_switch)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.data.connect(self.plot_realtime_data)
         self.thread.finished.connect(self.finishAction)
         self.thread.finished.connect(self.finishAction)
+        self.thread.start()
 
     def stopSwitch(self):
         """
@@ -733,34 +733,39 @@ class Worker(QObject):
     finished = pyqtSignal()
     data = pyqtSignal(list)
     stopcall = pyqtSignal()
-
-    def __init__(self, smu = None, k2700 = None, connection = 1):
+    def __init__(self, smu = None, k2700 = None, connection = 1, params = [],
+                 new_flag = True, fullfilename = "sample.dat", pulsecount = [1]):
         super(Worker, self).__init__()
         self.stopCall = False
         self.smu = smu
         self.mtime = 0
+        self.savedFlag = False
         if self.smu.ID == 'B2902B':
             # TODO: implement average_over_n_readings for B2902B SMU
             self.smu.avg = 1 # currently only 1 reading will be taken for read resistance per point
         self.k2700 = k2700
         self.connection = connection
+        self.params = params
+        self.new_flag = new_flag
+        self.fullfilename = fullfilename
         self.tempfileName = self.fullfilename[:-4] + "_tmp.dat"
-        self.stopcall.connect(self.stopcalled)
-        self.smu.nplc = 1
-        self.status = 1
+        self.pulsecount = pulsecount
         self.npoints = self.params["nPulses"]
         if self.params["set_timeUnit"] == 0:
-            self.set_pulse_width = self.params["setPwidth"]*1e-6
+            self.set_pulse_width = self.params["setPwidth"] * 1e-6
         elif self.params["set_timeUnit"] == 1:
-            self.set_pulse_width = self.params["setPwidth"]*1e-3
+            self.set_pulse_width = self.params["setPwidth"] * 1e-3
         elif self.params["set_timeUnit"] == 2:
             self.set_pulse_width = self.params["setPwidth"]
         if self.params["reset_timeUnit"] == 0:
-            self.reset_pulse_width = self.params["resetPwidth"]*1e-6
+            self.reset_pulse_width = self.params["resetPwidth"] * 1e-6
         elif self.params["reset_timeUnit"] == 1:
-            self.reset_pulse_width = self.params["resetPwidth"]*1e-3
+            self.reset_pulse_width = self.params["resetPwidth"] * 1e-3
         elif self.params["reset_timeUnit"] == 2:
             self.reset_pulse_width = self.params["resetPwidth"]
+        self.stopcall.connect(self.stopcalled)
+        self.smu.nplc = 1
+        self.status = 1
 
     def initialize_SMU(self):
         """
@@ -788,7 +793,6 @@ class Worker(QObject):
 
         """
         self.smu.readV = self.params["Rvoltage"]
-        self.smu.avg = self.params["Average"]
         if self.params["set_timeUnit"] == 0:
             self.setTimestep = self.params["setPwidth"] * 1e-6
         elif self.params["set_timeUnit"] == 1:
@@ -814,6 +818,7 @@ class Worker(QObject):
             self.points.append(0)
         self.points = np.tile(self.points, self.npoints)
         self.smu.avg = self.params["Average"]
+        print(self.smu.avg)
         if self.smu.ID == 'B2902B':
             voltages = ",".join(self.points.astype('str'))
             if self.set_pulse_width == self.reset_pulse_width or \
@@ -964,7 +969,7 @@ class Worker(QObject):
         data = np.array((self.volts, self.read_currents, self.resistances))
         return data
 
-    def start_switch(self, params, new_flag, fullfilename="sample.dat", pulsecount = [1]):
+    def start_switch(self):
         """
                 Begins the switching experiment.
 
@@ -973,10 +978,6 @@ class Worker(QObject):
                 None.
 
                 """
-        self.params = params
-        self.new_flag = new_flag
-        self.fullfilename = fullfilename
-        self.pulsecount = pulsecount
         self.i = 0
         self.mtime = datetime.now()
         if self.new_flag:
@@ -1074,6 +1075,7 @@ class Worker(QObject):
             f.writelines(lines)
         f.close()
         os.remove(self.tempfileName)
+        self.savedFlag = True
 
     def stop_program(self):
         if self.stopCall:

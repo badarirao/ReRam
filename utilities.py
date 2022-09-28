@@ -6,7 +6,6 @@ from os.path import exists as fileExists
 from pyvisa import ResourceManager, VisaIOError
 from os import makedirs
 import os
-from functools import partial
 from copy import copy
 from re import sub
 from math import log10

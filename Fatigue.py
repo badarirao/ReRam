@@ -489,7 +489,7 @@ class app_Fatigue(Ui_Fatigue):
             self.iLimit.setValue(self.parameters[10]*1000),
             self.temperature.setValue(self.parameters[11]),
             self.temp_check.setChecked(self.parameters[12])
-        except Exception:
+        except Exception as e:
             print(f"Problem with loading fatigue parameters. {e}")
             print("Deleting parameter file from the folder may resolve the issue.")
     

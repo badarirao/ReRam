@@ -91,6 +91,7 @@ class KeysightB2902B:
         return ans
 
     def write(self,cmd):
+        print(f"Writing: {cmd}")
         self.inst.write(cmd)
         error_message = self.error
         if error_message[1] != 'No error':
