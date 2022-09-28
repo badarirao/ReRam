@@ -416,6 +416,8 @@ class app_Switch(Ui_Switch):
             "comments": ""}
         self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
+        self.pulsecount = [1]
+        self.initialize_thread()
 
     def updateCommentBox(self):
         if self.comment_checkBox.isChecked():
@@ -590,7 +592,6 @@ class app_Switch(Ui_Switch):
             self.pulsecount = [0]
             self.readResistances = [0]
             self.volts = [0]
-            self.new_flag = False
             self.fullfilename = unique_filename(directory='.', prefix=self.filename, datetimeformat="", ext='dat')
             pen1 = mkPen(color=(0, 0, 255), width=2)
             pen2 = mkPen(color=(255, 0, 0), width=2)
@@ -610,21 +611,23 @@ class app_Switch(Ui_Switch):
         self.stop_Button.setEnabled(True)
         self.smu.enable_source()
         self.stopCall = False
-        self.startThread()
+        self.thread.start()
+        self.new_flag = False
 
-    def startThread(self):
+    def initialize_thread(self):
         self.thread = QThread()
-        self.worker = Worker(self.params, self.new_flag, self.smu, self.k2700,
-                             self.fullfilename, self.connection, self.pulsecount)
+        self.worker = Worker()
         self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.start_switch)
+        self.thread.started.connect(parital(self.worker.start_switch,
+                                            self.params, self.new_flag,
+                                            self.smu, self.k2700,
+                                            self.fullfilename, self.connection, self.pulsecount)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.data.connect(self.plot_realtime_data)
         self.thread.finished.connect(self.finishAction)
         self.thread.finished.connect(self.finishAction)
-        self.thread.start()
 
     def stopSwitch(self):
         """
@@ -753,17 +756,17 @@ class Worker(QObject):
         self.status = 1
         self.npoints = self.params["nPulses"]
         if self.params["set_timeUnit"] == 0:
-            self.pulse_width = self.params["setPwidth"]*1e-6
+            self.set_pulse_width = self.params["setPwidth"]*1e-6
         elif self.params["set_timeUnit"] == 1:
-            self.pulse_width = self.params["setPwidth"]*1e-3
+            self.set_pulse_width = self.params["setPwidth"]*1e-3
         elif self.params["set_timeUnit"] == 2:
-            self.pulse_width = self.params["setPwidth"]
+            self.set_pulse_width = self.params["setPwidth"]
         if self.params["reset_timeUnit"] == 0:
-            self.pulse_width = self.params["resetPwidth"]*1e-6
+            self.reset_pulse_width = self.params["resetPwidth"]*1e-6
         elif self.params["reset_timeUnit"] == 1:
-            self.pulse_width = self.params["resetPwidth"]*1e-3
+            self.reset_pulse_width = self.params["resetPwidth"]*1e-3
         elif self.params["reset_timeUnit"] == 2:
-            self.pulse_width = self.params["resetPwidth"]
+            self.reset_pulse_width = self.params["resetPwidth"]
 
     def initialize_SMU(self):
         """
@@ -806,21 +809,24 @@ class Worker(QObject):
             self.resetTimestep = self.params["resetPwidth"]
 
         self.points = []
+        pulsewidth = 5e-5
         if self.params["VsetCheck"]:
             self.points.append(self.params["Vset"])
+            pulsewidth = self.set_pulse_width
         if self.params["VresetCheck"]:
             self.points.append(self.params["Vreset"])
+            pulsewidth = self.reset_pulse_width
         if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
             self.points.append(0)
         self.points = np.tile(self.points, self.npoints)
         self.smu.avg = self.params["Average"]
         if self.smu.ID == 'B2902B':
             voltages = ",".join(self.points.astype('str'))
-            if self.params["setPwidth"] == self.params["resetPwidth"] or \
+            if self.set_pulse_width == self.reset_pulse_width or \
                     not self.params["VsetCheck"] or not self.params["VresetCheck"]:
                 self.smu.configure_pulse_sweep(voltages,
                                                baseV=self.params["Rvoltage"],
-                                               pulse_width=self.params["setPwidth"])
+                                               pulse_width=pulsewidth)
             else:
                 self.smu.configure_pulse(baseV = self.params["Rvoltage"],
                                          pw1 = self.params["setPwidth"],
@@ -985,6 +991,7 @@ class Worker(QObject):
                 data =  self.pulseMeasure_K2450()
             elif self.smu.ID == 'B2902B':
                 data = self.pulseMeasure_B2902B()
+                print(data)
         elif self.params["Vsource"] == 1:
             # TODO: check if this will work with Keysight SMU
             connect_sample_with_AFG(self.k2700, self.connection)
