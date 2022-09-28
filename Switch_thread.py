@@ -417,7 +417,7 @@ class app_Switch(Ui_Switch):
         self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
         self.pulsecount = [1]
-        self.initialize_thread()
+        self.initialize_thread(self.smu, self.k2700, self.connection)
 
     def updateCommentBox(self):
         if self.comment_checkBox.isChecked():
@@ -620,8 +620,7 @@ class app_Switch(Ui_Switch):
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(parital(self.worker.start_switch,
                                             self.params, self.new_flag,
-                                            self.smu, self.k2700,
-                                            self.fullfilename, self.connection, self.pulsecount)
+                                            self.fullfilename, self.pulsecount)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -735,21 +734,16 @@ class Worker(QObject):
     data = pyqtSignal(list)
     stopcall = pyqtSignal()
 
-    def __init__(self, params, new_flag, smu=None, k2700=None,
-                 fullfilename="sample.dat", connection=1, pulsecount = [1]):
+    def __init__(self, smu = None, k2700 = None, connection = 1):
         super(Worker, self).__init__()
         self.stopCall = False
-        self.params = params
         self.smu = smu
         self.mtime = 0
-        self.pulsecount = pulsecount
-        self.new_flag = new_flag
         if self.smu.ID == 'B2902B':
             # TODO: implement average_over_n_readings for B2902B SMU
             self.smu.avg = 1 # currently only 1 reading will be taken for read resistance per point
         self.k2700 = k2700
         self.connection = connection
-        self.fullfilename = fullfilename
         self.tempfileName = self.fullfilename[:-4] + "_tmp.dat"
         self.stopcall.connect(self.stopcalled)
         self.smu.nplc = 1
@@ -970,7 +964,7 @@ class Worker(QObject):
         data = np.array((self.volts, self.read_currents, self.resistances))
         return data
 
-    def start_switch(self):
+    def start_switch(self, params, new_flag, fullfilename="sample.dat", pulsecount = [1]):
         """
                 Begins the switching experiment.
 
@@ -979,6 +973,10 @@ class Worker(QObject):
                 None.
 
                 """
+        self.params = params
+        self.new_flag = new_flag
+        self.fullfilename = fullfilename
+        self.pulsecount = pulsecount
         self.i = 0
         self.mtime = datetime.now()
         if self.new_flag:
