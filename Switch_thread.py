@@ -548,6 +548,8 @@ class app_Switch(Ui_Switch):
             -------
             None.
         """
+        #TODO: if only freshly accumulated data is obtained from smu, then you can directly append the data
+        #TODO: currently, each time, whole data from beginning is obtained from the smu.
         self.pulsecount = data[0]
         volts = data[1]
         resistances  = data[2]
@@ -817,7 +819,6 @@ class Worker(QObject):
             self.points.append(0)
         self.points = np.tile(self.points, self.npoints)
         self.smu.avg = self.params["Average"]
-        print(self.smu.avg)
         if self.smu.ID == 'B2902B':
             voltages = ",".join(self.points.astype('str'))
             if self.set_pulse_width == self.reset_pulse_width or \
@@ -838,7 +839,6 @@ class Worker(QObject):
             while self.smu.get_trigger_state() == 'RUNNING' and not self.stopCall:
                 sleep(0.2)
                 data = self.smu.get_trace_data()
-                print(len(data))
                 data2 = reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
                 writeData = data2[::self.smu.avg + 1].copy()
                 pulses = len(writeData)
@@ -988,7 +988,6 @@ class Worker(QObject):
                 data =  self.pulseMeasure_K2450()
             elif self.smu.ID == 'B2902B':
                 data = self.pulseMeasure_B2902B()
-                print(data)
         elif self.params["Vsource"] == 1:
             # TODO: check if this will work with Keysight SMU
             connect_sample_with_AFG(self.k2700, self.connection)
