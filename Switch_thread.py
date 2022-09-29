@@ -625,7 +625,6 @@ class app_Switch(Ui_Switch):
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.data.connect(self.plot_realtime_data)
         self.thread.finished.connect(self.finishAction)
-        self.thread.finished.connect(self.finishAction)
         self.thread.start()
 
     def stopSwitch(self):
@@ -857,12 +856,11 @@ class Worker(QObject):
                 elif len(read_currents) < len(volts):
                     volts = volts[:len(read_currents)]
                 resistances = self.params["Rvoltage"] / read_currents
-                #self.data.emit([self.pulsecount, volts, resistances])
-            #self.data.emit([self.pulsecount, volts, resistances])
+                self.data.emit([self.pulsecount, volts, resistances])
             volts = writeData[:, 3]
             read_currents = readData[:, 1]
             resistances = self.params["Rvoltage"] / read_currents
-            #self.data.emit([self.pulsecount, volts, resistances])
+            self.data.emit([self.pulsecount, volts, resistances])
             actual_setVolts = writeData[:, 0]
             set_currents = writeData[:, 1]
             time_stamp = writeData[:, 2]
@@ -999,10 +997,11 @@ class Worker(QObject):
             self.smu.source_voltage = self.params["Rvoltage"]
             data = self.pulseMeasure_AFG()
         with open(self.tempfileName, "w") as f:
-            print(data)
-            #np.savetxt(f, data.T, delimiter='\t')
+            np.savetxt(f, data.T, delimiter='\t')
             f.write("\n\n")
         self.saveData()
+        self.finished.emit()
+
 
     def wait_till_done(self):
         """
@@ -1070,11 +1069,12 @@ class Worker(QObject):
                         f.write("#Pulse Voltage (V)\tRead Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\t"
                                 "Pulse Width (ms)\tCompliance current (A)\n")
         f = open(self.fullfilename, 'a')
-        with open(self.tempfileName, 'r') as tmp:
-            lines = tmp.readlines()
-            f.writelines(lines)
-        f.close()
-        os.remove(self.tempfileName)
+        if fileExists(self.tempfileName):
+            with open(self.tempfileName, 'r') as tmp:
+                lines = tmp.readlines()
+                f.writelines(lines)
+            f.close()
+            os.remove(self.tempfileName)
         self.savedFlag = True
 
     def stop_program(self):

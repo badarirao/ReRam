@@ -405,7 +405,6 @@ class app_IVLoop(Ui_IVLoop):
         self.worker.data.connect(self.plot_IVloop)
         self.thread.finished.connect(self.finishAction)
         self.worker.sendPoints.connect(self.getPoints)
-        self.thread.finished.connect(self.finishAction)   
         self.thread.start()
 
     def getPoints(self,points):
@@ -662,10 +661,11 @@ class Worker(QObject):
                     f"Scan Direction = {direction}\n")
             f.write(self.params["comments"])
             f.write("#Set Voltage(V)\tActual Voltage(V)\tCurrent(A)\n")
-            with open(self.tempfileName, 'r') as tmp:
-                lines = tmp.readlines()
-                f.writelines(lines)
-        os.remove(self.tempfileName)
+            if fileExists(self.tempfileName):
+                with open(self.tempfileName, 'r') as tmp:
+                    lines = tmp.readlines()
+                    f.writelines(lines)
+                os.remove(self.tempfileName)
     
     def stopcalled(self):
         self.stopCall = True

@@ -518,7 +518,6 @@ class app_RVLoop(Ui_RVLoop):
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.data.connect(self.plot_realtime_data)
         self.thread.finished.connect(self.finishAction)
-        self.thread.finished.connect(self.finishAction)
         self.thread.start()
 
     def stop_rvLoop(self):
@@ -847,9 +846,9 @@ class Worker(QObject):
         self.stop_program()
 
     def saveFile(self):
+        f = open(self.fullfilename, "w", newline='')
         if self.params["Vsource"] == 0:
             # For SMU
-            f = open(self.fullfilename, "w", newline='')
             if self.smu.ID == 'K2450':
                 f.write("##Pulse voltage source: Keithley 2450 source-measure unit.\n")
                 f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
@@ -878,7 +877,6 @@ class Worker(QObject):
                         f"Time Stamp (s)\n")
         else:
             # For AGF
-            f = open(self.fullfilename, "w", newline='')
             f.write("##Pulse voltage source: Tektronix AFG1022 MultiFunction Generator.\n")
             if self.smu.ID == 'K2450':
                 f.write("##Resistance read using Keithley 2450 source-measure unit.\n")
@@ -895,11 +893,12 @@ class Worker(QObject):
             f.write(self.params["comments"])
             f.write(f"#Set Voltage(V)\tRead Current at {self.params['Rvoltage']}V\t"
                     f"Read Resistance at {self.params['Rvoltage']}V (Ω)\n")
-        with open(self.tempfileName, 'r') as tmp:
-            lines = tmp.readlines()
-            f.writelines(lines)
+        if fileExists(self.tempfileName):
+            with open(self.tempfileName, 'r') as tmp:
+                lines = tmp.readlines()
+                f.writelines(lines)
+            os.remove(self.tempfileName)
         f.close()
-        os.remove(self.tempfileName)
 
     def stop_program(self):
         if self.stopCall:
