@@ -552,7 +552,7 @@ class app_Switch(Ui_Switch):
         #TODO: currently, each time, whole data from beginning is obtained from the smu.
         self.pulsecount = data[0]
         volts = data[1]
-        resistances  = data[2]
+        resistances = data[2]
         # volts = volts.flatten()
         resistances = [abs(x) for x in resistances]
         try:
@@ -836,19 +836,23 @@ class Worker(QObject):
             self.smu.clear_buffer((self.smu.avg + 1) * self.npoints)
             self.smu.start_buffer()
             number_of_data_per_point = 4  # TODO: get it directly from SMU
+            whole_writeData = []
+            whole_readData = []
             while self.smu.get_trigger_state() == 'RUNNING' and not self.stopCall:
                 sleep(0.2)
                 data = self.smu.get_trace_data()
                 data2 = reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
                 writeData = data2[::self.smu.avg + 1].copy()
+                whole_writeData.extend(writeData)
                 pulses = len(writeData)
-                self.pulsecount = list(np.linspace(1, pulses, pulses))
+                self.pulsecount = list(np.linspace(self.pulsecount[-1], pulses, pulses))
                 if self.smu.avg == 1:
                     readData = data2[1::self.smu.avg + 1].copy()
                 else:
                     readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0]
                     readData = np.reshape(readData, (-1, self.smu.avg, number_of_data_per_point))
                     readData = np.mean(readData, axis=1)
+                whole_readData.extend(readData)
                 volts = writeData[:, 3]
                 read_currents = readData[:, 1]
                 if len(volts) < len(read_currents):
@@ -857,13 +861,13 @@ class Worker(QObject):
                     volts = volts[:len(read_currents)]
                 resistances = self.params["Rvoltage"] / read_currents
                 self.data.emit([self.pulsecount, volts, resistances])
-            volts = writeData[:, 3]
-            read_currents = readData[:, 1]
+            volts = whole_writeData[:, 3]
+            read_currents = whole_readData[:, 1]
             resistances = self.params["Rvoltage"] / read_currents
             self.data.emit([self.pulsecount, volts, resistances])
-            actual_setVolts = writeData[:, 0]
-            set_currents = writeData[:, 1]
-            time_stamp = writeData[:, 2]
+            actual_setVolts = whole_writeData[:, 0]
+            set_currents = whole_writeData[:, 1]
+            time_stamp = whole_writeData[:, 2]
             data = np.array((volts, actual_setVolts, set_currents, read_currents, resistances, time_stamp))
             return data
         else:
