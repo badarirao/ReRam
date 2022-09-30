@@ -4,10 +4,10 @@ from utilities import *
 
 vset = -3
 vreset = 3
-setpulse_width = 5e-4
-resetpulse_width = 5e-4
+setpulse_width = 5e-2
+resetpulse_width = 5e-2
 readV = 0.2
-npulse = 5
+npulse = 50
 current_limit = 1e-3
 
 points = []
@@ -28,10 +28,11 @@ smu.clear_buffer(2*nPoints)
 # smu.ask(":TRAC:POIN:ACT?")
 print("Started...")
 smu.start_buffer()
+data2 = []
 while smu.get_trigger_state() == 'RUNNING':
     sleep(0.2)
-    data = smu.get_trace_data()
-    data2 = reshape(array(data.split(','), dtype=float), (-1, 4))
+    data = smu.ask(f"TRACe:data? curr").strip()
+    data2.extend(reshape(array(data.split(','), dtype=float), (-1, 4)))
     print(len(data2))
 smu.source_voltage = 0
 smu.disable_source()

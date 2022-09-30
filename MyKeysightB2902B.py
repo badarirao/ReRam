@@ -506,10 +506,10 @@ class KeysightB2902B:
     def clear_buffer(self,nPoints):
         self.write(f"TRAC{self.ch}:FEED:CONT NEV")
         self.write(f"TRAC{self.ch}:CLEar")
-        self.write(f"TRAC{self.ch}:POIN {nPoints}")
+        self.write(f"TRAC{self.ch}:POIN {nPoints}") #maybe not needed
         self.write(f"TRAC{self.ch}:FEED:CONT NEXT")
         # TODO: check if the following 2 lines can be set only at the beginning
-        self.write(f"TRAC{self.ch}:TST:FORM ABS")
+        #self.write(f"TRAC{self.ch}:TST:FORM ABS")
 
     def set_simple_loop(self, count=1, delayTime = 0):
         if delayTime <= 0:
