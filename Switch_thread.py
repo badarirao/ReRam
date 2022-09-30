@@ -550,14 +550,20 @@ class app_Switch(Ui_Switch):
         """
         #TODO: if only freshly accumulated data is obtained from smu, then you can directly append the data
         #TODO: currently, each time, whole data from beginning is obtained from the smu.
-        self.pulsecount = data[0]
-        volts = data[1]
-        resistances = data[2]
-        # volts = volts.flatten()
-        resistances = [abs(x) for x in resistances]
+        self.volts.extend(data[0])
+        self.readResistances.extend(data[1])
+        nPulses = len(data[0])
+        if self.pulsecount:
+            startPulse = self.pulsecount[-1] + 1
+        else:
+            startPulse = 1
+        endPulse = startPulse+nPulses-1
+        self.pulsecount.extend(np.linspace(startPulse,endPulse,nPulses,dtype=int))
+        self.readResistances = [abs(x) for x in self.readResistances]
         try:
-            self.data_lineR.setData(self.pulsecount, resistances)
-            self.data_lineV.setData(self.pulsecount, volts)
+            self.data_lineR.setData(self.pulsecount, self.readResistances)
+            print("Hello")
+            self.data_lineV.setData(self.pulsecount, self.volts)
         except Exception as e:
             print("Some error in plotting")
             print(e)
@@ -618,8 +624,8 @@ class app_Switch(Ui_Switch):
 
     def initialize_thread(self):
         self.thread = QThread()
-        self.worker = Worker(self.smu, self.k2700, self.connection, self.params, self.new_flag,
-                                            self.fullfilename, self.pulsecount)
+        self.worker = Worker(self.smu, self.k2700, self.connection, self.params,
+                             self.new_flag, self.fullfilename)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.start_switch)
         self.worker.finished.connect(self.thread.quit)
@@ -735,7 +741,7 @@ class Worker(QObject):
     data = pyqtSignal(list)
     stopcall = pyqtSignal()
     def __init__(self, smu = None, k2700 = None, connection = 1, params = [],
-                 new_flag = True, fullfilename = "sample.dat", pulsecount = [1]):
+                 new_flag = True, fullfilename = "sample.dat"):
         super(Worker, self).__init__()
         self.stopCall = False
         self.smu = smu
@@ -750,7 +756,6 @@ class Worker(QObject):
         self.new_flag = new_flag
         self.fullfilename = fullfilename
         self.tempfileName = self.fullfilename[:-4] + "_tmp.dat"
-        self.pulsecount = pulsecount
         self.npoints = self.params["nPulses"]
         if self.params["set_timeUnit"] == 0:
             self.set_pulse_width = self.params["setPwidth"] * 1e-6
@@ -830,48 +835,61 @@ class Worker(QObject):
                 self.smu.configure_pulse(baseV = self.params["Rvoltage"],
                                          pw1 = self.params["setPwidth"],
                                          pw2 = self.params["resetPwidth"])
+    def get_trace_data(self):
+        number_of_data_per_point = 4  # TODO: get it directly from SMU
+        sleep(0.2)
+        data = self.smu.get_trace_data()
+        data2 = np.reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
+        wIndex = 0
+        prevReadData = []
+        for i,d in enumerate(data2):
+            if d[0] != self.params["Rvoltage"]:
+                writeData = data2[i::self.smu.avg + 1].copy()
+                wIndex = i
+                break
+        if self.smu.avg == 1:
+            readData = data2[wIndex+1::self.smu.avg + 1].copy()
+        else:
+            readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0]
+        if wIndex != 0:
+            prevReadData = data2[:wIndex]
+        volts = writeData[:, 3]
+        read_currents = readData[:, 1]
+        if len(volts) < len(read_currents):
+            read_currents = read_currents[:len(volts)]
+        elif len(read_currents) < len(volts):
+            volts = volts[:len(read_currents)]
+        resistances = self.params["Rvoltage"] / read_currents
+        self.data.emit([volts, resistances])
+        return writeData, readData, prevReadData
+
     def pulseMeasure_B2902B(self):
         if self.params["setPwidth"] == self.params["resetPwidth"]:
             self.npoints = len(self.points)
             self.smu.clear_buffer((self.smu.avg + 1) * self.npoints)
             self.smu.start_buffer()
-            number_of_data_per_point = 4  # TODO: get it directly from SMU
             whole_writeData = []
             whole_readData = []
             while self.smu.get_trigger_state() == 'RUNNING' and not self.stopCall:
-                sleep(0.2)
-                data = self.smu.get_trace_data()
-                data2 = reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
-                writeData = data2[::self.smu.avg + 1].copy()
+                writeData, readData = self.get_trace_data()
                 whole_writeData.extend(writeData)
-                pulses = len(writeData)
-                self.pulsecount = list(np.linspace(self.pulsecount[-1], pulses, pulses))
-                if self.smu.avg == 1:
-                    readData = data2[1::self.smu.avg + 1].copy()
-                else:
-                    readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0]
-                    readData = np.reshape(readData, (-1, self.smu.avg, number_of_data_per_point))
-                    readData = np.mean(readData, axis=1)
                 whole_readData.extend(readData)
-                volts = writeData[:, 3]
-                read_currents = readData[:, 1]
-                if len(volts) < len(read_currents):
-                    read_currents = read_currents[:len(volts)]
-                elif len(read_currents) < len(volts):
-                    volts = volts[:len(read_currents)]
-                resistances = self.params["Rvoltage"] / read_currents
-                self.data.emit([self.pulsecount, volts, resistances])
+            #writeData, readData = self.get_trace_data()
+            #whole_writeData.extend(writeData)
+            #whole_readData.extend(readData)
+            whole_writeData = np.array(whole_writeData)
+            whole_readData = np.array(whole_readData)
             volts = whole_writeData[:, 3]
+            print(whole_readData)
+            print(volts)
             read_currents = whole_readData[:, 1]
             resistances = self.params["Rvoltage"] / read_currents
-            self.data.emit([self.pulsecount, volts, resistances])
             actual_setVolts = whole_writeData[:, 0]
             set_currents = whole_writeData[:, 1]
             time_stamp = whole_writeData[:, 2]
             data = np.array((volts, actual_setVolts, set_currents, read_currents, resistances, time_stamp))
             return data
         else:
-            startPulse = self.pulsecount[-1]+1
             cycleNum = 0
             while cycleNum < self.npoints and not self.stopCall:
                 self.smu.setNPLC(0.01)
@@ -882,10 +900,9 @@ class Worker(QObject):
                 self.smu.set_pulse2(self.params["resetPwidth"], self.params["resetV"])
                 self.smu.start_buffer()
                 self.smu.wait_till_done()
-                self.pulsecount.extend([startPulse+2*cycleNum,startPulse+2*cycleNum+1])
                 resetData = self.smu.get_trace_data()
-                setData = reshape(array(setData.split(','), dtype=float),(-1,2))
-                resetData = reshape(array(resetData.split(','), dtype=float),(-1,2))
+                setData = np.reshape(array(setData.split(','), dtype=float),(-1,2))
+                resetData = np.reshape(array(resetData.split(','), dtype=float),(-1,2))
                 s = [setData[0][3],resetData[0][3]] # set voltage
                 v = [setData[0][0],resetData[0][0]] # actual voltage applied
                 wc = [setData[0][1],resetData[0][1]] # write current
@@ -896,7 +913,7 @@ class Worker(QObject):
                 self.volts.extend(s)
                 self.resistances.extend(np.divide(self.params["Rvoltage"], self.read_currents[i]))
                 cycleNum += 1
-                self.data.emit([self.pulsecount, self.volts, self.resistances])
+                self.data.emit([self.volts, self.resistances])
             data = np.array((self.volts, self.actual_setVolts, self.set_currents, self.read_currents, self.resistances))
             return data
 

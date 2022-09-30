@@ -18,7 +18,6 @@ from PyQt5.QtGui import QPalette, QColor, QBrush
 from winsound import MessageBeep
 from itertools import chain
 from time import sleep
-from numpy import reshape, array, around
 from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor, GraphicsLayoutWidget
 from math import ceil
 from csv import writer
