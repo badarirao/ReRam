@@ -6,6 +6,8 @@
 #
 # WARNING! All changes made in this file will be lost!
 #TODO: finished message is not shown after measurement
+import numpy as np
+
 from utilities import *
 
 class Ui_Switch(QtWidgets.QWidget):
@@ -562,7 +564,6 @@ class app_Switch(Ui_Switch):
         self.readResistances = [abs(x) for x in self.readResistances]
         try:
             self.data_lineR.setData(self.pulsecount, self.readResistances)
-            print("Hello")
             self.data_lineV.setData(self.pulsecount, self.volts)
         except Exception as e:
             print("Some error in plotting")
@@ -757,18 +758,6 @@ class Worker(QObject):
         self.fullfilename = fullfilename
         self.tempfileName = self.fullfilename[:-4] + "_tmp.dat"
         self.npoints = self.params["nPulses"]
-        if self.params["set_timeUnit"] == 0:
-            self.set_pulse_width = self.params["setPwidth"] * 1e-6
-        elif self.params["set_timeUnit"] == 1:
-            self.set_pulse_width = self.params["setPwidth"] * 1e-3
-        elif self.params["set_timeUnit"] == 2:
-            self.set_pulse_width = self.params["setPwidth"]
-        if self.params["reset_timeUnit"] == 0:
-            self.reset_pulse_width = self.params["resetPwidth"] * 1e-6
-        elif self.params["reset_timeUnit"] == 1:
-            self.reset_pulse_width = self.params["resetPwidth"] * 1e-3
-        elif self.params["reset_timeUnit"] == 2:
-            self.reset_pulse_width = self.params["resetPwidth"]
         self.stopcall.connect(self.stopcalled)
         self.smu.nplc = 1
         self.status = 1
@@ -800,29 +789,34 @@ class Worker(QObject):
         """
         self.smu.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:
-            self.setTimestep = self.params["setPwidth"] * 1e-6
+            self.set_pulse_width = self.params["setPwidth"] * 1e-6
         elif self.params["set_timeUnit"] == 1:
-            self.setTimestep = self.params["setPwidth"] * 1e-3
+            self.set_pulse_width = self.params["setPwidth"] * 1e-3
         elif self.params["set_timeUnit"] == 2:
-            self.setTimestep = self.params["setPwidth"]
+            self.set_pulse_width = self.params["setPwidth"]
         if self.params["reset_timeUnit"] == 0:
-            self.resetTimestep = self.params["resetPwidth"] * 1e-6
+            self.reset_pulse_width = self.params["resetPwidth"] * 1e-6
         elif self.params["reset_timeUnit"] == 1:
-            self.resetTimestep = self.params["resetPwidth"] * 1e-3
+            self.reset_pulse_width = self.params["resetPwidth"] * 1e-3
         elif self.params["reset_timeUnit"] == 2:
-            self.resetTimestep = self.params["resetPwidth"]
+            self.reset_pulse_width = self.params["resetPwidth"]
 
         self.points = []
+        self.pulsewidths = []
         pulsewidth = 5e-5
         if self.params["VsetCheck"]:
             self.points.append(self.params["Vset"])
             pulsewidth = self.set_pulse_width
+            self.pulsewidths.append(self.set_pulse_width)
         if self.params["VresetCheck"]:
             self.points.append(self.params["Vreset"])
             pulsewidth = self.reset_pulse_width
+            self.pulsewidths.append(self.reset_pulse_width)
         if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
             self.points.append(0)
+            self.pulsewidths.append(0)
         self.points = np.tile(self.points, self.npoints)
+        self.pulsewidths = np.tile(self.pulsewidths, self.npoints)
         self.smu.avg = self.params["Average"]
         if self.smu.ID == 'B2902B':
             voltages = ",".join(self.points.astype('str'))
@@ -837,11 +831,12 @@ class Worker(QObject):
                                          pw2 = self.params["resetPwidth"])
     def get_trace_data(self):
         number_of_data_per_point = 4  # TODO: get it directly from SMU
+        buffer
         sleep(0.2)
         data = self.smu.get_trace_data()
         data2 = np.reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
         wIndex = 0
-        prevReadData = []
+        buffer = []
         for i,d in enumerate(data2):
             if d[0] != self.params["Rvoltage"]:
                 writeData = data2[i::self.smu.avg + 1].copy()
@@ -851,8 +846,11 @@ class Worker(QObject):
             readData = data2[wIndex+1::self.smu.avg + 1].copy()
         else:
             readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0]
+            readData = np.reshape(readData, (-1, self.smu.avg, number_of_data_per_point))
+            readData = np.mean(readData, axis = 1)
         if wIndex != 0:
-            prevReadData = data2[:wIndex]
+            prevReadData = np.mean(data2[:wIndex], axis = 1)
+            readData = np.concatenate(prevReadData, readData)
         volts = writeData[:, 3]
         read_currents = readData[:, 1]
         if len(volts) < len(read_currents):
@@ -861,7 +859,7 @@ class Worker(QObject):
             volts = volts[:len(read_currents)]
         resistances = self.params["Rvoltage"] / read_currents
         self.data.emit([volts, resistances])
-        return writeData, readData, prevReadData
+        return writeData, readData
 
     def pulseMeasure_B2902B(self):
         if self.params["setPwidth"] == self.params["resetPwidth"]:
@@ -870,24 +868,42 @@ class Worker(QObject):
             self.smu.start_buffer()
             whole_writeData = []
             whole_readData = []
+            buffer = []
+            number_of_data_per_point = 4
             while self.smu.get_trigger_state() == 'RUNNING' and not self.stopCall:
-                writeData, readData = self.get_trace_data()
+                data2 = buffer
+                buffer = []
+                while True:
+                    sleep(0.2)
+                    data = self.smu.get_trace_data_recent()
+                    data2.extend(np.reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point)))
+                    data_length = len(data2)
+                    if data_length >= self.smu.avg + 1:
+                        trimmed_length = int(data_length / (self.smu.avg + 1)) * (self.smu.avg + 1)
+                        buffer = data2[trimmed_length:]
+                        data2 = np.array(data2[:trimmed_length])
+                        break
+                writeData = data2[::self.smu.avg + 1]
+                if self.smu.avg == 1:
+                    readData = data2[1::self.smu.avg + 1]
+                else:
+                    readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0].copy()
+                    readData = np.reshape(readData, (-1, self.smu.avg, number_of_data_per_point))
+                    readData = np.mean(readData, axis=1)
                 whole_writeData.extend(writeData)
                 whole_readData.extend(readData)
-            #writeData, readData = self.get_trace_data()
-            #whole_writeData.extend(writeData)
-            #whole_readData.extend(readData)
+                volts = writeData[:, 0]
+                read_currents = readData[:, 1]
+                resistances = self.params["Rvoltage"] / read_currents
+                self.data.emit([volts, resistances])
             whole_writeData = np.array(whole_writeData)
             whole_readData = np.array(whole_readData)
-            volts = whole_writeData[:, 3]
-            print(whole_readData)
-            print(volts)
+            volts = whole_writeData[:, 0]
             read_currents = whole_readData[:, 1]
-            resistances = self.params["Rvoltage"] / read_currents
-            actual_setVolts = whole_writeData[:, 0]
+            requestedVoltage = whole_writeData[:, 0]
             set_currents = whole_writeData[:, 1]
             time_stamp = whole_writeData[:, 2]
-            data = np.array((volts, actual_setVolts, set_currents, read_currents, resistances, time_stamp))
+            data = np.array((requestedVoltage, volts, set_currents, read_currents, time_stamp))
             return data
         else:
             cycleNum = 0
@@ -1016,8 +1032,15 @@ class Worker(QObject):
             self.smu.set_simple_loop(count=self.params["Average"])
             self.smu.source_voltage = self.params["Rvoltage"]
             data = self.pulseMeasure_AFG()
+        pulseResistances = data[1]/data[2]
+        readVs = np.ones(data.shape[1]) * self.params["Rvoltage"]
+        readResistances = self.params["Rvoltage"] / data[3]
+        complianceCurrents = np.ones(data.shape[1]) * self.params["ILimit"]
+        totalData = np.array((data[0],data[1],data[2], pulseResistances,
+                              readVs, data[3], readResistances, self.pulsewidths,
+                              complianceCurrents, data[4]),dtype=float)
         with open(self.tempfileName, "w") as f:
-            np.savetxt(f, data.T, delimiter='\t')
+            np.savetxt(f, totalData.T, delimiter='\t')
             f.write("\n\n")
         self.saveData()
         self.finished.emit()
@@ -1069,11 +1092,13 @@ class Worker(QObject):
                         f.write(f"##Read voltage averaged over {self.smu.avg} readings\n")
                         f.write(self.params["comments"])
                         if self.smu.ID == "K2450":
-                            f.write("#Pulse Voltage (V)\tPulse Current (A)\tPulse Resistance (ohms)\t"
+                            f.write("#Pulse Voltage (V)\tActual Pulse Voltage (V)\t"
+                                    "Pulse Current (A)\tPulse Resistance (ohms)\t"
                                     "Read Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\t"
                                     "Pulse Width (ms)\tCompliance current (A)\n")
                         elif self.smu.ID == 'B2902B':
-                            f.write("#Pulse Voltage (V)\tPulse Current (A)\tPulse Resistance (ohms)\t"
+                            f.write("#Pulse Voltage (V)\tActual Pulse Voltage (V)\t"
+                                    "Pulse Current (A)\tPulse Resistance (ohms)\t"
                                     "Read Voltage (V)\tRead Current (A)\tRead Resistance (ohm)\t"
                                     "Pulse Width (ms)\tCompliance current (A)\tTime Stamp (s)\n")
                     else:

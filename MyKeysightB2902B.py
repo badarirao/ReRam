@@ -546,7 +546,11 @@ class KeysightB2902B:
         self.write(":FORM:ELEM:SENS SOUR,CURR")
 
     def get_trace_data(self, offset='CURR', size=1):
-        return self.ask(f"TRACe{self.ch}:data? {offset}").strip()
+        # get the whole data in buffer
+        return self.ask(f"TRACe{self.ch}:data?").strip()
+
+    def get_trace_data_recent(self, offset='CURR', size=1):
+        return self.ask(f"TRAC{self.ch}:data? {offset}")
     
     def get_average_trace_data(self):
         self.write(f"TRACe{self.ch}:STAT:FORM MEAN")
