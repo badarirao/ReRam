@@ -519,8 +519,18 @@ class KeysightB2902B:
             self.write(f"SOUR{self.ch}:WAIT ON")
             self.write(f"SOUR{self.ch}:WAIT:AUTO OFF")
             self.write(f"SOUR{self.ch}:WAIT:OFFS {delayTime}")
-        self.write(f"TRIG:LOAD 'SimpleLoop', {count}, {delayTime}")
-    
+        self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
+        self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")
+        pulse_delay = 2e-5  # set a default 20 µs pulse delay
+        #self.write(f"SOUR{self.ch}:PULS:DEL {pulse_delay}")
+        #self.write(f"TRIG{self.ch}:TRAN:DEL 0")
+        self.acq_trigger_period1 = delayTime + 2e-5  # add buffer 20 µs
+        # TODO: check if the following settings will be preserved when buffer is cleared
+        self.write(f":trig{self.ch}:acq:sour tim")
+        self.write(f":trig{self.ch}:acq:coun {self.avg}")  # avg sets for read current
+        self.write(":FORM:ELEM:SENS CURR")
+        self.clear_buffer(self.avg)
+
     def is_compliance_tripped(self):
         if self.sense_mode == 'voltage':
             return int(float(self.ask(f"SENS{self.ch}:VOLT:PROT:TRIP?").strip()))
@@ -553,8 +563,11 @@ class KeysightB2902B:
         return self.ask(f"TRAC{self.ch}:data? {offset}")
     
     def get_average_trace_data(self):
-        self.write(f"TRACe{self.ch}:STAT:FORM MEAN")
-        return float(self.ask(f"TRAC{self.ch}:stat:data?").strip())
+        # ensure trace is set to output only current. otherwise the code will fail
+        data = self.get_trace_data().strip()
+        data2 = np.array(data.split(','))
+        mean_current = np.mean(data2)
+        return mean_current
     
     def get_all_buffer_data(self):
         return self.ask("FETCh:ARRay?").strip().split(',')
@@ -774,14 +787,16 @@ class KeysightB2902B:
         self.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
 
     def set_pulse1(self, pulse_width, amplitude):
-        self.clear_buffer(2)
+        pulse_delay = 2e-5  # set a default 20 µs pulse delay
+        self.clear_buffer(self.avg+1)
         self.write(f"SOUR{self.ch}:VOLT:TRIG {amplitude}")
         self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
         self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
         self.write(f":trig{self.ch}:tran:tim {self.source_trigger_period1}")
         self.write(f":trig{self.ch}:acq:tim {self.acq_trigger_period1}")
     def set_pulse2(self, pulse_width, amplitude):
-        self.clear_buffer(2)
+        pulse_delay = 2e-5  # set a default 20 µs pulse delay
+        self.clear_buffer(self.avg+1)
         self.write(f"SOUR{self.ch}:VOLT:TRIG {amplitude}")
         self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
         self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")

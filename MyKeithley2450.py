@@ -433,7 +433,9 @@ class Keithley2450:
         return int(self.ask("trace:actual:end?")[:-1])
     
     def get_trace_data(self, start, end):
-        return self.ask(f"TRAC:data? {start}, {end}, 'defbuffer1', sour, read")
+        # timestamp should be either TSTamp, Date, Fractional, Relative, Seconds, time, or tstamp
+        # TODO: check each time option and see which one fits best for both sweep data and single point data.
+        return self.ask(f"TRAC:data? {start}, {end}, 'defbuffer1', sour, read, TSTamp")
     
     def get_average_trace_data(self):
         return float(self.ask("TRAC:stat:average?")[:-1])
