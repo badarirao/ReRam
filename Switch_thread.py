@@ -5,9 +5,6 @@
 # Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
-#TODO: finished message is not shown after measurement
-import numpy as np
-
 from utilities import *
 
 class Ui_Switch(QtWidgets.QWidget):
@@ -550,8 +547,6 @@ class app_Switch(Ui_Switch):
             -------
             None.
         """
-        #TODO: if only freshly accumulated data is obtained from smu, then you can directly append the data
-        #TODO: currently, each time, whole data from beginning is obtained from the smu.
         self.volts.extend(data[0])
         self.readResistances.extend(data[1])
         nPulses = len(data[0])
@@ -748,9 +743,6 @@ class Worker(QObject):
         self.smu = smu
         self.mtime = 0
         self.savedFlag = False
-        if self.smu.ID == 'B2902B':
-            # TODO: implement average_over_n_readings for B2902B SMU
-            self.smu.avg = 1 # currently only 1 reading will be taken for read resistance per point
         self.k2700 = k2700
         self.connection = connection
         self.params = params
@@ -866,6 +858,7 @@ class Worker(QObject):
                 resistances = self.params["Rvoltage"] / read_currents
                 self.data.emit([volts, resistances])
         else:
+            # TODO: check if this algorithm will work
             cycleNum = 0
             while cycleNum < self.npoints and not self.stopCall:
                 self.smu.set_pulse1(self.set_pulse_width, self.params["setV"])

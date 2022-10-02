@@ -569,89 +569,6 @@ class app_Retention(Ui_Retention):
         self.smu.set_simple_loop(self.params["Average"])
         self.smu.source_voltage = self.params["Rvoltage"]
 
-    def do_one_retention(self):
-        """
-        Apply 1 pulse from AFG or SMU, and measure resistance from SMU.
-
-        Returns
-        -------
-        None.
-
-        """
-        if self.vsource.currentIndex() == 0:
-            connect_sample_with_SMU(self.k2700, self.connection)
-            self.smu.apply_switch_pulse(*self.pulses_to_apply[self.i])
-            print("Applied {}V".format(self.pulses_to_apply[self.i][0]))
-        elif self.vsource.currentIndex() == 1:
-            connect_sample_with_AFG(self.k2700, self.connection)
-            self.afg1022.setSinglePulse(*self.pulses_to_apply[self.i])
-            self.afg1022.trgNwait()
-            connect_sample_with_SMU(self.k2700)
-        self.smu.set_simple_loop(self.params["Average"])
-        self.smu.source_voltage = self.smu.readV
-        
-        if self.pulses_to_apply[self.i][0] == self.params["Vset"]:
-            #self.ntimesSet = [0.09]
-            self.ntimesSet = []
-            self.LRScurrents = []
-            self.LRS = []
-            self.startTime = time()
-            self.j = 0
-            self.read_LRS_dataPoints()
-        elif self.pulses_to_apply[self.i][0] == self.params["Vreset"] and not self.stopCall:
-            #self.ntimesReset = [0.09]
-            self.ntimesReset = []
-            self.HRScurrents = []
-            self.HRS = []
-            self.startTime = time()
-            self.j = 0
-            self.read_HRS_dataPoints()
-
-    def read_LRS_dataPoints(self):
-        readCurrent = self.smu.readReRAM()
-        endTime = round((time() - self.startTime),3)
-        #if len(self.ntimesSet) == 1:
-        #    self.ntimesSet[0] = endTime
-        #    self.LRScurrents[0] = readCurrent
-        #    self.LRS[0] = abs(self.params["Rvoltage"]/readCurrent)
-        #else:
-        self.ntimesSet.append(endTime)
-        self.LRScurrents.append(readCurrent)
-        self.LRS.append(abs(self.params["Rvoltage"]/readCurrent))
-        self.data_lineLRS.setData(self.ntimesSet,self.LRS)
-        self.j = self.j+1
-        if self.j >= self.number_of_points or self.stopCall or self.skip:
-            self.skip = False
-            self.skip_Button.setEnabled(False)
-            self.i = self.i+1
-            if self.i >= len(self.pulses_to_apply) or self.stopCall:
-                self.stop_program()
-                return
-            self.timer.singleShot(0,self.do_one_retention)
-            return
-        pauseTime = int(self.binnedPoints[self.j]*1000)
-        self.timer.singleShot(pauseTime, QtCore.Qt.PreciseTimer, self.read_LRS_dataPoints)
-        
-    def read_HRS_dataPoints(self):
-        readCurrent = self.smu.readReRAM()
-        endTime = time() - self.startTime
-        self.ntimesReset.append(round(endTime,3))
-        self.HRScurrents.append(readCurrent)
-        self.HRS.append(abs(self.params["Rvoltage"]/readCurrent))
-        self.data_lineHRS.setData(self.ntimesReset,self.HRS)
-        self.j = self.j+1
-        if self.j >= self.number_of_points or self.stopCall or self.skip:
-            self.skip = False
-            self.skip_Button.setEnabled(False)
-            self.i = self.i+1
-            if self.i >= len(self.pulses_to_apply) or self.stopCall:
-                self.stop_program()
-                return
-            self.timer.singleShot(0,self.do_one_retention)
-            return
-        pauseTime = int(self.binnedPoints[self.j]*1000)
-        self.timer.singleShot(pauseTime, QtCore.Qt.PreciseTimer, self.read_HRS_dataPoints)
-        
     def startRetention(self):
         """
         Begins the retention experiment.
@@ -932,8 +849,149 @@ class Worker(QObject):
         self.connection = connection
         self.fullfilename = fullfilename
         self.stopcall.connect(self.stopcalled)
-        self.smu.nplc = 1
         self.status = 1
+
+    def initialize_SMU(self):
+        pass
+
+    def configure_retention(self):
+        pass
+
+    def do_one_retention(self):
+        """
+        Apply 1 pulse from AFG or SMU, and measure resistance from SMU.
+
+        Returns
+        -------
+        None.
+
+        """
+        if self.vsource.currentIndex() == 0:
+            connect_sample_with_SMU(self.k2700, self.connection)
+            self.smu.apply_switch_pulse(*self.pulses_to_apply[self.i])
+            print("Applied {}V".format(self.pulses_to_apply[self.i][0]))
+        elif self.vsource.currentIndex() == 1:
+            connect_sample_with_AFG(self.k2700, self.connection)
+            self.afg1022.setSinglePulse(*self.pulses_to_apply[self.i])
+            self.afg1022.trgNwait()
+            connect_sample_with_SMU(self.k2700)
+        self.smu.set_simple_loop(self.params["Average"])
+        self.smu.source_voltage = self.smu.readV
+
+        if self.pulses_to_apply[self.i][0] == self.params["Vset"]:
+            # self.ntimesSet = [0.09]
+            self.ntimesSet = []
+            self.LRScurrents = []
+            self.LRS = []
+            self.startTime = time()
+            self.j = 0
+            self.read_LRS_dataPoints()
+        elif self.pulses_to_apply[self.i][0] == self.params["Vreset"] and not self.stopCall:
+            # self.ntimesReset = [0.09]
+            self.ntimesReset = []
+            self.HRScurrents = []
+            self.HRS = []
+            self.startTime = time()
+            self.j = 0
+            self.read_HRS_dataPoints()
+
+    def read_LRS_dataPoints(self):
+        readCurrent = self.smu.readReRAM()
+        endTime = round((time() - self.startTime), 3)
+        # if len(self.ntimesSet) == 1:
+        #    self.ntimesSet[0] = endTime
+        #    self.LRScurrents[0] = readCurrent
+        #    self.LRS[0] = abs(self.params["Rvoltage"]/readCurrent)
+        # else:
+        self.ntimesSet.append(endTime)
+        self.LRScurrents.append(readCurrent)
+        self.LRS.append(abs(self.params["Rvoltage"] / readCurrent))
+        self.data_lineLRS.setData(self.ntimesSet, self.LRS)
+        self.j = self.j + 1
+        if self.j >= self.number_of_points or self.stopCall or self.skip:
+            self.skip = False
+            self.skip_Button.setEnabled(False)
+            self.i = self.i + 1
+            if self.i >= len(self.pulses_to_apply) or self.stopCall:
+                self.stop_program()
+                return
+            self.timer.singleShot(0, self.do_one_retention)
+            return
+        pauseTime = int(self.binnedPoints[self.j] * 1000)
+
+    def read_HRS_dataPoints(self):
+        readCurrent = self.smu.readReRAM()
+        endTime = time() - self.startTime
+        self.ntimesReset.append(round(endTime, 3))
+        self.HRScurrents.append(readCurrent)
+        self.HRS.append(abs(self.params["Rvoltage"] / readCurrent))
+        self.data_lineHRS.setData(self.ntimesReset, self.HRS)
+        self.j = self.j + 1
+        if self.j >= self.number_of_points or self.stopCall or self.skip:
+            self.skip = False
+            self.skip_Button.setEnabled(False)
+            self.i = self.i + 1
+            if self.i >= len(self.pulses_to_apply) or self.stopCall:
+                self.stop_program()
+                return
+            self.timer.singleShot(0, self.do_one_retention)
+            return
+        pauseTime = int(self.binnedPoints[self.j] * 1000)
+        self.timer.singleShot(pauseTime, QtCore.Qt.PreciseTimer, self.read_HRS_dataPoints)
+
+    def start_retention(self):
+        """
+        Begins the retention experiment.
+
+        Returns
+        -------
+        None.
+
+        """
+        if self.params["Vsource"] == 1:
+            LRSCurrent, HRSCurrent = self.read_LRS_HRS_states()
+        else:
+            vset = vreset = 0
+            setpulse = resetpulse = 0.1
+            if self.setVcheck.isChecked():
+                vset = self.params["Vset"]
+                setpulse = self.setTimestep
+                self.smu.apply_switch_pulse(vset, setpulse)
+                self.smu.set_simple_loop(self.params["Average"])
+                self.smu.source_voltage = self.smu.readV
+                LRSCurrent = self.smu.readReRAM()
+                self.smu.wait_till_done()
+            if self.resetVcheck.isChecked():
+                vreset = self.params["Vreset"]
+                resetpulse = self.resetTimestep
+                self.smu.apply_switch_pulse(vreset, resetpulse)
+                self.smu.set_simple_loop(self.params["Average"])
+                self.smu.source_voltage = self.smu.readV
+                HRSCurrent = self.smu.readReRAM()
+                self.smu.wait_till_done()
+        self.i = 0
+        self.pulses_to_apply = []
+        if self.setVcheck.isChecked():
+            self.pulses_to_apply.append([self.params["Vset"], self.setTimestep])
+        if self.resetVcheck.isChecked():
+            self.pulses_to_apply.append([self.params["Vreset"], self.resetTimestep])
+        self.initialize_SMU_and_AFG()
+        self.configurePulse()
+        self.smu.enable_source()
+        self.do_one_retention()
+
+    def saveFile(self):
+        pass
+
+    def stop_program(self):
+        if self.stopCall:
+            self.smu.abort()
+        self.smu.source_voltage = 0
+        self.smu.disable_source()
+        self.finished.emit()
+
+    def stopcalled(self):
+        self.stopCall = True
 
 if __name__ == "__main__":
     import sys
