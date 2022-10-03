@@ -814,10 +814,12 @@ class Worker(QObject):
             voltages = ",".join(self.points.astype('str'))
             if self.set_pulse_width == self.reset_pulse_width or \
                     not self.params["VsetCheck"] or not self.params["VresetCheck"]:
+                print('Hello1')
                 self.smu.configure_pulse_sweep(voltages,
                                                baseV=self.params["Rvoltage"],
                                                pulse_width=pulsewidth)
             else:
+                print('Hello')
                 self.smu.configure_pulse(baseV = self.params["Rvoltage"],
                                          pw1 = self.params["setPwidth"],
                                          pw2 = self.params["resetPwidth"])
@@ -855,30 +857,32 @@ class Worker(QObject):
                 whole_readData.extend(readData)
                 volts = writeData[:, 0]
                 read_currents = readData[:, 1]
+                read_currents[read_currents==0] = 1e-20
                 resistances = self.params["Rvoltage"] / read_currents
                 self.data.emit([volts, resistances])
         else:
             # TODO: check if this algorithm will work
             cycleNum = 0
             while cycleNum < self.npoints and not self.stopCall:
-                self.smu.set_pulse1(self.set_pulse_width, self.params["setV"])
+                self.smu.set_pulse1(self.set_pulse_width, self.params["Vset"])
                 self.smu.start_buffer()
                 self.smu.wait_till_done()
                 setData = self.smu.get_trace_data()
-                self.smu.set_pulse2(self.reset_pulse_width, self.params["resetV"])
+                self.smu.set_pulse2(self.reset_pulse_width, self.params["Vreset"])
                 self.smu.start_buffer()
                 self.smu.wait_till_done()
                 resetData = self.smu.get_trace_data()
-                setData = np.reshape(array(setData.split(','), dtype=float),(-1,4))
-                resetData = np.reshape(array(resetData.split(','), dtype=float),(-1,4))
+                setData = np.reshape(np.array(setData.split(','), dtype=float),(-1,4))
+                resetData = np.reshape(np.array(resetData.split(','), dtype=float),(-1,4))
                 volt = [setData[0][0],resetData[0][0]] # actual voltage applied
                 avgreadData_set = np.mean(setData[1:], axis=1)
                 avgreadData_reset = np.mean(resetData[1:], axis=1)
-                rc = [avgreadData_set[1],resetData[1]] # read current
-                resistance = self.params["Rvoltage"] / rc
-                whole_writeData.extend([setData[1], resetData[1]])
-                whole_readData.extend(avgreadData_set, avgreadData_reset)
-                self.data.emit([[volt], [resistance]])
+                rc = np.array([avgreadData_set[1],avgreadData_reset[1]]) # read current
+                rc[rc==0] = 1e-20
+                resistance = np.divide(self.params["Rvoltage"] , rc)
+                whole_writeData.extend([setData[0], resetData[0]])
+                whole_readData.extend([avgreadData_set, avgreadData_reset])
+                self.data.emit([volt, resistance])
                 cycleNum += 1
         whole_writeData = np.array(whole_writeData)
         whole_readData = np.array(whole_readData)
@@ -886,6 +890,8 @@ class Worker(QObject):
         read_currents = whole_readData[:, 1]
         requestedVoltage = whole_writeData[:, 3]
         set_currents = whole_writeData[:, 1]
+        set_currents[set_currents==0] = 1e-20
+        read_currents[read_currents==0] = 1e-20
         time_stamp = whole_writeData[:, 2]
         data = np.array((requestedVoltage, volts, set_currents, read_currents, time_stamp))
         return data
@@ -985,14 +991,14 @@ class Worker(QObject):
             self.initialize_SMU()
         self.configure_pulse()
         self.smu.enable_source()
-        complianceCurrents = np.ones(data.shape[1]) * self.params["ILimit"]
-        readVs = np.ones(data.shape[1]) * self.params["Rvoltage"]
         if self.params["Vsource"] == 0:
             connect_sample_with_SMU(self.k2700, self.connection)
             if self.smu.ID == 'K2450':
                 data =  self.pulseMeasure_K2450()
             elif self.smu.ID == 'B2902B':
                 data = self.pulseMeasure_B2902B()
+            complianceCurrents = np.ones(data.shape[1]) * self.params["ILimit"]
+            readVs = np.ones(data.shape[1]) * self.params["Rvoltage"]
             pulseResistances = data[1] / data[2]
             readResistances = self.params["Rvoltage"] / data[3]
             totalData = np.array((data[0], data[1], data[2], pulseResistances,
@@ -1005,6 +1011,8 @@ class Worker(QObject):
             self.smu.set_simple_loop(count=self.params["Average"])
             self.smu.source_voltage = self.params["Rvoltage"]
             data = self.pulseMeasure_AFG()
+            complianceCurrents = np.ones(data.shape[1]) * self.params["ILimit"]
+            readVs = np.ones(data.shape[1]) * self.params["Rvoltage"]
             readResistances = self.params["Rvoltage"]/ data[1]
             totalData = np.array((data[0], readVs, data[1],
                                   readResistances, self.pulsewidths,

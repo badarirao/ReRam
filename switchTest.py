@@ -4,7 +4,7 @@ from utilities import *
 
 vset = -3
 vreset = 3
-setpulse_width = 5e-2
+setpulse_width = 6e-2
 resetpulse_width = 5e-2
 readV = 0.2
 npulse = 5
@@ -22,41 +22,34 @@ smu.apply_voltage(compliance_current=current_limit)
 smu.measure_current()
 nPoints = len(points)
 smu.avg = navg
-smu.configure_pulse_sweep(voltages,baseV=readV, pulse_width=setpulse_width)
+smu.configure_pulse(baseV=readV, pw1=setpulse_width, pw2=resetpulse_width)
 smu.enable_source()
-smu.clear_buffer((navg+1)*nPoints)
-# get total points measured
-# smu.ask(":TRAC:POIN:ACT?")
-print("Started...")
-smu.start_buffer()
-data2 = []
-wholeData = []
 whole_writeData = []
 whole_readData = []
-buf = []
-while smu.get_trigger_state() == 'RUNNING':
-    data2 = buf
-    buf = []
-    while True:
-        sleep(0.2)
-        data = smu.ask(f"TRACe:data? curr").strip()
-        data2.extend(np.reshape(np.array(data.split(','), dtype=float), (-1, 4)))
-        data_length = len(data2)
-        if data_length >= navg+1:
-            trimmed_length = int(data_length/(navg+1))*(navg+1)
-            buf = data2[trimmed_length:]
-            data2 = np.array(data2[:trimmed_length])
-            break
-    writeData = np.array(data2[::smu.avg + 1])
-    if smu.avg == 1:
-        readData = data2[1::smu.avg + 1]
-    else:
-        readData = data2[np.mod(np.arange(len(data2)), smu.avg + 1) != 0]
-        readData = np.reshape(readData, (-1, smu.avg, 4))
-        readData = np.mean(readData, axis=1)
-    whole_writeData.extend(writeData)
-    whole_readData.extend(readData)
-    wholeData.extend(data2)
-    print(len(data2))
+print("Started...")
+i = 0
+while i < npulse:
+    smu.set_pulse1(setpulse_width, vset)
+    smu.start_buffer()
+    smu.wait_till_done()
+    setData = smu.get_trace_data()
+    smu.set_pulse2(resetpulse_width, vreset)
+    smu.start_buffer()
+    smu.wait_till_done()
+    resetData = smu.get_trace_data()
+    setData = np.reshape(np.array(setData.split(','), dtype=float), (-1, 4))
+    resetData = np.reshape(np.array(resetData.split(','), dtype=float), (-1, 4))
+    volt = [setData[0][0], resetData[0][0]]  # actual voltage applied
+    avgreadData_set = np.mean(setData[1:], axis=0)
+    avgreadData_reset = np.mean(resetData[1:], axis=0)
+    rc = np.array([avgreadData_set[1], avgreadData_reset[1]])  # read current
+    rc[rc==0] = 1e-20
+    resistance = np.divide(readV , rc)
+    whole_writeData.extend([setData[0], resetData[0]])
+    whole_readData.extend([avgreadData_set, avgreadData_reset])
+    i += 1
+print("Finished")
+whole_writeData = np.array(whole_writeData)
+whole_readData = np.array(whole_readData)
 smu.source_voltage = 0
 smu.disable_source()
