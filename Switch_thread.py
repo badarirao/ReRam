@@ -814,20 +814,19 @@ class Worker(QObject):
             voltages = ",".join(self.points.astype('str'))
             if self.set_pulse_width == self.reset_pulse_width or \
                     not self.params["VsetCheck"] or not self.params["VresetCheck"]:
-                print('Hello1')
                 self.smu.configure_pulse_sweep(voltages,
                                                baseV=self.params["Rvoltage"],
                                                pulse_width=pulsewidth)
             else:
-                print('Hello')
                 self.smu.configure_pulse(baseV = self.params["Rvoltage"],
-                                         pw1 = self.params["setPwidth"],
-                                         pw2 = self.params["resetPwidth"])
+                                         pw1 = self.set_pulse_width,
+                                         pw2 = self.reset_pulse_width)
 
     def pulseMeasure_B2902B(self):
         whole_writeData = []
         whole_readData = []
-        if self.params["setPwidth"] == self.params["resetPwidth"]:
+        if self.set_pulse_width == self.reset_pulse_width or \
+                not self.params["VsetCheck"] or not self.params["VresetCheck"]:
             self.npoints = len(self.points)
             self.smu.clear_buffer((self.smu.avg + 1) * self.npoints)
             self.smu.start_buffer()
@@ -875,8 +874,8 @@ class Worker(QObject):
                 setData = np.reshape(np.array(setData.split(','), dtype=float),(-1,4))
                 resetData = np.reshape(np.array(resetData.split(','), dtype=float),(-1,4))
                 volt = [setData[0][0],resetData[0][0]] # actual voltage applied
-                avgreadData_set = np.mean(setData[1:], axis=1)
-                avgreadData_reset = np.mean(resetData[1:], axis=1)
+                avgreadData_set = np.mean(setData[1:], axis=0)
+                avgreadData_reset = np.mean(resetData[1:], axis=0)
                 rc = np.array([avgreadData_set[1],avgreadData_reset[1]]) # read current
                 rc[rc==0] = 1e-20
                 resistance = np.divide(self.params["Rvoltage"] , rc)
