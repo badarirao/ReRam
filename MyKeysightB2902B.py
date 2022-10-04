@@ -756,7 +756,9 @@ class KeysightB2902B:
         self.write(f"SOUR{self.ch}:{self.source_mode}:TRIG {output}")
 
     def configure_pulse(self, delay_time=2e-5, baseV=0,pw1 = 0.1, pw2 = 0.2):
+        print(self.avg)
         self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
+        self.write(f"SOUR{self.ch}:VOLT:MODE FIX")
         self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")
         self.write(f"SOUR{self.ch}:VOLT {baseV}")
 
@@ -782,6 +784,7 @@ class KeysightB2902B:
         self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
         self.write(f":trig{self.ch}:tran:tim {self.source_trigger_period1}")
         self.write(f":trig{self.ch}:acq:tim {self.acq_trigger_period1}")
+
     def set_pulse2(self, pulse_width, amplitude):
         pulse_delay = self.pulse_delay
         self.clear_buffer(2)

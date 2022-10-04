@@ -365,10 +365,9 @@ class app_Switch(Ui_Switch):
                 self.Vplot.setEnabled(False)
             elif self.smu.ID == 'B2902B':
                 self.source.removeItem(1)  # Remove Keithley SMU source option
-                self.smu.avg = 1
             elif self.smu.ID == 'K2450':
                 self.source.removeItem(0)  # Remove Keysight SMU source option
-                self.smu.avg = 5
+            self.smu.avg = 5
         else:
             self.widget.setEnabled(False)
             self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
@@ -832,7 +831,12 @@ class Worker(QObject):
             self.smu.start_buffer()
             buffer = []
             number_of_data_per_point = 4
-            while self.smu.get_trigger_state() == 'RUNNING' and not self.stopCall:
+            finished = False
+            while not self.stopCall:
+                if self.smu.get_trigger_state() == 'IDLE': # This line ensures last set of data is collected
+                    finished = True
+                    if len(whole_writeData) == self.npoints:  # break if required number of data is already obtained
+                        break
                 data2 = buffer
                 buffer = []
                 while True:
@@ -859,6 +863,8 @@ class Worker(QObject):
                 read_currents[read_currents==0] = 1e-20
                 resistances = self.params["Rvoltage"] / read_currents
                 self.data.emit([volts, resistances])
+                if finished:
+                    break
         else:
             # TODO: check if this algorithm will work
             cycleNum = 0
