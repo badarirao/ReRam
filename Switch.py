@@ -826,7 +826,7 @@ class Worker(QObject):
             self.pulsewidths.append(self.reset_pulse_width)
         if not self.params["VsetCheck"] and not self.params["VresetCheck"]:
             self.points.append(0)
-            self.pulsewidths.append(0)
+            self.pulsewidths.append(pulsewidth)
         self.points = np.tile(self.points, self.npoints)
         self.pulsewidths = np.tile(self.pulsewidths, self.npoints)
         self.smu.avg = self.params["Average"]
