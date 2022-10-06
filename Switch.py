@@ -355,6 +355,7 @@ class app_Switch(Ui_Switch):
         self.Ilimit.setMinimum(0.001)
         self.Ilimit.setSingleStep(0.1)
         self.read_voltage.setMinimum(0.001)
+        self.save_Button.hide()
         if self.afg1022:
             if self.afg1022.ID == 'Fake':
                 self.source.removeItem(2)  # Remove AFG source option
@@ -378,14 +379,12 @@ class app_Switch(Ui_Switch):
             self.widget1.setEnabled(False)
             self.Rplot.setEnabled(False)
             self.Vplot.setEnabled(False)
-        self.save_Button.setEnabled(False)
         self.stop_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
         self.applyPulse_Button.clicked.connect(self.applyPulse)
         self.clearGraph_Button.clicked.connect(self.clearGraph)
         self.stop_Button.clicked.connect(self.stopSwitch)
         self.applyPulse_Button.setShortcut('ctrl+Return')
-        self.save_Button.setShortcut('ctrl+s')
         self.clearGraph_Button.setShortcut('ctrl+g')
         self.stop_Button.setShortcut('ctrl+q')
         self.setV_check.stateChanged.connect(self.change_setV)
@@ -421,6 +420,7 @@ class app_Switch(Ui_Switch):
             "comments": ""}
         self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
+        self.comment_checkBox.setChecked(True)
         self.pulsecount = [1]
 
     def updateCommentBox(self):
@@ -632,7 +632,6 @@ class app_Switch(Ui_Switch):
         self.commentBox.setEnabled(False)
         self.applyPulse_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
-        self.save_Button.setEnabled(True)
         self.stop_Button.setEnabled(True)
         self.smu.enable_source()
         self.stopCall = False

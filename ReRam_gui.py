@@ -110,6 +110,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
         self.instLabel = QtWidgets.QLabel("")
         self.statusBar().addPermanentWidget(self.instLabel)
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
+        self.comment_checkBox.setChecked(True)
         self.check_instrument_connection()
         self.actionSet_2_wire_configuration.triggered.connect(self.set_two_wire_config)
         self.actionSet_4_wire_configuration.triggered.connect(self.set_four_wire_config)
@@ -328,7 +329,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
                 self.rt.retentionPlot.clear()
                 self.ft.fatiguePlot.clear()
                 # clear comment boxes
-                self.commentBox.setText("Sample Details: ")
+                #self.commentBox.setText("Sample Details: ")  # don't clear main comment box
                 self.iv.commentBox.clear()
                 self.rv.commentBox.clear()
                 self.st.commentBox.clear()

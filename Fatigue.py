@@ -433,6 +433,7 @@ class app_Fatigue(Ui_Fatigue):
             "comments" : ""}
         self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
+        self.comment_checkBox.setChecked(True)
     
     def updateCommentBox(self):
         if self.comment_checkBox.isChecked():

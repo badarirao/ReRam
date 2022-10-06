@@ -239,6 +239,7 @@ class app_Forming(Ui_Forming):
         self.parameters = list(self.params.values())[:-1]
         connect_sample_with_SMU(self.k2700, self.connection)
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
+        self.comment_checkBox.setChecked(True)
     
     def updateCommentBox(self):
         if self.comment_checkBox.isChecked():

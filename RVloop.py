@@ -372,6 +372,7 @@ class app_RVLoop(Ui_RVLoop):
             "comments": ""}
         self.parameters = list(self.params.values())[:-1]
         self.comment_checkBox.stateChanged.connect(self.updateCommentBox)
+        self.comment_checkBox.setChecked(True)
 
     def updateCommentBox(self):
         if self.comment_checkBox.isChecked():
@@ -711,14 +712,14 @@ class Worker(QObject):
         while self.smu.get_trigger_state() == 'RUNNING' and not self.stopCall:
             sleep(0.2)
             data = self.smu.get_trace_data()
-            data2 = reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
+            data2 = np.reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
             writeData = data2[::self.smu.avg + 1].copy()
             if self.smu.avg == 1:
                 readData = data2[1::self.smu.avg + 1].copy()
             else:
                 readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0]
-                readData = reshape(readData, (-1, self.smu.avg, number_of_data_per_point))
-                readData = mean(readData, axis=1)
+                readData = np.reshape(readData, (-1, self.smu.avg, number_of_data_per_point))
+                readData = np.mean(readData, axis=1)
             volts = writeData[:, 3]
             read_currents = readData[:, 1]
             if len(volts) < len(read_currents):
