@@ -212,6 +212,12 @@ class app_Forming(Ui_Forming):
             self.statusbar.setText("Sourcemeter not connected. Reconnect and try again.")
             self.widget1.setEnabled(False)
             self.graphWidget.setEnabled(False)
+        self.iLimit.setMinimum(0.001)
+        self.iLimit.setSingleStep(0.1)
+        self.vStart.setMaximum(199)
+        self.vStart.setMinimum(-199)
+        self.vEnd.setMaximum(199)
+        self.vEnd.setMinimum(-199)
         self.abort_Button.setEnabled(False)
         self.stop_flag = False
         self.start_Button.clicked.connect(self.start_Forming)

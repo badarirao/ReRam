@@ -388,6 +388,12 @@ class app_Retention(Ui_Retention):
             self.status.setText("Sourcemeter not connected. Reconnect and try again.")
             self.widget.setEnabled(False)
             self.retentionPlot.setEnabled(False)
+        self.setV.setSingleStep(0.1)
+        self.resetV.setSingleStep(0.1)
+        self.iLimit.setMinimum(0.001)
+        self.read_voltage.setSingleStep(0.1)
+        self.read_voltage.setDecimals(3)
+        self.read_voltage.setMinimum(0.001)
         self.stopCall = False
         self.skip = False
         self.resistor.setToolTip("Connect a resistor of this value in series to input from function generator.")

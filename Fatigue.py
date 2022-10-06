@@ -360,6 +360,12 @@ class app_Fatigue(Ui_Fatigue):
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.connection = connection
+        self.iLimit.setSingleStep(0.1)
+        self.iLimit.setMaximum(500)
+        self.iLimit.setMinimum(0.001)
+        self.resetV.setSingleStep(0.1)
+        self.setV.setSingleStep(0.1)
+        self.read_voltage.setMinimum(0.001)
         disableScreen = False
         if self.afg1022 and self.smu:
             if self.afg1022.ID == 'Fake':
@@ -404,6 +410,8 @@ class app_Fatigue(Ui_Fatigue):
         self.reset_pulseWidth.valueChanged.connect(self.update_total_time)
         self.set_timeUnit.currentIndexChanged.connect(self.update_total_time)
         self.reset_timeUnit.currentIndexChanged.connect(self.update_total_time)
+        self.set_timeUnit.currentIndexChanged.connect(self.update_limits)
+        self.reset_timeUnit.currentIndexChanged.connect(self.update_limits)
         self.update_resistor()
         self.update_total_time()
         self.nPulses.hasWrapped.message.connect(lambda value: self.update_time_unit(value)) # not working, seems to be some version incompatibility problem
@@ -438,6 +446,35 @@ class app_Fatigue(Ui_Fatigue):
         self.resistance = round(max_applied_voltage/limiting_current,2)
         self.resistor.setText("~ {} kΩ".format(self.resistance))
     
+    def update_limits(self):
+        self.set_pulseWidth.setMaximum(999)
+        self.reset_pulseWidth.setMaximum(999)
+        self.set_pulseWidth.setMinimum(1)
+        self.reset_pulseWidth.setMinimum(1)
+        if "B2902B" in self.source.currentText():
+            self.setV.setMaximum(199)
+            self.setV.setMinimum(-199)
+            self.resetV.setMaximum(199)
+            self.resetV.setMinimum(-199)
+            if self.set_timeUnit.currentIndex() == 0: #μs
+                self.set_pulseWidth.setMinimum(50)
+            if self.reset_timeUnit.currentIndex() == 0: #μs
+                self.reset_pulseWidth.setMinimum(50)
+            if self.set_timeUnit.currentIndex() == 2: #s
+                self.set_pulseWidth.setMaximum(2)
+            if self.reset_timeUnit.currentIndex() == 2: #s
+                self.reset_pulseWidth.setMaximum(2)
+        else:
+            self.setV.setMaximum(5)
+            self.setV.setMinimum(-5)
+            self.resetV.setMaximum(5)
+            self.resetV.setMinimum(-5)
+            self.nPulses.setMaximum(20)
+            if self.set_timeUnit.currentIndex() == 2: #s
+                self.set_pulseWidth.setMaximum(5)
+            if self.reset_timeUnit.currentIndex() == 2: #s
+                self.reset_pulseWidth.setMaximum(5)
+
     def update_total_time(self):
         self.configurePulse()
         total_time = self.points[-1]*(self.setTimestep+self.resetTimestep)

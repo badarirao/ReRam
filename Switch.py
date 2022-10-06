@@ -351,6 +351,10 @@ class app_Switch(Ui_Switch):
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.connection = connection
+        self.Ilimit.setMaximum(500)
+        self.Ilimit.setMinimum(0.001)
+        self.Ilimit.setSingleStep(0.1)
+        self.read_voltage.setMinimum(0.001)
         if self.afg1022:
             if self.afg1022.ID == 'Fake':
                 self.source.removeItem(2)  # Remove AFG source option
@@ -387,6 +391,8 @@ class app_Switch(Ui_Switch):
         self.setV_check.stateChanged.connect(self.change_setV)
         self.resetV_check.stateChanged.connect(self.change_resetV)
         self.source.currentIndexChanged.connect(self.update_limits)
+        self.set_timeUnit.currentIndexChanged.connect(self.update_limits)
+        self.reset_timeUnit.currentIndexChanged.connect(self.update_limits)
         self.initialize_plot()
         self.update_limits()
         self.stopCall = False
@@ -424,18 +430,34 @@ class app_Switch(Ui_Switch):
             self.commentBox.setEnabled(False)
 
     def update_limits(self):
+        self.set_pulseWidth.setMaximum(999)
+        self.reset_pulseWidth.setMaximum(999)
+        self.set_pulseWidth.setMinimum(1)
+        self.reset_pulseWidth.setMinimum(1)
         if self.source.currentIndex() == 0:
-            self.setV.setMaximum(190)
-            self.setV.setMinimum(-190)
-            self.resetV.setMaximum(190)
-            self.resetV.setMinimum(-190)
-            if self.set_timeUnit.currentIndex() == 0:
-                self.set_timeUnit.setCurrentIndex(1)
-            self.set_timeUnit.model().item(0).setEnabled(False)
-            if self.reset_timeUnit.currentIndex() == 0:
-                self.reset_timeUnit.setCurrentIndex(1)
-            self.reset_timeUnit.model().item(0).setEnabled(False)
-            self.nPulses.setMaximum(1000)
+            self.setV.setMaximum(199)
+            self.setV.setMinimum(-199)
+            self.resetV.setMaximum(199)
+            self.resetV.setMinimum(-199)
+            if self.smu.ID == "K2450":
+                if self.set_timeUnit.currentIndex() == 0:
+                    self.set_timeUnit.setCurrentIndex(1)
+                self.set_timeUnit.model().item(0).setEnabled(False)
+                if self.reset_timeUnit.currentIndex() == 0:
+                    self.reset_timeUnit.setCurrentIndex(1)
+                self.reset_timeUnit.model().item(0).setEnabled(False)
+                self.nPulses.setMaximum(1000)
+            elif self.smu.ID == "B2902B":
+                self.set_timeUnit.model().item(0).setEnabled(True)
+                self.reset_timeUnit.model().item(0).setEnabled(True)
+                if self.set_timeUnit.currentIndex() == 0: #μs
+                    self.set_pulseWidth.setMinimum(50)
+                if self.reset_timeUnit.currentIndex() == 0: #μs
+                    self.reset_pulseWidth.setMinimum(50)
+                if self.set_timeUnit.currentIndex() == 2: #s
+                    self.set_pulseWidth.setMaximum(2)
+                if self.reset_timeUnit.currentIndex() == 2: #s
+                    self.reset_pulseWidth.setMaximum(2)
         else:
             self.setV.setMaximum(5)
             self.setV.setMinimum(-5)

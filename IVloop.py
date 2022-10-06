@@ -260,6 +260,16 @@ class app_IVLoop(Ui_IVLoop):
         self.smu.reset()
         self.stop_Button.setEnabled(False)
         self.stop_flag = False
+        self.minV.setSingleStep(0.1)
+        self.maxV.setSingleStep(0.1)
+        self.minV.setMaximum(199)
+        self.maxV.setMaximum(199)
+        self.minV.setMinimum(-199)
+        self.maxV.setMinimum(-199)
+        self.Ilimit.setMaximum(500)
+        self.Ilimit.setMinimum(0.001)
+        self.Ilimit.setSingleStep(0.1)
+        self.delay.setDecimals(3)
         self.start_Button.clicked.connect(self.start_ivloop)
         self.stop_Button.clicked.connect(self.stop_ivloop)
         self.start_Button.setShortcut('Ctrl+Return')
@@ -317,6 +327,9 @@ class app_IVLoop(Ui_IVLoop):
         maincomment = self.parent.commentBox.toPlainText()
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
+        if self.smu.ID == "B2902B":
+            if self.delay < 0.05:
+                self.delay.setValue(0)
         for t in wholeComment.split('\n'):
             formattedComment += '## ' + t + '\n'
         self.params = {

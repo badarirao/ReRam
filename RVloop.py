@@ -305,6 +305,14 @@ class app_RVLoop(Ui_RVLoop):
         self.k2700 = k2700
         self.afg1022 = afg1022
         self.stop_flag = False
+        self.minV.setSingleStep(0.1)
+        self.maxV.setSingleStep(0.1)
+        self.Ilimit.setMaximum(500)
+        self.Ilimit.setMinimum(0.001)
+        self.Ilimit.setSingleStep(0.1)
+        self.read_voltage.setSingleStep(0.1)
+        self.read_voltage.setDecimals(3)
+        self.read_voltage.setMinimum(0.001)
         if self.afg1022:
             if self.afg1022.ID == 'Fake':
                 self.vsource.removeItem(2)  # Remove AFG source option
