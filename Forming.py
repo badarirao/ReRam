@@ -402,6 +402,7 @@ class Worker(QObject):
         l = 1
         i = self.iPoints[l]
         self.smu.nplc = 2 # why 2?
+        self.smu.apply_voltage(compliance_current=self.params["ILimit"])
         self.smu.measure_current()
         self.smu.source_voltage = 0
         self.smu.set_measurement_count(1)

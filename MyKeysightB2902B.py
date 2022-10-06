@@ -550,6 +550,9 @@ class KeysightB2902B:
         # get the whole data in buffer
         return self.ask(f"TRACe{self.ch}:data?").strip()
 
+    def get_one_shot(self):
+        return self.ask(f":meas?").strip().split(',')
+
     def get_trace_data_recent(self, offset='CURR', size=1):
         return self.ask(f"TRAC{self.ch}:data? {offset}")
     
