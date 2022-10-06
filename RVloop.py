@@ -347,8 +347,7 @@ class app_RVLoop(Ui_RVLoop):
         self.update_limits()
         self.smu.nplc = 0.01
         self.smu.readV = 0.1
-        self.avg_over_n_readings = 1
-        self.smu.avg = self.avg_over_n_readings
+        self.avg_over_n_readings = 10
         self.filename = sName
         self.file_name.setReadOnly(True)
         self.file_name.setText(self.filename)
@@ -484,7 +483,7 @@ class app_RVLoop(Ui_RVLoop):
         self.currentCycle = Data[1]
         volts, resistances = data
         # volts = volts.flatten()
-        resistances = [abs(x) for x in resistances]
+        #resistances = [abs(x) for x in resistances]
         pen1 = mkPen(intColor(3 * self.currentCycle, values=3), width=2)
         if self.currentCycle == self.previousCycle:
             self.data_line.setData(volts, resistances)
@@ -502,6 +501,7 @@ class app_RVLoop(Ui_RVLoop):
         None.
 
         """
+        self.smu.avg = self.avg_over_n_readings
         self.previousCycle = -1
         self.fullfilename = unique_filename(directory='.', prefix=self.filename, ext='dat', datetimeformat="")
         self.statusbar.setText("Measurement Running..")
@@ -622,9 +622,6 @@ class Worker(QObject):
         self.stopCall = False
         self.params = params
         self.smu = smu
-        if self.smu.ID == 'B2902B':
-            # TODO: implement average_over_n_readings for B2902B SMU
-            self.smu.avg = 1  # currently only 1 reading will be taken for read resistance per point
         self.k2700 = k2700
         self.connection = connection
         self.fullfilename = fullfilename
@@ -709,33 +706,42 @@ class Worker(QObject):
         self.smu.clear_buffer((self.smu.avg + 1) * self.npoints)
         self.smu.start_buffer()
         number_of_data_per_point = 4 #TODO: get it directly from SMU
-        while self.smu.get_trigger_state() == 'RUNNING' and not self.stopCall:
-            sleep(0.2)
-            data = self.smu.get_trace_data()
-            data2 = np.reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
-            writeData = data2[::self.smu.avg + 1].copy()
+        finished = False
+        writeData = []
+        while not self.stopCall:
+            if self.smu.get_trigger_state() == 'IDLE':  # This line ensures last set of data is collected
+                finished = True
+                if len(writeData) == self.npoints:  # break if required number of data is already obtained
+                    break
+            data2 = []
+            while True:
+                sleep(0.2)
+                data = self.smu.get_trace_data()
+                data2 = np.reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
+                data_length = len(data2)
+                if data_length >= self.smu.avg + 1:
+                    trimmed_length = int(data_length / (self.smu.avg + 1)) * (self.smu.avg + 1)
+                    data2 = np.array(data2[:trimmed_length])
+                    break
+            writeData = data2[::self.smu.avg + 1]
             if self.smu.avg == 1:
-                readData = data2[1::self.smu.avg + 1].copy()
+                readData = data2[1::self.smu.avg + 1]
             else:
-                readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0]
+                readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0].copy()
                 readData = np.reshape(readData, (-1, self.smu.avg, number_of_data_per_point))
                 readData = np.mean(readData, axis=1)
-            volts = writeData[:, 3]
+            requestedVoltage = writeData[:, 3]
+            volts = writeData[:, 0]
             read_currents = readData[:, 1]
-            if len(volts) < len(read_currents):
-                read_currents = read_currents[:len(volts)]
-            elif len(read_currents) < len(volts):
-                volts = volts[:len(read_currents)]
+            read_currents[read_currents == 0] = 1e-20
             resistances = self.params["Rvoltage"] / read_currents
-            self.data.emit([[volts, resistances], self.cycleNum])
-        volts = writeData[:, 3]
-        read_currents = readData[:, 1]
-        resistances = self.params["Rvoltage"] / read_currents
-        self.data.emit([[volts, resistances], self.cycleNum])
-        actual_setVolts = writeData[:, 0]
+            self.data.emit([[volts, resistances],self.cycleNum])
+            if finished:
+                break
+        volts = writeData[:, 0]
         set_currents = writeData[:, 1]
         time_stamp = writeData[:, 2]
-        data = np.array((volts, actual_setVolts, set_currents, read_currents, resistances, time_stamp))
+        data = np.array((requestedVoltage, volts, set_currents, read_currents, resistances, time_stamp))
         return data
 
     def measure_RV_K2450(self):
@@ -879,7 +885,7 @@ class Worker(QObject):
                 f.write(f"#Set Voltage(V)\tActual Volts applied(V)\tSet Current(A)\t"
                         f"Read Current at {self.params['Rvoltage']}V\t"
                         f"Read Resistance at {self.params['Rvoltage']}V (Ω)\n")
-            elif self.smu.ID == 'B2450':
+            elif self.smu.ID == 'B2902B':
                 f.write(f"#Set Voltage(V)\tActual Volts applied(V)\tSet Current(A)\t"
                         f"Read Current at {self.params['Rvoltage']}V\t"
                         f"Read Resistance at {self.params['Rvoltage']}V (Ω)\t"

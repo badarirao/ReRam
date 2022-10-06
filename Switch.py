@@ -815,7 +815,7 @@ class Worker(QObject):
 
         self.points = []
         self.pulsewidths = []
-        pulsewidth = 5e-5
+        pulsewidth = 1e-3
         if self.params["VsetCheck"]:
             self.points.append(self.params["Vset"])
             pulsewidth = self.set_pulse_width

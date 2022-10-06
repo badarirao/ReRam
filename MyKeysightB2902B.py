@@ -756,7 +756,6 @@ class KeysightB2902B:
         self.write(f"SOUR{self.ch}:{self.source_mode}:TRIG {output}")
 
     def configure_pulse(self, delay_time=2e-5, baseV=0,pw1 = 0.1, pw2 = 0.2):
-        print(self.avg)
         self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
         self.write(f"SOUR{self.ch}:VOLT:MODE FIX")
         self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")

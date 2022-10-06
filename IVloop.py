@@ -10,7 +10,7 @@ class Ui_IVLoop(QtWidgets.QWidget):
 
     def setupUi(self, IVLoop):
         IVLoop.setObjectName("IVLoop")
-        IVLoop.resize(818, 617)
+        IVLoop.resize(1000, 700)
         IVLoop.setMinimumSize(QtCore.QSize(0, 0))
         self.gridLayout_2 = QtWidgets.QGridLayout(IVLoop)
         self.gridLayout_2.setObjectName("gridLayout_2")
@@ -329,7 +329,7 @@ class app_IVLoop(Ui_IVLoop):
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
         if self.smu.ID == "B2902B":
-            if self.delay < 0.05:
+            if self.delay.value() < 0.05:
                 self.delay.setValue(0)
         for t in wholeComment.split('\n'):
             formattedComment += '## ' + t + '\n'

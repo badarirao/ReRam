@@ -254,7 +254,7 @@ class app_Forming(Ui_Forming):
             self.iLimit.setValue(self.parameters[2]*1000)
             self.temperature.setValue(self.parameters[3])
             self.temp_check.setChecked(self.parameters[4])
-        except Exception:
+        except Exception as e:
             print(f"Problem with loading forming parameters. {e}")
             print("Deleting parameter file from the folder may resolve the issue.")
         
