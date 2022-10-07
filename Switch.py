@@ -595,6 +595,7 @@ class app_Switch(Ui_Switch):
         None.
 
         """
+        self.stop_flag = False
         self.update_params()
         if self.initial_source != self.source.currentIndex():
             self.clearGraph()
@@ -853,8 +854,8 @@ class Worker(QObject):
             buffer = []
             number_of_data_per_point = 4
             finished = False
-            while not self.stopCall:
-                if self.smu.get_trigger_state() == 'IDLE': # This line ensures last set of data is collected
+            while True:
+                if self.smu.get_trigger_state() == 'IDLE' or self.stopCall: # This line ensures last set of data is collected
                     finished = True
                     if len(whole_writeData) == self.npoints:  # break if required number of data is already obtained
                         break
@@ -1027,6 +1028,7 @@ class Worker(QObject):
             readVs = np.ones(data.shape[1]) * self.params["Rvoltage"]
             pulseResistances = data[1] / data[2]
             readResistances = self.params["Rvoltage"] / data[3]
+            self.pulsewidths = self.pulsewidths[:data.shape[1]]
             totalData = np.array((data[0], data[1], data[2], pulseResistances,
                                   readVs, data[3], readResistances, self.pulsewidths,
                                   complianceCurrents, data[4]), dtype=float)

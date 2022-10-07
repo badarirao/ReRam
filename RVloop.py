@@ -820,7 +820,7 @@ class Worker(QObject):
         self.initialize_SMU()
         self.configure_sweep()
         self.smu.enable_source()
-        self.cycleNum = 0
+        self.cycleNum = 1
         self.tempfileName = self.fullfilename[:-4] + "_tmp.dat"
         if self.params["Vsource"] == 0:
             connect_sample_with_SMU(self.k2700, self.connection)

@@ -1,5 +1,6 @@
 from utilities import *
 # TODO: add timestamp for each datapoint in the file
+# TODO: The pulse width used in RV program remains even for IV program.
 
 class Ui_IVLoop(QtWidgets.QWidget):
     """The pyqt5 gui class for IV loop measurement."""
@@ -537,6 +538,7 @@ class Worker(QObject):
             self.k2700 = FakeAdapter()
         
         # if afg is connected, remove and connect the source meter
+        self.smu.reset()
         connect_sample_with_SMU(self.k2700,self.connection)
         self.smu.measure_current()
         self.smu.auto_range_sense()

@@ -495,7 +495,7 @@ class KeysightB2902B:
         """
         self.write(f"SOUR{self.ch}:FUNC:SHAP DC")
         self.source_sweep_mode('list')
-        self.write(":trig:sour aint") # auto decide trigger method
+        self.write(":trig:sour AINT") # auto decide trigger method
         self.write(f"TRIG{self.ch}:TRAN:DEL 0")
         self.write(f"TRIG{self.ch}:ACQ:DEL {delay}")
         nPoints = int(float(self.ask(f"SOUR{self.ch}:LIST:VOLT:POINts?").strip()))
@@ -536,7 +536,8 @@ class KeysightB2902B:
         return 'CURR'
     
     def set_measurement_count(self, count=1):
-        self.write(f"TRACe{self.ch}:POINts {count}")
+        pass # need to ignore this for forming program; using measure? command instead for 1 point.
+        #self.write(f"TRACe{self.ch}:POINts {count}")
     
     def get_end_point(self):
         # You can specify size of data to be received in trace:data. If not specified, all available is returned
@@ -544,7 +545,7 @@ class KeysightB2902B:
         return 1
     
     def set_return_data_format(self): # set to return source voltage, and measured current
-        self.write(":FORM:ELEM:SENS SOUR,CURR")
+        self.write(":FORM:ELEM:SENS VOLT,CURR")
 
     def get_trace_data(self, offset='CURR', size=1):
         # get the whole data in buffer
@@ -561,7 +562,7 @@ class KeysightB2902B:
         return float(self.ask(f"TRAC{self.ch}:stat:data?").strip())
     
     def get_all_buffer_data(self):
-        return self.ask("FETCh:ARRay?").strip().split(',')
+        return self.ask("Measure?").strip().split(',')
         
     def get_trigger_state(self):
         state = self.ask(":STAT:OPER:COND?").strip()

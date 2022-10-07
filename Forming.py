@@ -309,6 +309,7 @@ class app_Forming(Ui_Forming):
         maincomment = self.parent.commentBox.toPlainText()
         wholeComment = maincomment + '\n' + self.commentBox.toPlainText()
         formattedComment = ""
+        self.statusbar.setText("Started Forming...")
         for t in wholeComment.split('\n'):
             formattedComment += '## ' + t + '\n'
         self.params = {
@@ -340,10 +341,15 @@ class app_Forming(Ui_Forming):
         self.startThread()
     
     def abort(self):
+        self.stop_flag = True
         self.worker.stopcall.emit()
     
     def stop_Forming(self):
         self.measurement_status = "Idle"
+        if self.stop_flag:
+            self.statusbar.setText("Aborted...")
+        else:
+            self.statusbar.setText("Finished Forming.")
         self.enable_input()
     
     def keyPressEvent(self, event):
@@ -408,6 +414,8 @@ class Worker(QObject):
         self.smu.set_measurement_count(1)
         self.smu.set_read_back_on()
         self.smu.enable_source()
+        if self.smu.ID == "B2902B":
+            self.smu.set_return_data_format()
         file = open(self.fullfilename,'w')
         file.write("##Voltage Source and current measured from Keithely 2450 Sourcemeter.\n")
         file.write(f"## Date & Time: {datetime.now().strftime('%m/%d/%Y; %H:%M:%S')}\n")
@@ -446,6 +454,8 @@ class Worker(QObject):
                     break
             if iFlag:
                 break
+        values = self.smu.get_all_buffer_data()
+        file.write(values[0] + '\t' + values[1] + '\n')
         file.close()
         volt = float(values[0])
         current = float(values[1])
@@ -463,4 +473,3 @@ if __name__ == "__main__":
     ui.show()
     app.exec_()
     app.quit()
-
