@@ -495,8 +495,8 @@ class KeysightB2902B:
         """
         self.write(f"SOUR{self.ch}:FUNC:SHAP DC")
         self.source_sweep_mode('list')
-        self.write(":trig:sour AINT") # auto decide trigger method
-        self.write(f"TRIG{self.ch}:TRAN:DEL 0")
+        self.write(":trig:sour AINT") # auto decide trigger method (TODO: how about using TIM instead of aint? Currently delay doesn't work with tim)
+        self.write(f"TRIG{self.ch}:TRAN:DEL 0")      # should it be zero or some finite value? (for aint, I guess some internal delay is added)
         self.write(f"TRIG{self.ch}:ACQ:DEL {delay}")
         nPoints = int(float(self.ask(f"SOUR{self.ch}:LIST:VOLT:POINts?").strip()))
         self.write(f"trig{self.ch}:coun {nPoints}")
