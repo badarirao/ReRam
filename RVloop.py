@@ -512,8 +512,8 @@ class app_RVLoop(Ui_RVLoop):
         self.stop_Button.setEnabled(True)
         self.frame.setEnabled(False)
         self.start_Button.setEnabled(False)
-        self.comment_checkBox.setEnabled(False)
-        self.commentBox.setEnabled(False)
+        #self.comment_checkBox.setEnabled(False)
+        #self.commentBox.setEnabled(False)
         self.update_params()
         self.startThread()
 
@@ -573,8 +573,8 @@ class app_RVLoop(Ui_RVLoop):
         self.stop_Button.setEnabled(False)
         self.start_Button.setEnabled(True)
         self.frame.setEnabled(True)
-        self.comment_checkBox.setEnabled(True)
-        self.commentBox.setEnabled(True)
+        #self.comment_checkBox.setEnabled(True)
+        #self.commentBox.setEnabled(True)
         MessageBeep()
 
     def keyPressEvent(self, event):

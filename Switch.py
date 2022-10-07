@@ -629,8 +629,8 @@ class app_Switch(Ui_Switch):
             del self.readResistances[0]
             del self.volts[0]
         self.widget.setEnabled(False)
-        self.comment_checkBox.setEnabled(False)
-        self.commentBox.setEnabled(False)
+        #self.comment_checkBox.setEnabled(False)
+        #self.commentBox.setEnabled(False)
         self.applyPulse_Button.setEnabled(False)
         self.clearGraph_Button.setEnabled(False)
         self.stop_Button.setEnabled(True)
@@ -695,6 +695,8 @@ class app_Switch(Ui_Switch):
         self.widget.setEnabled(True)
         self.applyPulse_Button.setEnabled(True)
         self.clearGraph_Button.setEnabled(True)
+        # self.comment_checkBox.setEnabled(True)
+        # self.commentBox.setEnabled(True)
         self.stop_Button.setEnabled(False)
         MessageBeep()
 

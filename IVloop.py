@@ -404,8 +404,8 @@ class app_IVLoop(Ui_IVLoop):
         self.stop_Button.setEnabled(True)
         self.groupBox.setEnabled(False)
         self.start_Button.setEnabled(False)
-        self.comment_checkBox.setEnabled(False)
-        self.commentBox.setEnabled(False)
+        #self.comment_checkBox.setEnabled(False)
+        #self.commentBox.setEnabled(False)
         self.update_params()
         self.startThread()
 
@@ -432,8 +432,8 @@ class app_IVLoop(Ui_IVLoop):
             self.stop_flag = True
         self.groupBox.setEnabled(True)
         self.start_Button.setEnabled(True)
-        self.comment_checkBox.setEnabled(True)
-        self.commentBox.setEnabled(True)
+        #self.comment_checkBox.setEnabled(True)
+        #self.commentBox.setEnabled(True)
         self.smu.source_voltage = 0
         self.stop_Button.setEnabled(False)
         #app_IVLoop.formatIV_Excel(self.fullfilename)
