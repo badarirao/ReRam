@@ -791,7 +791,7 @@ class Worker(QObject):
         self.smu.reset()
         self.smu.apply_voltage(compliance_current=self.params["ILimit"])
         self.smu.measure_current()
-        self.smu.set_wire_configuration(self.smu.wire_config)  # two wire configuration
+        self.smu.set_wire_configuration(self.smu.wire_config)
 
     def configure_pulse(self):
         """

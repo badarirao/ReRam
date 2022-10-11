@@ -342,7 +342,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
 
     def set_two_wire_config(self):
         try:
-            self.smu.set_wire_configuration(2)
+            self.smu.set_wire_configuration(2) # maybe this is not necessary here, as most of the programs reset the smu when invoked. Not sure if the wire configuration is changed by resetting.
+            self.smu.wire_config = 2
             self.configLabel.setText("2-wire sense configuration")
             QMessageBox.warning(self,"Ensure proper wiring","In two wire configuration, "
                                                             "connect positive terminal to Force-high (red), "
@@ -354,7 +355,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_Memory):
 
     def set_four_wire_config(self):
         try:
-            self.smu.set_wire_configuration(4)
+            self.smu.set_wire_configuration(4) # maybe this is not necessary here, as most of the programs reset the smu when invoked. Not sure if the wire configuration is changed by resetting.
+            self.smu.wire_config = 4
             QMessageBox.warning(self,"Ensure proper wiring","In four wire configuration, "
                                                             "connect positive source terminal to Force-high (red), "
                                                             "positive sense terminal to Sense-high (red), "

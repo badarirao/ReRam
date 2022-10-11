@@ -246,6 +246,7 @@ class AFG1022:
         self.write("SOURce1:BURST:NCYCles {}".format(n))
     
     def configure_user7(self,x:int):
+        # custom waveform with 8000 points
         waveform = zeros(8000)
         waveform[:x] = 1
         waveform[x:] = -1

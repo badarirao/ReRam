@@ -196,10 +196,8 @@ class KeysightB2902B:
         config = int(float(config))
         if config == 2:
             self.write(f"SENS{self.ch}:REM OFF") # Two wire configuration
-            self.wire_config = config
         elif config == 4:
             self.write(f"SENS{self.ch}:REM ON") # Four wire configuration
-            self.wire_config = config
         else:
             print("Wrong configuration command sent. Choose either 2 or 4 only.")
     
@@ -513,14 +511,16 @@ class KeysightB2902B:
         #self.write(f"TRAC{self.ch}:TST:FORM ABS")
 
     def set_simple_loop(self, count=1, delayTime = 0):
-        if delayTime <= 0:
+        pass
+
+        """if delayTime <= 0:
             self.write(f"SOUR{self.ch}:WAIT:AUTO ON")
             self.write(f"SOUR{self.ch}:WAIT OFF")
         else:
             self.write(f"SOUR{self.ch}:WAIT ON")
             self.write(f"SOUR{self.ch}:WAIT:AUTO OFF")
             self.write(f"SOUR{self.ch}:WAIT:OFFS {delayTime}")
-        self.write(f"TRIG:LOAD 'SimpleLoop', {count}, {delayTime}")
+        self.write(f"TRIG:LOAD 'SimpleLoop', {count}, {delayTime}")"""
     
     def is_compliance_tripped(self):
         if self.sense_mode == 'voltage':
