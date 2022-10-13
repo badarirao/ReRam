@@ -56,7 +56,7 @@ class KeysightB2902B:
             self.wire_config = 2
             self.avg = 1 # number of readings to take and average
             self.write(f"TRAC{self.ch}:FEED SENS")
-            self.write(f":OUTP{self.ch}:LOW flo") # FLOATING LOW TERMINAL
+            self.write(f":OUTP{self.ch}:LOW gro") # FLOATING LOW TERMINAL
             self.pulse_delay = 2e-5  # set a default 20 µs pulse delay
         else:
             raise VisaIOError(-1073807346)
@@ -801,6 +801,7 @@ class KeysightB2902B:
         pass
 
     def configure_pulse_sweep(self, voltages, baseV, pulse_width):
+        #TODO: if resistance variation is high enough, then acqusition period can be shorter than 1/line frequency
         pulse_delay = self.pulse_delay
         if pulse_width + pulse_delay < 0.02:  # acqusition period should be greater than 1/(line frequency)
             acq_trigger_period = 0.02 + pulse_delay

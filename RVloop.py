@@ -410,6 +410,8 @@ class app_RVLoop(Ui_RVLoop):
             else:
                 self.pulse_width.setMinimum(1)
                 self.pulse_width.setMaximum(999)
+            if self.time_unit.currentIndex() == 1:
+                self.pulse_width.setValue(self.pulse_width.minimum())
             if self.time_unit.currentIndex() == 2:
                 self.pulse_width.setMaximum(2)
             else:

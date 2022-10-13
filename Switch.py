@@ -393,6 +393,8 @@ class app_Switch(Ui_Switch):
         self.source.currentIndexChanged.connect(self.update_limits)
         self.set_timeUnit.currentIndexChanged.connect(self.update_limits)
         self.reset_timeUnit.currentIndexChanged.connect(self.update_limits)
+        self.set_timeUnit.currentIndexChanged.connect(self.update_setTimeunit)
+        self.reset_timeUnit.currentIndexChanged.connect(self.update_resetTimeunit)
         self.initialize_plot()
         self.update_limits()
         self.stopCall = False
@@ -430,7 +432,14 @@ class app_Switch(Ui_Switch):
         else:
             self.commentBox.setEnabled(False)
 
+    def update_setTimeunit(self):
+        self.set_pulseWidth.setValue(self.set_pulseWidth.minimum())
+
+    def update_resetTimeunit(self):
+        self.reset_pulseWidth.setValue(self.reset_pulseWidth.minimum())
+
     def update_limits(self):
+        print(1)
         self.set_pulseWidth.setMaximum(999)
         self.reset_pulseWidth.setMaximum(999)
         self.set_pulseWidth.setMinimum(1)
