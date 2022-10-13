@@ -802,6 +802,8 @@ class KeysightB2902B:
 
     def configure_pulse_sweep(self, voltages, baseV, pulse_width):
         #TODO: if resistance variation is high enough, then acqusition period can be shorter than 1/line frequency
+        #TODO: currently, the value returned by actual voltage applied has some fraction from read voltage as well.
+        #TODO: so find out if the actual pulse voltage can be back calculated if you know the fraction.
         pulse_delay = self.pulse_delay
         if pulse_width + pulse_delay < 0.02:  # acqusition period should be greater than 1/(line frequency)
             acq_trigger_period = 0.02 + pulse_delay
@@ -828,6 +830,48 @@ class KeysightB2902B:
         measurement_time = self.get_measurement_time() #+ 2e-5  # assume 20 µs overhead, need to adjust appropriately
         self.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
 
+    def configure_pulse_trigger_sweep(self, voltages, npulses, pulse_width, baseV = 0):
+        pulse_delay = 0  # set a default 0 s pulse delay
+        # disable acquire trigger
+        self.write(f"trig{self.ch}:acq:tout: 0")
+        # set
+        self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
+        self.write(f"SOUR{self.ch}:VOLT:MODE LIST")
+        self.write(f"SOUR{self.ch}:LIST:VOLT {voltages}")
+        self.write(f"SOUR{self.ch}:VOLT {baseV}")
+        self.write(f"SOUR{self.ch}:PULS:DEL {pulse_delay}")
+        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
+        self.write(f"TRIG{self.ch}:TRAN:DEL 0")
+        nPoints = int(float(self.ask(f":SOUR{self.ch}:LIST:{self.source_mode}:POIN?").strip()))
+        self.write(f":trig{self.ch}:sour tim")
+        # set source trigger conditions
+        self.write(f":trig{self.ch}:tran:tim {source_trigger_period}")
+        self.write(f":trig:tran:coun {nPoints}")
+
+    def configure_pulse_trigger_high_res_acquire_sweep(self, voltages, npulses, pulse_width, baseV = 0):
+        pulse_delay = 2e-5
+        source_trigger_period = pulse_width + pulse_delay
+        acq_trigger_period = 2e-5
+        acq_points = ceil(npoints*source_trigger_period/acq_trigger_period)
+        self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
+        self.write(f"SOUR{self.ch}:VOLT:MODE LIST")
+        self.write(f"SOUR{self.ch}:LIST:VOLT {voltages}")
+        self.write(f"SOUR{self.ch}:VOLT {baseV}")
+        self.write(f"SOUR{self.ch}:PULS:DEL {pulse_delay}")
+        self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
+        self.write(f"TRIG{self.ch}:TRAN:DEL 0")
+        self.write(f"TRIG{self.ch}:ACQ:DEL 0")
+        nPoints = int(float(self.ask(f":SOUR{self.ch}:LIST:{self.source_mode}:POIN?").strip()))
+        self.write(f":trig{self.ch}:sour tim")
+        # set source trigger conditions
+        self.write(f":trig{self.ch}:tran:tim {source_trigger_period}")
+        self.write(f":trig:tran:coun {nPoints}")
+        # set acquire trigger conditions
+        self.write(f":trig{self.ch}:acq:tim {acq_trigger_period}")
+        self.write(
+            f":trig{self.ch}:acq:coun {acq_points}")  # 1 set for write current, avg sets for read current
+        measurement_time = self.get_measurement_time()  # + 2e-5  # assume 20 µs overhead, need to adjust appropriately
+        self.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
     def set_low_terminal_state(self, state):
         if state.lower() == 'float':
             state = 'flo'

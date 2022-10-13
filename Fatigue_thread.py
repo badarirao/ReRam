@@ -785,7 +785,7 @@ class Worker(QObject):
     def pulseMeasure_B2902B(self):
         #option 1: do write and read for each pulse. Then you don't need to use binned points, but there is a limit to number of points. Maybe less than 10^6
         #option 2: do only trigger for n pulses. Then do a one spot measurement for set and reset pulses, and so on...
-        # Option 2 seems to be more robust and fast when number of pulses is large.
+        #Option 2 seems to be more robust and fast when number of pulses is large.
         # need to figure out how to apply only trigger and not measure. Also, what happens when compliance current is tripped?
         whole_writeData = []
         whole_readData = []
