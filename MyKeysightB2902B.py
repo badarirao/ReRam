@@ -755,7 +755,6 @@ class KeysightB2902B:
         self.write(f"SOUR{self.ch}:{self.source_mode}:TRIG {output}")
 
     def configure_pulse(self, delay_time=2e-5, baseV=0,pw1 = 0.1, pw2 = 0.2):
-        print(self.avg)
         self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
         self.write(f"SOUR{self.ch}:VOLT:MODE FIX")
         self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")
@@ -826,7 +825,6 @@ class KeysightB2902B:
         self.write(f":trig{self.ch}:acq:tim {acq_trigger_period}")
         self.write(f":trig{self.ch}:acq:coun {(self.avg+1) * nPoints}")  # 1 set for write current, avg sets for read current
         measurement_time = self.get_measurement_time() #+ 2e-5  # assume 20 µs overhead, need to adjust appropriately
-        print(f"Measure time = {measurement_time}")
         self.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
 
     def set_low_terminal_state(self, state):

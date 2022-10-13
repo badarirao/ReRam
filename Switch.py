@@ -765,7 +765,6 @@ class Worker(QObject):
         super(Worker, self).__init__()
         self.stopCall = False
         self.smu = smu
-        self.mtime = 0
         self.savedFlag = False
         self.k2700 = k2700
         self.connection = connection
@@ -1017,7 +1016,6 @@ class Worker(QObject):
 
                 """
         self.i = 0
-        self.mtime = datetime.now()
         if self.new_flag:
             self.initialize_SMU()
         self.configure_pulse()
@@ -1053,7 +1051,7 @@ class Worker(QObject):
             np.savetxt(f, totalData.T, delimiter='\t')
             f.write("\n\n")
         self.saveData()
-        self.finished.emit()
+        self.stop_program()
 
     def wait_till_done(self):
         """
@@ -1130,7 +1128,6 @@ class Worker(QObject):
             self.smu.abort()
         self.smu.source_voltage = 0
         self.smu.disable_source()
-        self.mtime = str(datetime.now() - self.mtime)
         self.finished.emit()
 
     def stopcalled(self):

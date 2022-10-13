@@ -482,14 +482,17 @@ class app_RVLoop(Ui_RVLoop):
         """
         data = Data[0]
         self.currentCycle = Data[1]
-        volts, resistances = data
-        # volts = volts.flatten()
-        #resistances = [abs(x) for x in resistances]
         pen1 = mkPen(intColor(3 * self.currentCycle, values=3), width=2)
         if self.currentCycle == self.previousCycle:
-            self.data_line.setData(volts, resistances)
+            self.volts.extend(data[0])
+            self.resistances.extend(data[1])
+            # self.resistances = [abs(x) for x in self.resistances]
+            self.data_line.setData(self.volts, self.resistances)
         else:
-            self.data_line = self.graphWidget.plot(volts, resistances, name=f"Cycle {self.currentCycle}",
+            self.volts = list(data[0])
+            self.resistances = list(data[1])
+            # self.resistances = [abs(x) for x in self.resistances]
+            self.data_line = self.graphWidget.plot(self.volts, self.resistances, name=f"Cycle {self.currentCycle}",
                                                    pen=pen1)
         self.previousCycle = self.currentCycle
 
@@ -516,6 +519,8 @@ class app_RVLoop(Ui_RVLoop):
         #self.comment_checkBox.setEnabled(False)
         #self.commentBox.setEnabled(False)
         self.update_params()
+        self.volts = []
+        self.resistances = []
         self.startThread()
 
     def startThread(self):
@@ -639,9 +644,6 @@ class Worker(QObject):
         elif self.params["timeunit"] == 2:
             self.pulse_width = self.params["VPwidth"]
         navg = ceil(0.02/(self.pulse_width+2e-5))
-        #if navg > self.smu.avg:
-        #    self.smu.avg = navg
-        print(self.smu.avg)
 
     def initialize_SMU(self):
         """
@@ -707,20 +709,24 @@ class Worker(QObject):
         self.smu.start_buffer()
         number_of_data_per_point = 4 #TODO: get it directly from SMU
         finished = False
-        writeData = []
-        while not self.stopCall:
-            if self.smu.get_trigger_state() == 'IDLE':  # This line ensures last set of data is collected
+        whole_writeData = []
+        whole_readData = []
+        buffer = []
+        while True:
+            if self.smu.get_trigger_state() == 'IDLE' or self.stopCall:  # This line ensures last set of data is collected
                 finished = True
-                if len(writeData) == self.npoints:  # break if required number of data is already obtained
+                if len(whole_writeData) == self.npoints:  # break if required number of data is already obtained
                     break
-            data2 = []
+            data2 = buffer
+            buffer = []
             while True:
                 sleep(0.2)
-                data = self.smu.get_trace_data() # TODO: change the code to obtain only recent data instead of whole data each time.
-                data2 = np.reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
+                data = self.smu.get_trace_data_recent()
+                data2.extend(np.reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point)))
                 data_length = len(data2)
                 if data_length >= self.smu.avg + 1:
                     trimmed_length = int(data_length / (self.smu.avg + 1)) * (self.smu.avg + 1)
+                    buffer = data2[trimmed_length:]
                     data2 = np.array(data2[:trimmed_length])
                     break
             writeData = data2[::self.smu.avg + 1]
@@ -730,20 +736,24 @@ class Worker(QObject):
                 readData = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0].copy()
                 readData = np.reshape(readData, (-1, self.smu.avg, number_of_data_per_point))
                 readData = np.mean(readData, axis=1)
+            whole_writeData.extend(writeData)
+            whole_readData.extend(readData)
             requestedVoltage = writeData[:, 3]
-            volts = writeData[:, 0]
-            read_voltages = readData[:,0]
             read_currents = readData[:, 1]
             read_currents[read_currents == 0] = 1e-20
-            resistances = read_voltages / read_currents
+            resistances = self.params["Rvoltage"] / read_currents
             self.data.emit([[requestedVoltage, resistances],self.cycleNum])
             if finished:
                 break
-        volts = writeData[:, 0]
-        set_currents = writeData[:, 1]
-        time_stamp = writeData[:, 2]
-        r2 = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0].copy()
-        np.savetxt("alldata.dat",r2)
+        whole_writeData = np.array(whole_writeData)
+        whole_readData = np.array(whole_readData)
+        volts = whole_writeData[:, 0]
+        set_currents = whole_writeData[:, 1]
+        time_stamp = whole_writeData[:, 2]
+        requestedVoltage = whole_writeData[:, 3]
+        read_currents = whole_readData[:, 1]
+        read_currents[read_currents == 0] = 1e-20
+        resistances = self.params["Rvoltage"] / read_currents
         data = np.array((requestedVoltage, volts, set_currents, read_currents, resistances, time_stamp))
         return data
 
@@ -854,11 +864,11 @@ class Worker(QObject):
                 self.smu.set_simple_loop(self.smu.avg)
                 self.smu.source_voltage = self.params["Rvoltage"]
                 data = self.measure_RV_AFG()
-            self.cycleNum = self.cycleNum + 1
             with open(self.tempfileName, "a") as f:
                 f.write(f"#Cycle {self.cycleNum}\n")
                 np.savetxt(f, data.T, delimiter='\t')
                 f.write("\n\n")
+            self.cycleNum = self.cycleNum + 1
         self.mtime = str(datetime.now() - self.mtime)
         self.saveFile()
         self.stop_program()
