@@ -5,6 +5,7 @@
 # Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
+#TODO: Preserve graph even after switch is closed. Only if filename is changed, clear the switch graph.
 from utilities import *
 
 class Ui_Switch(QtWidgets.QWidget):
@@ -802,6 +803,7 @@ class Worker(QObject):
             None.
 
         """
+        self.smu.set_compliance(self.params["ILimit"])
         self.smu.readV = self.params["Rvoltage"]
         if self.params["set_timeUnit"] == 0:
             self.set_pulse_width = self.params["setPwidth"] * 1e-6
@@ -882,11 +884,11 @@ class Worker(QObject):
                     readData = np.mean(readData, axis=1)
                 whole_writeData.extend(writeData)
                 whole_readData.extend(readData)
-                volts = writeData[:, 0]
+                requestedVoltage = writeData[:, 3]
                 read_currents = readData[:, 1]
                 read_currents[read_currents==0] = 1e-20
                 resistances = self.params["Rvoltage"] / read_currents
-                self.data.emit([volts, resistances])
+                self.data.emit([requestedVoltage, resistances])
                 if finished:
                     break
         else:
@@ -903,7 +905,7 @@ class Worker(QObject):
                 resetData = self.smu.get_trace_data()
                 setData = np.reshape(np.array(setData.split(','), dtype=float),(-1,4))
                 resetData = np.reshape(np.array(resetData.split(','), dtype=float),(-1,4))
-                volt = [setData[0][0],resetData[0][0]] # actual voltage applied
+                requestedVoltage = [setData[0][3],resetData[0][3]] # actual voltage applied
                 avgreadData_set = np.mean(setData[1:], axis=0)
                 avgreadData_reset = np.mean(resetData[1:], axis=0)
                 rc = np.array([avgreadData_set[1],avgreadData_reset[1]]) # read current
@@ -911,7 +913,7 @@ class Worker(QObject):
                 resistance = np.divide(self.params["Rvoltage"] , rc)
                 whole_writeData.extend([setData[0], resetData[0]])
                 whole_readData.extend([avgreadData_set, avgreadData_reset])
-                self.data.emit([volt, resistance])
+                self.data.emit([requestedVoltage, resistance])
                 cycleNum += 1
         whole_writeData = np.array(whole_writeData)
         whole_readData = np.array(whole_readData)

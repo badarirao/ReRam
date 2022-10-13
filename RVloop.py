@@ -6,9 +6,8 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-# TODO: Add tooltips
-# TODO: There is some problem when stopping the measurement in between (I think it is resolved now)
-# TODO: check if average over n reading works as desired
+# TODO: Add option to add avg readings parameter by user
+# TODO: Check if time taken for measuring readV can be made same for all pulse widths. Currently, faster pulses have shorter measurement time, and hence more noise.
 
 from utilities import *
 
@@ -336,6 +335,8 @@ class app_RVLoop(Ui_RVLoop):
         self.scan_direction.setCurrentIndex(1)
         self.connection = connection
         self.stop_Button.setEnabled(False)
+        self.scan_speed_label.hide()
+        self.scan_speed.hide()
         self.stopCall = False
         self.start_Button.clicked.connect(self.start_rvloop)
         self.pulse_width.setMinimum(1)
@@ -347,7 +348,7 @@ class app_RVLoop(Ui_RVLoop):
         self.update_limits()
         self.smu.nplc = 0.01
         self.smu.readV = 0.1
-        self.avg_over_n_readings = 10
+        self.avg_over_n_readings = 5
         self.filename = sName
         self.file_name.setReadOnly(True)
         self.file_name.setText(self.filename)
@@ -637,6 +638,10 @@ class Worker(QObject):
             self.pulse_width = self.params["VPwidth"] * 1e-3
         elif self.params["timeunit"] == 2:
             self.pulse_width = self.params["VPwidth"]
+        navg = ceil(0.02/(self.pulse_width+2e-5))
+        #if navg > self.smu.avg:
+        #    self.smu.avg = navg
+        print(self.smu.avg)
 
     def initialize_SMU(self):
         """
@@ -651,20 +656,15 @@ class Worker(QObject):
             self.smu = FakeAdapter()
         self.smu.reset()
         if self.params["Speed"] == 0:
-            nplc = 5
-            self.speed = "Very Slow"
+            self.smu.nplc = 5 # Very Slow
         elif self.params["Speed"] == 1:
-            nplc = 2
-            self.speed = "Slow"
+            self.smu.nplc = 2 # Slow
         elif self.params["Speed"] == 2:
-            nplc = 1
-            self.speed = "Normal"
+            self.smu.nplc = 1 # Normal
         elif self.params["Speed"] == 3:
-            nplc = 0.1
-            self.speed = "Fast"
+            self.smu.nplc = 0.1 # Fast
         elif self.params["Speed"] == 4:
-            nplc = 0.01
-            self.speed = "Very Fast"
+            self.smu.nplc = 0.01 # Very Fast
         self.smu.apply_voltage(compliance_current=self.params["ILimit"])
         self.smu.measure_current()
         self.smu.auto_range_sense()
@@ -716,7 +716,7 @@ class Worker(QObject):
             data2 = []
             while True:
                 sleep(0.2)
-                data = self.smu.get_trace_data()
+                data = self.smu.get_trace_data() # TODO: change the code to obtain only recent data instead of whole data each time.
                 data2 = np.reshape(np.array(data.split(','), dtype=float), (-1, number_of_data_per_point))
                 data_length = len(data2)
                 if data_length >= self.smu.avg + 1:
@@ -732,15 +732,18 @@ class Worker(QObject):
                 readData = np.mean(readData, axis=1)
             requestedVoltage = writeData[:, 3]
             volts = writeData[:, 0]
+            read_voltages = readData[:,0]
             read_currents = readData[:, 1]
             read_currents[read_currents == 0] = 1e-20
-            resistances = self.params["Rvoltage"] / read_currents
-            self.data.emit([[volts, resistances],self.cycleNum])
+            resistances = read_voltages / read_currents
+            self.data.emit([[requestedVoltage, resistances],self.cycleNum])
             if finished:
                 break
         volts = writeData[:, 0]
         set_currents = writeData[:, 1]
         time_stamp = writeData[:, 2]
+        r2 = data2[np.mod(np.arange(data2.shape[0]), self.smu.avg + 1) != 0].copy()
+        np.savetxt("alldata.dat",r2)
         data = np.array((requestedVoltage, volts, set_currents, read_currents, resistances, time_stamp))
         return data
 
@@ -834,7 +837,7 @@ class Worker(QObject):
                 self.k2700.open_Channels(AFG)  # connect AFG
                 self.k2700.close_Channels(AFG + 10)  # connect AFG
             sleep(0.2)  # wait for 200msec to ensure switching is complete
-        while self.cycleNum < self.params["Ncycles"] and not self.stopCall:
+        while self.cycleNum <= self.params["Ncycles"] and not self.stopCall:
             self.volts = []
             self.actual_setVolts = []
             self.set_currents = []
@@ -912,7 +915,7 @@ class Worker(QObject):
             with open(self.tempfileName, 'r') as tmp:
                 lines = tmp.readlines()
                 f.writelines(lines)
-            os.remove(self.tempfileName)
+            #os.remove(self.tempfileName)
         f.close()
 
     def stop_program(self):

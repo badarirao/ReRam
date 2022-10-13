@@ -56,6 +56,7 @@ class KeysightB2902B:
             self.wire_config = 2
             self.avg = 1 # number of readings to take and average
             self.write(f"TRAC{self.ch}:FEED SENS")
+            self.write(f":OUTP{self.ch}:LOW flo") # FLOATING LOW TERMINAL
             self.pulse_delay = 2e-5  # set a default 20 µs pulse delay
         else:
             raise VisaIOError(-1073807346)
@@ -204,15 +205,9 @@ class KeysightB2902B:
     def setNPLC(self, nplc = 'default'):
         # nplc can also be 'auto' for automatic selection depending on range
         if nplc == 'default':
-            self.write(f"SENS{self.ch}:VOLT:NPLC {self.nplc}")
+            self.write(f"SENS{self.ch}:CURR:NPLC {self.nplc}")
         else:
-            self.write(f"SENS{self.ch}:VOLT:NPLC {nplc}")
-    
-    def set_current_nplc(self, nplc = 'default'):
-        if nplc == 'default':
-            self.write(f"SENS{self.ch}:CURRent:NPLCycles {self.nplc}")
-        else:
-            self.write(f"SENS{self.ch}:CURRent:NPLCycles {nplc}")
+            self.write(f"SENS{self.ch}:CURR:NPLC {nplc}")
     
     def apply_current(self, current_range=None,compliance_voltage=0.1):
         """ Configures the instrument to apply a source current, and
@@ -760,6 +755,7 @@ class KeysightB2902B:
         self.write(f"SOUR{self.ch}:{self.source_mode}:TRIG {output}")
 
     def configure_pulse(self, delay_time=2e-5, baseV=0,pw1 = 0.1, pw2 = 0.2):
+        print(self.avg)
         self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
         self.write(f"SOUR{self.ch}:VOLT:MODE FIX")
         self.write(f"SOUR{self.ch}:PULS:DEL {delay_time}")
@@ -768,9 +764,14 @@ class KeysightB2902B:
         pulse_delay = self.pulse_delay  # set a default 20 µs pulse delay
         self.write(f"SOUR{self.ch}:PULS:DEL {pulse_delay}")
         self.write(f"TRIG{self.ch}:TRAN:DEL 0")
-
-        self.acq_trigger_period1 = pw1 + pulse_delay + 2e-5  # add buffer 20 µs
-        self.acq_trigger_period2 = pw2 + pulse_delay + 2e-5  # add buffer 20 µs
+        if pw1 + pulse_delay < 0.02: # acquire period should be more than 1/line frequency
+            self.acq_trigger_period1 = 0.02 + pulse_delay
+        else:
+            self.acq_trigger_period1 = pw1 + pulse_delay
+        if pw2 + pulse_delay < 0.02:
+            self.acq_trigger_period2 = 0.02 + pulse_delay
+        else:
+            self.acq_trigger_period2 = pw2 + pulse_delay
         self.source_trigger_period1 = (self.avg + 1) * self.acq_trigger_period1
         self.source_trigger_period2 = (self.avg + 1) * self.acq_trigger_period2
         # TODO: check if the following settings will be preserved when buffer is cleared
@@ -802,6 +803,11 @@ class KeysightB2902B:
 
     def configure_pulse_sweep(self, voltages, baseV, pulse_width):
         pulse_delay = self.pulse_delay
+        if pulse_width + pulse_delay < 0.02:  # acqusition period should be greater than 1/(line frequency)
+            acq_trigger_period = 0.02 + pulse_delay
+        else:
+            acq_trigger_period = pulse_width + pulse_delay
+        source_trigger_period = (self.avg + 1) * acq_trigger_period
         self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
         self.write(f"SOUR{self.ch}:VOLT:MODE LIST")
         self.write(f"SOUR{self.ch}:LIST:VOLT {voltages}")
@@ -811,10 +817,6 @@ class KeysightB2902B:
         self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
         self.write(f"TRIG{self.ch}:TRAN:DEL 0")
         self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
-
-        measurement_time = self.get_measurement_time() + 2e-5  # assume 20 µs overhead, need to adjust appropriately
-        acq_trigger_period = pulse_width + pulse_delay + 2e-5  # add buffer 20 µs
-        source_trigger_period = (self.avg+1) * acq_trigger_period
         nPoints = int(float(self.ask(f":SOUR{self.ch}:LIST:{self.source_mode}:POIN?").strip()))
         self.write(f":trig{self.ch}:sour tim")
         # set source trigger conditions
@@ -823,6 +825,8 @@ class KeysightB2902B:
         # set acquire trigger conditions
         self.write(f":trig{self.ch}:acq:tim {acq_trigger_period}")
         self.write(f":trig{self.ch}:acq:coun {(self.avg+1) * nPoints}")  # 1 set for write current, avg sets for read current
+        measurement_time = self.get_measurement_time() #+ 2e-5  # assume 20 µs overhead, need to adjust appropriately
+        print(f"Measure time = {measurement_time}")
         self.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
 
     def set_low_terminal_state(self, state):
