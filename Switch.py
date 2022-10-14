@@ -6,6 +6,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 #TODO: Preserve graph even after switch is closed. Only if filename is changed, clear the switch graph.
+#TODO: also calculate standard deviation for the average read resistance calculated
 from utilities import *
 
 class Ui_Switch(QtWidgets.QWidget):

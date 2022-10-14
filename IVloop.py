@@ -522,6 +522,7 @@ class Worker(QObject):
         self.smu.nplc = 1
         self.status = 1
         self.mtime = 0
+        print(f"Low terminal: {self.smu.ask(':OUTP:LOW?')}")
         
     def initialize_SMU(self):
         """

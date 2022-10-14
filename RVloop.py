@@ -6,8 +6,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-# TODO: Add option to add avg readings parameter by user
-# TODO: Check if time taken for measuring readV can be made same for all pulse widths. Currently, faster pulses have shorter measurement time, and hence more noise.
+#TODO: also calculate standard deviation for the average read resistance calculated
 
 from utilities import *
 

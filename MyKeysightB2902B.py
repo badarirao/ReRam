@@ -56,7 +56,7 @@ class KeysightB2902B:
             self.wire_config = 2
             self.avg = 1 # number of readings to take and average
             self.write(f"TRAC{self.ch}:FEED SENS")
-            self.write(f":OUTP{self.ch}:LOW gro") # FLOATING LOW TERMINAL
+            self.write(f":OUTP{self.ch}:LOW flo") # float LOW TERMINAL
             self.pulse_delay = 2e-5  # set a default 20 µs pulse delay
         else:
             raise VisaIOError(-1073807346)
@@ -851,6 +851,16 @@ class KeysightB2902B:
     def configure_pulse_trigger_high_res_acquire_sweep(self, voltages, npulses, pulse_width, baseV = 0):
         pulse_delay = 2e-5
         source_trigger_period = pulse_width + pulse_delay
+        npoints = len(voltages)
+        if source_trigger_period*npoints > 2: # max only 2 seconds
+            if pulse_width*npoints <= 2: # check if total time is less than 2 seconds if pulse_delay is set to zero
+                source_trigger_period = pulse_width
+                pulse_delay = 0
+                print("Setting pulse delay to 0")
+            else: # else decrease number of points
+                npoints = int(2/source_trigger_period)
+                voltages = voltages[:npoints]
+                print("Trimming number of voltage points")
         acq_trigger_period = 2e-5
         acq_points = ceil(npoints*source_trigger_period/acq_trigger_period)
         self.write(f"SOUR{self.ch}:FUNC:SHAP PULS")
@@ -872,6 +882,7 @@ class KeysightB2902B:
             f":trig{self.ch}:acq:coun {acq_points}")  # 1 set for write current, avg sets for read current
         measurement_time = self.get_measurement_time()  # + 2e-5  # assume 20 µs overhead, need to adjust appropriately
         self.write(":FORM:ELEM:SENS VOLT,CURR,TIME,SOUR")
+
     def set_low_terminal_state(self, state):
         if state.lower() == 'float':
             state = 'flo'
