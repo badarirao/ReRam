@@ -805,7 +805,7 @@ class KeysightB2902B:
         #TODO: currently, the value returned by actual voltage applied has some fraction from read voltage as well.
         #TODO: so find out if the actual pulse voltage can be back calculated if you know the fraction.
         pulse_delay = self.pulse_delay
-        if pulse_width + pulse_delay < 0.02:  # acqusition period should be greater than 1/(line frequency)
+        if pulse_width < 0.02:  # acqusition period should be greater than 1/(line frequency)
             acq_trigger_period = 0.02 + pulse_delay
         else:
             acq_trigger_period = pulse_width + pulse_delay
@@ -818,7 +818,8 @@ class KeysightB2902B:
         self.write(f"SOUR{self.ch}:PULS:DEL {pulse_delay}")
         self.write(f"SOUR{self.ch}:PULS:WIDT {pulse_width}")
         self.write(f"TRIG{self.ch}:TRAN:DEL 0")
-        self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
+        self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay+2e-5}")
+        #self.write(f"TRIG{self.ch}:ACQ:DEL {pulse_delay + 0.5 * pulse_width}")
         nPoints = int(float(self.ask(f":SOUR{self.ch}:LIST:{self.source_mode}:POIN?").strip()))
         self.write(f":trig{self.ch}:sour tim")
         # set source trigger conditions

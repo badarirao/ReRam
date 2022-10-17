@@ -868,10 +868,11 @@ class Worker(QObject):
             number_of_data_per_point = 4
             finished = False
             while True:
+                if len(whole_writeData) == self.npoints:  # break if required number of data is already obtained
+                    finished = True
+                    break
                 if self.smu.get_trigger_state() == 'IDLE' or self.stopCall: # This line ensures last set of data is collected
                     finished = True
-                    if len(whole_writeData) == self.npoints:  # break if required number of data is already obtained
-                        break
                 data2 = buffer
                 buffer = []
                 while True:

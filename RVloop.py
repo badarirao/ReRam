@@ -714,10 +714,11 @@ class Worker(QObject):
         whole_readData = []
         buffer = []
         while True:
+            if len(whole_writeData) == self.npoints:  # break if required number of data is already obtained
+                finished = True
+                break
             if self.smu.get_trigger_state() == 'IDLE' or self.stopCall:  # This line ensures last set of data is collected
                 finished = True
-                if len(whole_writeData) == self.npoints:  # break if required number of data is already obtained
-                    break
             data2 = buffer
             buffer = []
             while True:
@@ -926,7 +927,7 @@ class Worker(QObject):
             with open(self.tempfileName, 'r') as tmp:
                 lines = tmp.readlines()
                 f.writelines(lines)
-            #os.remove(self.tempfileName)
+            os.remove(self.tempfileName)
         f.close()
 
     def stop_program(self):
