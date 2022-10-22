@@ -56,7 +56,7 @@ class KeysightB2902B:
             self.wire_config = 2
             self.avg = 1 # number of readings to take and average
             self.write(f"TRAC{self.ch}:FEED SENS")
-            self.write(f":OUTP{self.ch}:LOW flo") # float LOW TERMINAL
+            self.write(f":OUTP{self.ch}:LOW GRO") # float LOW TERMINAL
             self.pulse_delay = 2e-5  # set a default 20 µs pulse delay
         else:
             raise VisaIOError(-1073807346)

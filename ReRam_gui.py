@@ -15,6 +15,7 @@ Not tested for other Python versions or OS.
 # TODO: combine all common import modules and put it in utilities, and import from utilities
 # TODO: Keysight SMU can probably do PUND current measurement. Apply pulse, and measure current decay (min 20 us interval)
 # TODO: Allow adding comments when experiment is running
+# TODO: copy voltage, compliance and read voltage levels to other programs from results of IV
 """
 # 'KEITHLEY INSTRUMENTS,MODEL 2450,04488850,1.7.3c\n'
 # 'KEITHLEY INSTRUMENTS INC.,MODEL 2700,1150720,B09  /A02  \n'

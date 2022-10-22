@@ -45,10 +45,10 @@ class Ui_RVLoop(QtWidgets.QWidget):
         self.gridLayout.setObjectName("gridLayout")
         self.maxV = QtWidgets.QDoubleSpinBox(self.frame)
         self.maxV.setDecimals(3)
-        self.maxV.setMinimum(-9.0)
-        self.maxV.setMaximum(10.0)
-        self.maxV.setSingleStep(0.001)
-        self.maxV.setProperty("value", 3.0)
+        self.maxV.setMinimum(-199.0)
+        self.maxV.setMaximum(199.0)
+        self.maxV.setSingleStep(0.1)
+        self.maxV.setProperty("value", 1.0)
         self.maxV.setObjectName("maxV")
         self.gridLayout.addWidget(self.maxV, 3, 1, 1, 1)
         self.numCycles = QtWidgets.QDoubleSpinBox(self.frame)
@@ -310,7 +310,8 @@ class app_RVLoop(Ui_RVLoop):
         self.Ilimit.setSingleStep(0.1)
         self.read_voltage.setSingleStep(0.1)
         self.read_voltage.setDecimals(3)
-        self.read_voltage.setMinimum(0.001)
+        self.read_voltage.setMinimum(-10)
+        self.read_voltage.setMaximum(10)
         if self.afg1022:
             if self.afg1022.ID == 'Fake':
                 self.vsource.removeItem(2)  # Remove AFG source option
