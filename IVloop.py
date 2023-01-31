@@ -577,7 +577,7 @@ class Worker(QObject):
         self.npoints = self.params['npoints']
         if self.params["Vmax"] == self.params["Vmin"]:
             self.points = [self.params["Vmax"]]
-            self.smu.set_voltage_points(self.points[0])
+            self.smu.set_voltage_points(str(self.points[0]))
         elif self.params["Vmax"] >= 0 >= self.params["Vmin"]:
             nplus = int(self.params["Vmax"]/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)
             nminus = int(abs(self.params["Vmin"])/(self.params["Vmax"]-self.params["Vmin"])*self.npoints*0.5)

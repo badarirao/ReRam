@@ -7,7 +7,8 @@
 # WARNING! All changes made in this file will be lost!
 
 #TODO: also calculate standard deviation for the average read resistance calculated
-
+#TODO: If resistance is greater than some value, then plot becomes invisible (maybe fix the max value to something visible)
+# TODO: option to add delay after each pulse point, so that any remnant current from pulse is not measured
 from utilities import *
 
 class Ui_RVLoop(QtWidgets.QWidget):
