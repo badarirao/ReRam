@@ -1,5 +1,5 @@
 # ReRam
-ReRam is a pyqt5 based gui program for measuring various resistive switching properties of your sample. It is designed to work with a Keithley 2450 and Keysight B2902B sourcemeter. If you are interested in running the program, and need help, feel free to email me at badari.rao@gmail.com.
+ReRam is a pyqt5 based gui program for measuring various resistive switching properties of your sample. It is designed to work with a Keithley 2450 or Keysight B2902B sourcemeter. It can also connect to an AFG1022 function generator to apply source pulse voltage. If you are interested in running the program, and need help, feel free to email me at badari.rao@gmail.com.
 
 ## Software capabilities
 The software stores the data in txt format, and the user can add details of sample and measurement in comment section.
