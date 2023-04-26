@@ -116,11 +116,26 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# path.txt
-path.txt
-
-# address file
+# paths relevant to local computer
 address.txt
-
-# setting file
 SettingFile.dnd
+
+# ignore any data files created in the folder
+*.dat
+
+# ignore batch file
+ReRam.bat
+
+#ignore icon file
+ReRam.ico
+
+# ignore batch file
+*.bat
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/ReRam.iml
+/.idea/vcs.xml
+/.idea/other.xml
+/parameter_file.prm

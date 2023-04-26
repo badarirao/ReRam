@@ -40,4 +40,3 @@ Following features are being planned for future release:
 
 ### Forming interface
 ![Forming_interface](https://user-images.githubusercontent.com/47620203/234467581-d83fdfbc-8593-456d-b721-0819ad5b35e7.jpg)
-

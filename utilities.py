@@ -1,40 +1,69 @@
 """Utilities file with useful classes and functions."""
 
 from datetime import datetime
-from os.path import abspath, join, exists
+from os.path import abspath, join
+from os.path import exists as fileExists
 from pyvisa import ResourceManager, VisaIOError
 from os import makedirs
+import os
 from copy import copy
 from re import sub
-from sys import exit as exitprogram
-from pymeasure.instruments.keithley import Keithley2450
-from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtWidgets import QTimeEdit, QSpinBox
+from math import log10
+import numpy as np
+from time import sleep
+from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, QTimer, QEventLoop
+from PyQt5.QtWidgets import QMessageBox, QTimeEdit, QSpinBox
+from PyQt5.QtGui import QPalette, QColor, QBrush
+from winsound import MessageBeep
+from itertools import chain
+from time import sleep
+from pyqtgraph import PlotWidget, ViewBox, mkPen, intColor, GraphicsLayoutWidget
+from math import ceil
+from csv import writer
+from MyKeithley2450 import Keithley2450
+from MyKeithley2700 import Keithley2700
+from MyKeysightB2902B import KeysightB2902B
+from MyAFG1022 import AFG1022
 
-SMU = 111
-AFG = 112
-SAMPLE1 = 101
-SAMPLE2 = 102
-SAMPLE3 = 103
-SAMPLE4 = 104
-SAMPLE5 = 105
-SAMPLE6 = 106
-SAMPLE7 = 107
-SAMPLE8 = 108
-SAMPLE9 = 109
-SAMPLE10 = 110
+SMU = 101
+AFG = 102
+SMU4PROBE = 115
+SAMPLE1 = 106
+SAMPLE2 = 107
+SAMPLE3 = 108
+CRYOCHAMBER1 = 109
+CRYOCHAMBER2 = 110
+
+CONNECTION = 1
 
 sample_id = {
-                1 : SAMPLE1,
-                2 : SAMPLE2,
-                3 : SAMPLE3,
-                4 : SAMPLE4,
-                5 : SAMPLE5,
-                6 : SAMPLE6,
-                7 : SAMPLE7,
-                8 : SAMPLE8,
-                9 : SAMPLE9,
-                10 : SAMPLE10}
+                0 : SAMPLE1,
+                1 : SAMPLE2,
+                2 : SAMPLE3,
+                3 : CRYOCHAMBER1,
+                4 : CRYOCHAMBER2
+            }
+
+sample_key = {
+                106 : 0,
+                107 : 1,
+                108 : 2,
+                109 : 3,
+                110 : 4
+            }
+
+inst_id = {
+                0 : SMU,
+                1 : AFG,
+                4 : SMU4PROBE
+            }
+
+inst_key = {
+                101 : 0,
+                102 : 1,
+                115 : 4
+            }
 
 class MyTimeEdit(QTimeEdit):
     def stepBy(self,steps):
@@ -52,7 +81,7 @@ class MyTimeEdit(QTimeEdit):
                 self.setTime(cur.addSecs(-60*steps))
             elif minute == 59 and steps > 0:
                 self.setTime(cur.addSecs(60*steps))
-       
+
 class Communicate(QObject):
     message = pyqtSignal(int)
 
@@ -60,7 +89,7 @@ class connectedSpinBox(QSpinBox):
     def __init__(self,*args,**kwargs):
         super(connectedSpinBox,self).__init__(*args,**kwargs)
         self.hasWrapped = Communicate()
-        
+
     def stepBy(self,steps):
         cur = self.value()
         QSpinBox.stepBy(self,steps)
@@ -68,7 +97,7 @@ class connectedSpinBox(QSpinBox):
             self.hasWrapped.message.emit(-1)
         elif cur == 9 and steps > 0:
             self.hasWrapped.message.emit(1)
-        
+
 class FakeAdapter():
     """Provides a fake adapter for debugging purposes.
 
@@ -92,6 +121,7 @@ class FakeAdapter():
 
     def __init__(self):
         self.address = ''
+        self.ID = 'Fake'
 
     def read(self):
         """Return last commands given after the last read call."""
@@ -104,11 +134,14 @@ class FakeAdapter():
         """Write the command to a buffer, so that it can be read back."""
         self._buffer += command
 
+    def set_wire_configuration(self,n):
+        raise NotImplementedError
+
     def __repr__(self):
         """Return the class name as a string."""
         return "<FakeAdapter>"
 
-    def __getattr__(self,name):  
+    def __getattr__(self,name):
         """If any undefined method is called, do nothing."""
         def method(*args):
             pass
@@ -116,7 +149,7 @@ class FakeAdapter():
 
 
 
-def unique_filename(directory, prefix='DATA', suffix='', ext='csv',
+def unique_filename(directory, prefix='DATA', suffix='', ext='dat',
                     dated_folder=False, index=True, datetimeformat="%Y-%m-%d"):
     """
     Return a unique filename based on the directory and prefix.
@@ -127,14 +160,14 @@ def unique_filename(directory, prefix='DATA', suffix='', ext='csv',
     directory = abspath(directory)
     if dated_folder:
         directory = join(directory, now.strftime('%Y-%m-%d'))
-    if not exists(directory):
+    if not fileExists(directory):
         makedirs(directory)
     if index:
         i = 1
         basename = "%s%s" % (prefix, now.strftime(datetimeformat))
         basepath = join(directory, basename)
         filename = "%s_%d%s.%s" % (basepath, i, suffix, ext)
-        while exists(filename):
+        while fileExists(filename):
             i += 1
             filename = "%s_%d%s.%s" % (basepath, i, suffix, ext)
     else:
@@ -170,40 +203,257 @@ def connectDevice(inst,addr,test = False):
         if test == True:
             return FakeAdapter(), 0
         else:
-            # TODO: prompt a gui message instead
-            print("Instrument not connected! Check connections!")
-            exitprogram()
-        
-def checkInstrument(k2450Addr = None, test = False):
-    """
-    Obtain instrument address of K2450.
+            msg = QMessageBox()
+            title = "No Instrument connected"
+            text = "Cannot find required instruments. Check connections again and restart program."
+            msg.setIcon(QMessageBox.Critical)
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.setWindowTitle(title)
+            msg.setText(text)
+            msg.exec()
+            return 0,0
 
-    Returns: k2450 object
+def connect_known_instruments(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
+                    b2902bAddr = None, test = False):
+    deviceAddr = [k2450Addr,k2700Addr,AFG1022Addr,b2902bAddr]
+    k2450 = k2700 = AFG = B2902b = None
+    rm = ResourceManager()
+    available_instruments = rm.list_resources()
+    for inst in available_instruments:
+        if inst in deviceAddr:
+            i = deviceAddr.index(inst)
+            if i == 0 and k2450 == None:
+                k2450 = Keithley2450(k2450Addr)
+            elif i == 1 and k2700 == None:
+                k2700 = Keithley2700(k2700Addr)
+            elif i == 2 and AFG == None:
+                AFG = AFG1022(AFG1022Addr)
+            elif i == 3 and B2902b == None:
+                B2902b = KeysightB2902B(b2902bAddr)
+    if k2450 == None:
+        k2450 = FakeAdapter()
+    if k2700 == None:
+        k2700 = FakeAdapter()
+    if AFG == None:
+        AFG = FakeAdapter()
+    if B2902b == None:
+        B2902b = FakeAdapter()
+    if k2450.ID != 'Fake' and B2902b.ID == 'Fake':
+        SMU = k2450
+    else:
+        SMU = B2902b
+    if k2700.ID == 'Fake' and AFG.ID != 'Fake':
+        AFG.close()
+        del AFG
+        AFG = FakeAdapter()
+    elif k2700.ID != 'Fake' and AFG.ID == 'Fake':
+        k2700.close()
+        del k2700
+        k2700 = FakeAdapter()
+    return SMU,k2700,AFG
+
+def checkInstrument(k2450Addr = None, k2700Addr = None, AFG1022Addr = None,
+                    b2902bAddr = None, test = False):
+    """
+    Obtain instrument address of K2450, K2700 and function generator.
+
+    Returns: list of instrument objects
     -------
-    Instrument objects pointing to K2450
+    Instrument objects pointing to K2450, K2700 and AFG1022
     if test is True,
-        return FakeAdapter if instrument is not found,
+        return FakeAdapter if any instrument is not found
     else exit program
     """
-    deviceAddr = k2450Addr
+    deviceAddr = [k2450Addr,k2700Addr,AFG1022Addr,b2902bAddr]
     rm = ResourceManager()
-    k2450Status =  0
+    k2450Status = k2700Status = afgStatus = b2902bStatus = 0
     if k2450Addr:
         k2450, k2450Status = connectDevice(Keithley2450,k2450Addr,test=True)
-    status = k2450Status
-    deviceInfo = ['KEITHLEY','2450']
-    if status == 0:
+    if k2700Addr:
+        k2700, k2700Status = connectDevice(Keithley2700,k2700Addr,test=True)
+    if AFG1022Addr:
+        afg, afgStatus = connectDevice(AFG1022,AFG1022Addr,test=True)
+    if b2902bAddr:
+        B2902b, b2902bStatus = connectDevice(KeysightB2902B,b2902bAddr, test=True)
+    status = [k2450Status,k2700Status,afgStatus,b2902bStatus]
+    deviceInfo = [['KEITHLEY','2450'],['KEITHLEY','2700'],['TEKTRONIX','AFG1022'],['KEYSIGHT','b2902b']]
+    notConnected = [x for x,y in enumerate(status) if y == 0]
+    if notConnected:
         instList = rm.list_resources()
         for inst in instList:
-            try:
-                myInst = rm.open_resource(inst)
-                instID = myInst.query('*IDN?').split(',')
-                if deviceInfo[0] in instID[0] and deviceInfo[1] in instID[1]:
-                    deviceAddr = inst
-                    break
-            except VisaIOError:
-                pass
-        k2450Addr = deviceAddr
+            for deviceNo in notConnected:
+                try:
+                    myInst = rm.open_resource(inst)
+                    instID = myInst.query('*IDN?').split(',')
+                    if deviceInfo[deviceNo][0] in instID[0] and deviceInfo[deviceNo][1] in instID[1]:
+                        deviceAddr[deviceNo] = inst
+                        notConnected.remove(deviceNo)
+                        break
+                except VisaIOError:
+                    pass
+        k2450Addr = deviceAddr[0]
+        k2700Addr = deviceAddr[1]
+        AFG1022Addr = deviceAddr[2]
+        b2902bAddr = deviceAddr[3]
         if k2450Status == 0:
-                k2450,_ = connectDevice(Keithley2450,k2450Addr,test)
-    return k2450
+            k2450,_ = connectDevice(Keithley2450,k2450Addr,test)
+            if _ == 0 and test == False:
+                return 0,0,0
+        if k2700Status == 0:
+            k2700,_ = connectDevice(Keithley2700,k2700Addr,test)
+            if _ == 0 and test == False:
+                return 0,0,0
+        if afgStatus == 0:
+            afg,_ = connectDevice(AFG1022,AFG1022Addr,test)
+            if _ == 0 and test == False:
+                return 0,0,0
+        if b2902bStatus == 0:
+            B2902b, _ = connectDevice(KeysightB2902B, b2902bAddr, test)
+            if _ == 0 and test == False:
+                return 0, 0, 0
+    if k2700.ID != 'Fake':
+        k2700.write('DISPLAY:TEXT:STATE ON')
+        k2700.write('DISPLAY:TEXT:DATA "RERAM USE"')
+    if k2450.ID != 'Fake' and B2902b.ID == 'Fake':
+        SMU = k2450
+    else:
+        SMU = B2902b
+    return SMU, k2700, afg
+
+def connect_sample_with_AFG(k2700,connection = 1):
+    """
+    Connect the function generator with sample using multiplexer.
+
+    Parameters
+    ----------
+    k2700 : Keithley2700 multiplexer adapter
+    sample_no : int, optional
+        The default is 1.
+
+    Returns
+    -------
+    None.
+
+    """
+    if k2700.ID == 'Fake':
+        return
+    closed_CHs = k2700.ask("ROUTe:MULTiple:CLOSe?")
+    if closed_CHs is not None:
+        if closed_CHs == '(@)\n':
+            closed_channels = []
+        else:
+            closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
+        if connection == 1: # SMU connected through connection 1 of MUX
+            closed_channels = [x for x in closed_channels if x <= 110]
+            required_channels = [AFG]
+            k2700.open_Channels([AFG+10])
+        elif connection == 2:
+            closed_channels = [x for x in closed_channels if x > 110 and x <= 120]
+            required_channels = [AFG+10]
+            k2700.open_Channels([AFG])
+        channels_to_close = [x for x in required_channels if x not in closed_channels]
+        channels_to_open = [x for x in closed_channels if x not in required_channels]
+        k2700.close_Channels(channels_to_close)
+        k2700.open_Channels(channels_to_open)
+        sleep(0.2)
+        #waitFor(20) # wait for 20msec to ensure switching is complete
+
+def connect_sample_with_SMU(k2700,connection = 1):
+    """
+    Connect the function generator with sample using multiplexer.
+
+    Parameters
+    ----------
+    k2700 : Keithley2700 multiplexer adapter
+    sample_no : int, optional
+        The default is 1.
+
+    Returns
+    -------
+    None.
+
+    """
+    if k2700.ID == 'Fake':
+        return
+    closed_CHs = k2700.ask("ROUTe:MULTiple:CLOSe?")
+    if closed_CHs is not None:
+        if closed_CHs == '(@)\n':
+            closed_channels = []
+        else:
+            closed_channels = list(map(int,closed_CHs[2:-2].split(',')))
+        if connection == 1: # SMU connected through connection 1 of MUX
+            closed_channels = [x for x in closed_channels if x <= 110]
+            required_channels = [SMU]
+            k2700.open_Channels([SMU+10])
+        elif connection == 2:
+            closed_channels = [x for x in closed_channels if x > 110 and x <= 120]
+            required_channels = [SMU+10]
+            k2700.open_Channels([SMU])
+        channels_to_close = [x for x in required_channels if x not in closed_channels]
+        channels_to_open = [x for x in closed_channels if x not in required_channels]
+        k2700.close_Channels(channels_to_close)
+        k2700.open_Channels(channels_to_open)
+        sleep(0.2)
+        #waitFor(20) # wait for 20msec to ensure switching is complete
+
+def waitFor(wtime): # wtime is in msec
+    loop = QEventLoop()
+    QTimer.singleShot(wtime, loop.quit)
+    loop.exec_()
+
+def linlinspace(totalTime):
+    return np.linspace(1,totalTime,totalTime)
+
+def linlogspace(counts,start=1,points_per_order=9):
+    max_order = int(log10(counts))
+    lin_ranges = np.logspace(start,max_order,(max_order-start)+1)
+    npoints = [1]
+    for i in range(len(lin_ranges)-1):
+        npoints.extend(list(np.linspace(lin_ranges[i],lin_ranges[i+1],points_per_order,endpoint=False)))
+    if points_per_order <= 9:
+        last_order_divisions = int(counts/10**max_order)
+    else:
+        last_order_divisions = int(counts*points_per_order/(9*10**max_order)-1)
+    npoints.extend(list(np.linspace(10**max_order,counts,last_order_divisions)))
+    npoints = list(dict.fromkeys(npoints))
+    return npoints
+
+def getBinnedPoints(points,start=1):
+    fpoints = [start]
+    fpoints.extend(list(np.diff(points).astype(float)))
+    return fpoints
+
+def checkMUX_SMU(k2700):
+    # If mux is connected, get connection details directly from mux
+    # If mux is not accessible, get connection details from saved file
+    if k2700.ID == 'Fake': # temp code. May need to change later
+        return -2
+    connection = 0
+    try:
+        with open("C:/Python Projects/MUX-Switch/status.txt",'r') as f:
+            lines = f.readlines()
+            line1 = lines[0].split()
+            print(line1)
+            if line1[1] == 'True':
+                if int(line1[2]) == inst_key[SMU]:
+                    connection = 1
+            line2 = lines[1].split()
+            if line2[1] == 'True':
+                if int(line2[2]) == inst_key[SMU]:
+                    if connection == 0:
+                        connection = 2
+                    else:
+                        connection = -1
+    except:
+        print("some error in accessing MUX info")
+        connection = 1
+        pass
+    if connection == 0:
+        # means SMU is not connected through MUX, so prompt to connect to SMU using MUX program
+        return 0, -1
+    elif connection == -1:
+        # means SMU is connected in 4-probe method. Currently ReRAM program is designed only for 2 probe method
+        # So prompt to connect to 2-probe SMU using MUX program
+        return -1, -1
+    else:
+        return connection
